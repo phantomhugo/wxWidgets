@@ -37012,6 +37012,7 @@ MSWDIR   = $(WXDIR)/src/msw
 MACDIR   = $(WXDIR)/src/osx
 COCOADIR = $(WXDIR)/src/cocoa
 FTDIR    = $(WXDIR)/src/freetype
+WASMDIR  = $(WXDIR)/src/wasm
 INCDIR   = $(WXDIR)/include
 IFACEDIR = $(WXDIR)/interface
 SAMPDIR  = $(WXDIR)/samples

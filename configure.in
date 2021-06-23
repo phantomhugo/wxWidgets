@@ -3013,6 +3013,11 @@ if test "$wxUSE_GUI" = "yes"; then
                 WXCONFIG_LDFLAGS_GUI="$LDFLAGS -Wl,--subsystem,windows -mwindows"
         esac
     fi
+    
+    if test "$wxUSE_WASM" = 1 ; then
+        TOOLKIT=WASM
+        GUIDIST=WASM_DIST
+    fi
 
     if test "$wxUSE_GTK" = 1; then
         dnl GTK+ test program must be compiled with C compiler

@@ -23112,6 +23112,11 @@ if test "$wxUSE_GUI" = "yes"; then
         esac
     fi
 
+    if test "$wxUSE_WASM" = 1 ; then
+        TOOLKIT=WASM
+        GUIDIST=WASM_DIST
+    fi
+
     if test "$wxUSE_GTK" = 1; then
                 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GTK+ version" >&5
 $as_echo_n "checking for GTK+ version... " >&6; }

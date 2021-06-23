@@ -1035,7 +1035,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1084,6 +1083,7 @@ with_msw
 with_directfb
 with_x11
 with_qt
+with_wasm
 enable_nanox
 enable_gpe
 with_libpng
@@ -1475,7 +1475,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1728,15 +1727,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1874,7 +1864,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -2027,7 +2017,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -2358,6 +2347,7 @@ Optional Packages:
   --with-directfb         use DirectFB
   --with-x11              use X11
   --with-qt               use Qt
+  --with-wasm             use Web Assembly
   --with-libpng           use libpng (PNG image format)
   --with-libjpeg          use libjpeg (JPEG file format)
   --with-libtiff          use libtiff (TIFF file format)
@@ -3864,12 +3854,13 @@ USE_SOLARIS=                        USE_SUN=                            USE_SUNO
 USE_ULTRIX=
 USE_UNIXWARE=
 USE_HAIKU=
+USE_WASM=
 
 USE_ALPHA=
 
 NEEDS_D_REENTRANT_FOR_R_FUNCS=0
 
-ALL_TOOLKITS="GTK OSX_COCOA OSX_IPHONE MOTIF MSW X11 DFB QT"
+ALL_TOOLKITS="GTK OSX_COCOA OSX_IPHONE MOTIF MSW X11 DFB QT WASM"
 
 DEFAULT_wxUSE_GTK=0
 DEFAULT_wxUSE_OSX_COCOA=0
@@ -3879,6 +3870,7 @@ DEFAULT_wxUSE_MSW=0
 DEFAULT_wxUSE_X11=0
 DEFAULT_wxUSE_DFB=0
 DEFAULT_wxUSE_QT=0
+DEFAULT_wxUSE_WASM=0
 
 DEFAULT_DEFAULT_wxUSE_GTK=0
 DEFAULT_DEFAULT_wxUSE_OSX_COCOA=0
@@ -3888,6 +3880,7 @@ DEFAULT_DEFAULT_wxUSE_MSW=0
 DEFAULT_DEFAULT_wxUSE_X11=0
 DEFAULT_DEFAULT_wxUSE_DFB=0
 DEFAULT_DEFAULT_wxUSE_QT=0
+DEFAULT_DEFAULT_wxUSE_WASM=0
 
 PROGRAM_EXT=
 SAMPLES_CXXFLAGS=
@@ -4074,6 +4067,14 @@ case "${host}" in
     $as_echo "#define __HAIKU__ 1" >>confdefs.h
 
     DEFAULT_DEFAULT_wxUSE_QT=1
+  ;;
+
+  *-*-wasm* | wasm32-*-* )
+    USE_WASM=1
+    $as_echo "#define __WASM__ 1" >>confdefs.h
+
+    DEFAULT_DEFAULT_wxUSE_WASM=1
+    DEFAULT_wxUSE_SHARED=no
   ;;
 
   *)
@@ -4588,6 +4589,19 @@ fi
 
 
 
+
+# Check whether --with-wasm was given.
+if test "${with_wasm+set}" = set; then :
+  withval=$with_wasm;
+            if test "$withval" != yes; then
+                as_fn_error $? "Option --with-wasm doesn't accept any arguments" "$LINENO" 5
+            fi
+            wxUSE_WASM="$withval" CACHE_WASM=1 TOOLKIT_GIVEN=1
+
+fi
+
+
+
           enablestring=
           defaultval=
           if test -z "$defaultval"; then
@@ -4693,7 +4707,7 @@ if test "$wxUSE_GUI" = "yes"; then
             NUM_TOOLKITS=`expr ${wxUSE_GTK:-0} \
                   + ${wxUSE_OSX_COCOA:-0} + ${wxUSE_OSX_IPHONE:-0} + ${wxUSE_DFB:-0} \
                   + ${wxUSE_MOTIF:-0} + ${wxUSE_MSW:-0} \
-                  + ${wxUSE_X11:-0} + ${wxUSE_QT:-0}`
+                  + ${wxUSE_X11:-0} + ${wxUSE_QT:-0} + ${wxUSE_WASM:-0}`
 
 
     case "$NUM_TOOLKITS" in
@@ -39251,6 +39265,9 @@ $as_echo "$bakefile_cv_prog_makeisgnu" >&6; }
                 PLATFORM_MAC=1
                 PLATFORM_MACOS=1
             ;;
+            *-*-wasm* | wasm32-*-* )
+                PLATFORM_UNIX=1
+            ;;
             * )
                 PLATFORM_UNIX=1
             ;;
@@ -39269,6 +39286,9 @@ $as_echo "$bakefile_cv_prog_makeisgnu" >&6; }
             ;;
             beos )
                 PLATFORM_BEOS=1
+            ;;
+            wasm | wasm32 )
+                PLATFORM_UNIX=1
             ;;
             * )
                 as_fn_error $? "Unknown platform: $BAKEFILE_FORCE_PLATFORM" "$LINENO" 5
@@ -39639,6 +39659,7 @@ fi
 
       powerpc-apple-macos* | \
       *-*-freebsd* | *-*-openbsd* | *-*-haiku* | *-*-netbsd* | *-*-gnu* | *-*-k*bsd*-gnu | \
+      *-*-wasm* | wasm32-*-* | \
       *-*-mirbsd* | \
       *-*-sunos4* | \
       *-*-osf* | \

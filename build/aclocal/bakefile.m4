@@ -90,6 +90,9 @@ AC_DEFUN([AC_BAKEFILE_PLATFORM],
                 PLATFORM_MAC=1
                 PLATFORM_MACOS=1
             ;;
+            *-*-wasm* | wasm32-*-* )
+                PLATFORM_UNIX=1
+            ;;
             * )
                 PLATFORM_UNIX=1
             ;;
@@ -108,6 +111,9 @@ AC_DEFUN([AC_BAKEFILE_PLATFORM],
             ;;
             beos )
                 PLATFORM_BEOS=1
+            ;;
+            wasm | wasm32 )
+                PLATFORM_UNIX=1
             ;;
             * )
                 AC_MSG_ERROR([Unknown platform: $BAKEFILE_FORCE_PLATFORM])
@@ -386,6 +392,7 @@ AC_DEFUN([AC_BAKEFILE_SHARED_LD],
 
       powerpc-apple-macos* | \
       *-*-freebsd* | *-*-openbsd* | *-*-haiku* | *-*-netbsd* | *-*-gnu* | *-*-k*bsd*-gnu | \
+      *-*-wasm* | wasm32-*-* | \
       *-*-mirbsd* | \
       *-*-sunos4* | \
       *-*-osf* | \

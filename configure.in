@@ -308,6 +308,8 @@ case "${host}" in
   ;;
   
   *-*-wasm* | wasm32-*-* )
+    USE_LINUX=1
+    AC_DEFINE(__LINUX__)
     USE_WASM=1
     AC_DEFINE(__WASM__)
     DEFAULT_DEFAULT_wxUSE_WASM=1
@@ -3017,6 +3019,7 @@ if test "$wxUSE_GUI" = "yes"; then
     if test "$wxUSE_WASM" = 1 ; then
         TOOLKIT=WASM
         GUIDIST=WASM_DIST
+        LDFLAGS="$LDFLAGS -s USE_ZLIB=1"
     fi
 
     if test "$wxUSE_GTK" = 1; then

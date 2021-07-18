@@ -56,7 +56,7 @@ public:
     virtual void SetSelection(int n) wxOVERRIDE;
     virtual int GetSelection() const wxOVERRIDE;
 
-    virtual QWidget *GetHandle() const wxOVERRIDE;
+    virtual WXWidget GetHandle() const wxOVERRIDE;
 
 protected:
     virtual int DoInsertItems(const wxArrayStringsAdapter & items,

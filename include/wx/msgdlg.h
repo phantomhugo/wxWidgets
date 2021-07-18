@@ -309,6 +309,8 @@ private:
     #include "wx/osx/msgdlg.h"
 #elif defined(__WXQT__)
     #include "wx/qt/msgdlg.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/msgdlg.h"
 #endif
 
 // ----------------------------------------------------------------------------

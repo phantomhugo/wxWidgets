@@ -3015,10 +3015,6 @@ typedef const void* WXWidget;
 #include "wx/qt/defs.h"
 #endif
 
-#ifdef __WXWASM__
-#include "wx/wasm/defs.h"
-#endif
-
 /*  include the feature test macros */
 #include "wx/features.h"
 

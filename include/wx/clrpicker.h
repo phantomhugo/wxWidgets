@@ -82,6 +82,8 @@ protected:
     #define wxColourPickerWidget      wxColourButton
 #elif defined(__WXQT__) && !defined(__WXUNIVERSAL__)
     #include "wx/qt/clrpicker.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/clrpicker.h"
 #else
     #include "wx/generic/clrpickerg.h"
     #define wxColourPickerWidget      wxGenericColourButton

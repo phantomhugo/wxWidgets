@@ -52,7 +52,7 @@ public:
     virtual wxString GetMenuLabel(size_t pos) const wxOVERRIDE;
 
     QMenuBar *GetQMenuBar() const { return m_qtMenuBar; }
-    virtual WXWidget *GetHandle() const wxOVERRIDE;
+    virtual WXWidget GetHandle() const wxOVERRIDE;
 
     virtual void Attach(wxFrame *frame) wxOVERRIDE;
     virtual void Detach() wxOVERRIDE;

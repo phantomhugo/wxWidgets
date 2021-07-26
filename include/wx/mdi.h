@@ -387,6 +387,8 @@ public:
     #include "wx/osx/mdi.h"
 #elif defined(__WXQT__)
     #include "wx/qt/mdi.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/mdi.h"
 #endif
 
 inline wxMDIClientWindow *wxMDIParentFrameBase::OnCreateClient()

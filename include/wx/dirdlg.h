@@ -129,6 +129,8 @@ protected:
     #define wxDirDialog wxGenericDirDialog
 #elif defined(__WXQT__)
     #include "wx/qt/dirdlg.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/dirdlg.h"
 #endif
 
 // ----------------------------------------------------------------------------

@@ -250,6 +250,8 @@ wxSaveFileSelector(const wxString& what,
     #include "wx/osx/filedlg.h"
 #elif defined(__WXQT__)
     #include "wx/qt/filedlg.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/filedlg.h"
 #endif
 
 #endif // wxUSE_FILEDLG

@@ -328,7 +328,7 @@ private:
 // ----------------------------------------------------------------------------
 
 #if wxUSE_UNICODE
-    #if defined(__WXGTK20__) || defined(__WXX11__) || defined(__WXQT__)
+    #if defined(__WXGTK20__) || defined(__WXX11__) || defined(__WXQT__) || defined(__WXWASM__)
         #define wxNEEDS_UTF8_FOR_TEXT_DATAOBJ
     #elif defined(__WXMAC__)
         #define wxNEEDS_UTF16_FOR_TEXT_DATAOBJ
@@ -589,6 +589,8 @@ private:
         #include "wx/osx/dataobj2.h"
     #elif defined(__WXQT__)
         #include "wx/qt/dataobj2.h"
+    #elif defined(__WXWASM__)
+        #include "wx/wasm/dataobj2.h"
     #endif
 
     // wxURLDataObject is simply wxTextDataObject with a different name

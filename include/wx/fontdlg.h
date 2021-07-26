@@ -79,6 +79,8 @@ protected:
     #include "wx/osx/fontdlg.h"
 #elif defined(__WXQT__)
     #include "wx/qt/fontdlg.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/fontdlg.h"
 #endif
 
 // ----------------------------------------------------------------------------

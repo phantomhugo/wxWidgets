@@ -87,7 +87,7 @@ private:
 #elif defined(__WXQT__)
     #include "wx/qt/choice.h"
 #elif defined(__WXWASM__)
-    #include "wx/qt/choice.h"
+    #include "wx/wasm/choice.h"
 #endif
 
 #endif // wxUSE_CHOICE

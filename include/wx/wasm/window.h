@@ -24,7 +24,7 @@ class WXDLLIMPEXP_CORE wxWindowWasm : public wxWindowBase
 public:
     wxWindowWasm() { Init(); }
 
-    wxWindowWasm(wxWindow *parent,
+    wxWindowWasm(wxWindowWasm *parent,
         wxWindowID id,
         const wxPoint& pos = wxDefaultPosition,
         const wxSize& size = wxDefaultSize,
@@ -37,161 +37,138 @@ public:
 
     virtual ~wxWindowWasm();
 
-    bool Create(wxWindow *parent,
-        wxWindowID id,
-        const wxPoint& pos = wxDefaultPosition,
-        const wxSize& size = wxDefaultSize,
-        long style = 0,
-        const wxString& name = wxASCII_STR(wxPanelNameStr));
+    bool Create(wxWindowWasm *parent,
+                wxWindowID id,
+                const wxPoint& pos = wxDefaultPosition,
+                const wxSize& size = wxDefaultSize,
+                long style = 0,
+                const wxString& name = wxASCII_STR(wxPanelNameStr));
 
+    // Used by all window classes in the widget creation process.
+    void PostCreation( bool generic = true );
+
+    void AddChild( wxWindowBase *child ) wxOVERRIDE;
+
+    virtual bool Show( bool show = true ) wxOVERRIDE;
+
+    virtual void SetLabel(const wxString& label) wxOVERRIDE;
+    virtual wxString GetLabel() const wxOVERRIDE;
+
+    virtual void DoEnable( bool enable ) wxOVERRIDE;
+    virtual void SetFocus() wxOVERRIDE;
+
+    // Parent/Child:
+    virtual bool Reparent( wxWindowBase *newParent ) wxOVERRIDE;
+
+    // Z-order
     virtual void Raise() wxOVERRIDE;
     virtual void Lower() wxOVERRIDE;
 
-    // SetLabel(), which does nothing in wxWindow
-    virtual void SetLabel(const wxString& label) wxOVERRIDE { m_Label = label; }
-    virtual wxString GetLabel() const wxOVERRIDE            { return m_Label; }
-
-    virtual bool Show( bool show = true ) wxOVERRIDE;
-    virtual bool Enable( bool enable = true ) wxOVERRIDE;
-
-    virtual void SetFocus() wxOVERRIDE;
-
+    // move the mouse to the specified position
     virtual void WarpPointer(int x, int y) wxOVERRIDE;
 
+    virtual void Update() wxOVERRIDE;
     virtual void Refresh( bool eraseBackground = true,
                           const wxRect *rect = (const wxRect *) NULL ) wxOVERRIDE;
-    virtual void Update() wxOVERRIDE;
-
-    virtual bool SetBackgroundColour( const wxColour &colour ) wxOVERRIDE;
-    virtual bool SetForegroundColour( const wxColour &colour ) wxOVERRIDE;
 
     virtual bool SetCursor( const wxCursor &cursor ) wxOVERRIDE;
-    virtual bool SetFont( const wxFont &font ) wxOVERRIDE;
+    virtual bool SetFont(const wxFont& font) wxOVERRIDE;
 
+    // get the (average) character size for the current font
     virtual int GetCharHeight() const wxOVERRIDE;
     virtual int GetCharWidth() const wxOVERRIDE;
 
-    virtual void ScrollWindow( int dx, int dy, const wxRect* rect = NULL ) wxOVERRIDE;
+    virtual void SetScrollbar( int orient,
+                               int pos,
+                               int thumbvisible,
+                               int range,
+                               bool refresh = true ) wxOVERRIDE;
+    virtual void SetScrollPos( int orient, int pos, bool refresh = true ) wxOVERRIDE;
+    virtual int GetScrollPos( int orient ) const wxOVERRIDE;
+    virtual int GetScrollThumb( int orient ) const wxOVERRIDE;
+    virtual int GetScrollRange( int orient ) const wxOVERRIDE;
+
+        // scroll window to the specified position
+    virtual void ScrollWindow( int dx, int dy,
+                               const wxRect* rect = NULL ) wxOVERRIDE;
+
+    // Styles
+    virtual void SetWindowStyleFlag( long style ) wxOVERRIDE;
+    virtual void SetExtraStyle( long exStyle ) wxOVERRIDE;
+
+    virtual bool SetBackgroundStyle(wxBackgroundStyle style) wxOVERRIDE;
+    virtual bool IsTransparentBackgroundSupported(wxString* reason = NULL) const wxOVERRIDE;
+    virtual bool SetTransparent(wxByte alpha) wxOVERRIDE;
+    virtual bool CanSetTransparent() wxOVERRIDE { return true; }
+
+    virtual bool SetBackgroundColour(const wxColour& colour) wxOVERRIDE;
+    virtual bool SetForegroundColour(const wxColour& colour) wxOVERRIDE;
+
+    WXWidget GetHandle() const wxOVERRIDE;
 
 #if wxUSE_DRAG_AND_DROP
     virtual void SetDropTarget( wxDropTarget *dropTarget ) wxOVERRIDE;
-#endif // wxUSE_DRAG_AND_DROP
+#endif
 
-    // Accept files for dragging
-    virtual void DragAcceptFiles(bool accept) wxOVERRIDE;
+#if wxUSE_ACCEL
+    // accelerators
+    // ------------
+    virtual void SetAcceleratorTable( const wxAcceleratorTable& accel ) wxOVERRIDE;
 
-    // Get the unique identifier of a window
-    virtual WXWindow GetHandle() const wxOVERRIDE;
+#endif // wxUSE_ACCEL
 
-    // implementation from now on
-    // --------------------------
-
-    // accessors
-    // ---------
-
-    // Get main X11 window
-    virtual WXWindow X11GetMainWindow() const;
-
-    // Get X11 window representing the client area
-    virtual WXWindow GetClientAreaWindow() const;
-
-    void SetLastClick(int button, long timestamp)
-        { m_lastButton = button; m_lastTS = timestamp; }
-
-    int GetLastClickedButton() const { return m_lastButton; }
-    long GetLastClickTime() const { return m_lastTS; }
-
-    // Gives window a chance to do something in response to a size message, e.g.
-    // arrange status bar, toolbar etc.
-    virtual bool PreResize();
-
-    // Generates paint events from m_updateRegion
-    void SendPaintEvents();
-
-    // Generates paint events from flag
-    void SendNcPaintEvents();
-
-    // Generates erase events from m_clearRegion
-    void SendEraseEvents();
-
-    // Clip to paint region?
-    bool GetClipPaintRegion() { return m_clipPaintRegion; }
-
-    // Return clear region
-    wxRegion &GetClearRegion() { return m_clearRegion; }
-
-    void NeedUpdateNcAreaInIdle( bool update = true ) { m_updateNcArea = update; }
-
-    // Inserting into main window instead of client
-    // window. This is mostly for a wxWindow's own
-    // scrollbars.
-    void SetInsertIntoMain( bool insert = true ) { m_insertIntoMain = insert; }
-    bool GetInsertIntoMain() { return m_insertIntoMain; }
-
-    // sets the fore/background colour for the given widget
-    static void DoChangeForegroundColour(WXWindow widget, wxColour& foregroundColour);
-    static void DoChangeBackgroundColour(WXWindow widget, wxColour& backgroundColour, bool changeArmColour = false);
-
-    // I don't want users to override what's done in idle so everything that
-    // has to be done in idle time in order for wxX11 to work is done in
-    // OnInternalIdle
-    virtual void OnInternalIdle() wxOVERRIDE;
+#if wxUSE_TOOLTIPS
+    // applies tooltip to the widget.
+    virtual void QtApplyToolTip(const wxString& text);
+#endif // wxUSE_TOOLTIPS
 
 protected:
-    // Responds to colour changes: passes event on to children.
-    void OnSysColourChanged(wxSysColourChangedEvent& event);
-
-    // For double-click detection
-    long   m_lastTS;         // last timestamp
-    int    m_lastButton;     // last pressed button
-
-protected:
-    WXWindow              m_mainWindow;
-    WXWindow              m_clientWindow;
-    bool                  m_insertIntoMain;
-
-    bool                  m_winCaptured;
-    wxRegion              m_clearRegion;
-    bool                  m_clipPaintRegion;
-    bool                  m_updateNcArea;
-    bool                  m_needsInputFocus; // Input focus set in OnIdle
-
-    // implement the base class pure virtuals
     virtual void DoGetTextExtent(const wxString& string,
                                  int *x, int *y,
                                  int *descent = NULL,
                                  int *externalLeading = NULL,
                                  const wxFont *font = NULL) const wxOVERRIDE;
+
+    // coordinates translation
     virtual void DoClientToScreen( int *x, int *y ) const wxOVERRIDE;
     virtual void DoScreenToClient( int *x, int *y ) const wxOVERRIDE;
-    virtual void DoGetPosition( int *x, int *y ) const wxOVERRIDE;
-    virtual void DoGetSize( int *width, int *height ) const wxOVERRIDE;
-    virtual void DoGetClientSize( int *width, int *height ) const wxOVERRIDE;
-    virtual void DoSetSize(int x, int y,
-        int width, int height,
-        int sizeFlags = wxSIZE_AUTO) wxOVERRIDE;
-    virtual void DoSetClientSize(int width, int height) wxOVERRIDE;
-    virtual void DoMoveWindow(int x, int y, int width, int height) wxOVERRIDE;
-    virtual void DoSetSizeHints(int minW, int minH,
-        int maxW, int maxH,
-        int incW, int incH) wxOVERRIDE;
+
+    // capture/release the mouse, used by Capture/ReleaseMouse()
     virtual void DoCaptureMouse() wxOVERRIDE;
     virtual void DoReleaseMouse() wxOVERRIDE;
-    virtual void KillFocus();
+
+    // retrieve the position/size of the window
+    virtual void DoGetPosition(int *x, int *y) const wxOVERRIDE;
+
+    virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO) wxOVERRIDE;
+    virtual void DoGetSize(int *width, int *height) const wxOVERRIDE;
+
+    // same as DoSetSize() for the client size
+    virtual void DoSetClientSize(int width, int height) wxOVERRIDE;
+    virtual void DoGetClientSize(int *width, int *height) const wxOVERRIDE;
+
+    virtual void DoMoveWindow(int x, int y, int width, int height) wxOVERRIDE;
 
 #if wxUSE_TOOLTIPS
     virtual void DoSetToolTip( wxToolTip *tip ) wxOVERRIDE;
 #endif // wxUSE_TOOLTIPS
 
+#if wxUSE_MENUS
+    virtual bool DoPopupMenu(wxMenu *menu, int x, int y) wxOVERRIDE;
+#endif // wxUSE_MENUS
+
+    virtual bool EnableTouchEvents(int eventsMask) wxOVERRIDE;
+
 private:
-    // common part of all ctors
     void Init();
 
-    wxString m_Label;
+    bool m_mouseInside;
 
-    wxDECLARE_DYNAMIC_CLASS(wxWindowWasm);
-    wxDECLARE_NO_COPY_CLASS(wxWindowWasm);
-    wxDECLARE_EVENT_TABLE();
+#if wxUSE_ACCEL
+    bool m_processingShortcut;
+#endif // wxUSE_ACCEL
+
+    wxDECLARE_DYNAMIC_CLASS_NO_COPY( wxWindowWasm );
 };
 
 #endif // _WX_WINDOW_H_

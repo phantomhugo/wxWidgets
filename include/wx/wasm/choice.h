@@ -57,7 +57,7 @@ public:
     virtual void SetSelection(int n) wxOVERRIDE;
     virtual int GetSelection() const wxOVERRIDE;
 
-    virtual QWidget *GetHandle() const wxOVERRIDE;
+    virtual WXWidget GetHandle() const wxOVERRIDE;
 
 protected:
     virtual int DoInsertItems(const wxArrayStringsAdapter & items,
@@ -71,10 +71,6 @@ protected:
 
     virtual void DoClear() wxOVERRIDE;
     virtual void DoDeleteOneItem(unsigned int pos) wxOVERRIDE;
-
-    void QtInitSort(QComboBox *combo);
-
-    QComboBox *m_qtComboBox;
 
 private:
 

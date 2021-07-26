@@ -1,8 +1,10 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/qt/spinbutt.h
-// Author:      Peter Most, Mariano Reingart
-// Copyright:   (c) 2010 wxWidgets dev team
-// Licence:     wxWindows licence
+// Name:        wx/wasm/spinbutt.h
+// Purpose:     wxSpingButton class
+// Author:      Hugo Castellanos
+// Created:     26.07.21
+// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef _WX_WASM_SPINBUTT_H_

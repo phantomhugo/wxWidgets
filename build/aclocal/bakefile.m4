@@ -73,6 +73,7 @@ AC_DEFUN([AC_BAKEFILE_PLATFORM],
     PLATFORM_MACOS=0
     PLATFORM_MACOSX=0
     PLATFORM_BEOS=0
+    PLATFORM_WASM=0
 
     if test "x$BAKEFILE_FORCE_PLATFORM" = "x"; then
         case "${BAKEFILE_HOST}" in
@@ -91,7 +92,7 @@ AC_DEFUN([AC_BAKEFILE_PLATFORM],
                 PLATFORM_MACOS=1
             ;;
             *-*-wasm* | wasm32-*-* )
-                PLATFORM_UNIX=1
+                PLATFORM_WASM=1
             ;;
             * )
                 PLATFORM_UNIX=1
@@ -113,7 +114,7 @@ AC_DEFUN([AC_BAKEFILE_PLATFORM],
                 PLATFORM_BEOS=1
             ;;
             wasm | wasm32 )
-                PLATFORM_UNIX=1
+                PLATFORM_WASM=1
             ;;
             * )
                 AC_MSG_ERROR([Unknown platform: $BAKEFILE_FORCE_PLATFORM])
@@ -127,6 +128,7 @@ AC_DEFUN([AC_BAKEFILE_PLATFORM],
     AC_SUBST(PLATFORM_MACOS)
     AC_SUBST(PLATFORM_MACOSX)
     AC_SUBST(PLATFORM_BEOS)
+    AC_SUBST(PLATFORM_WASM)
 ])
 
 

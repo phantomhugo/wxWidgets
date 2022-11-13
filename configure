@@ -4078,9 +4078,6 @@ case "${host}" in
   ;;
 
   *-*-wasm* | wasm32-*-* )
-    USE_LINUX=1
-    $as_echo "#define __LINUX__ 1" >>confdefs.h
-
     USE_WASM=1
     $as_echo "#define __WASM__ 1" >>confdefs.h
 

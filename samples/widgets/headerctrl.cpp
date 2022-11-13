@@ -53,15 +53,15 @@ public:
     HeaderCtrlWidgetsPage(WidgetsBookCtrl *book, wxImageList *imaglist)
         : WidgetsPage(book, imaglist, header_xpm)
     {
-        m_header = NULL;
-        m_sizerHeader = NULL;
+        m_header = nullptr;
+        m_sizerHeader = nullptr;
     }
 
-    virtual wxWindow *GetWidget() const wxOVERRIDE { return m_header; }
-    virtual void RecreateWidget() wxOVERRIDE;
+    virtual wxWindow *GetWidget() const override { return m_header; }
+    virtual void RecreateWidget() override;
 
     // lazy creation of the content
-    virtual void CreateContent() wxOVERRIDE;
+    virtual void CreateContent() override;
 
 protected:
     // event handlers
@@ -78,9 +78,9 @@ protected:
     long GetHeaderStyleFlags() const;
     // reset column style
     void ResetColumnStyle(int col);
-    // compose columnm style flags based on selections
+    // compose column style flags based on selections
     int GetColumnStyleFlags(int col) const;
-    // get columnm alignment flags based on selection
+    // get column alignment flags based on selection
     wxAlignment GetColumnAlignmentFlag(int col) const;
 
     // the control itself and the sizer it is in
@@ -209,7 +209,7 @@ void HeaderCtrlWidgetsPage::RecreateWidget()
         if ( m_colSettings[i].chkWithBitmap->IsChecked() )
         {
             const wxArtID icons[] = { wxART_ERROR, wxART_QUESTION, wxART_WARNING, wxART_INFORMATION };
-            col.SetBitmap(wxArtProvider::GetIcon(icons[i % WXSIZEOF(icons)], wxART_BUTTON));
+            col.SetBitmap(wxArtProvider::GetBitmapBundle(icons[i % WXSIZEOF(icons)], wxART_BUTTON));
         }
         m_header->AppendColumn(col);
     }

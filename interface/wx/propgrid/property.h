@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#define wxNullProperty  ((wxPGProperty*)NULL)
+#define wxNullProperty  nullptr
 
 /** @class wxPGPaintData
 
@@ -585,7 +585,7 @@ wxPG_PROP_CLASS_SPECIFIC_3          = 0x00400000
     wxLongStringProperty and override DisplayEditorDialog, like this:
 
     @code
-        bool DisplayEditorDialog( wxPropertyGrid* propGrid, wxVariant& value ) wxOVERRIDE
+        bool DisplayEditorDialog( wxPropertyGrid* propGrid, wxVariant& value ) override
         {
             wxSize dialogSize(...size of your dialog...);
 
@@ -817,7 +817,7 @@ wxPG_PROP_CLASS_SPECIFIC_3          = 0x00400000
             // use wxPG_LABEL for label and name
             MyProperty( const wxString& label = wxPG_LABEL,
                         const wxString& name = wxPG_LABEL,
-                        const wxString& value = wxEmptyString )
+                        const wxString& value = wxString() )
                 : wxPGProperty(label, name)
             {
                 // m_value is wxVariant
@@ -920,7 +920,7 @@ public:
         Converts text into wxVariant value appropriate for this property.
 
         @param variant
-            On function entry this is the old value (should not be wxNullVariant
+            On function entry this is the old value (should not be null wxVariant
             in normal cases). Translated value must be assigned back to it.
 
         @param text
@@ -949,7 +949,7 @@ public:
         appropriate for this property.
 
         @param variant
-            On function entry this is the old value (should not be wxNullVariant
+            On function entry this is the old value (should not be null wxVariant
             in normal cases). Translated value must be assigned back to it.
         @param number
             Integer to be translated into variant.
@@ -1330,7 +1330,7 @@ public:
             Assumes members in this wxVariant list as pending
             replacement values.
     */
-    bool AreAllChildrenSpecified( wxVariant* pendingList = NULL ) const;
+    bool AreAllChildrenSpecified( const wxVariant* pendingList = nullptr ) const;
 
     /**
         Returns @true if children of this property are component values (for instance,
@@ -1616,7 +1616,7 @@ public:
     wxVariant GetValue() const;
 
     /**
-        Returns bitmap that appears next to value text. Only returns non-@NULL
+        Returns bitmap that appears next to value text. Only returns non-null
         bitmap if one was set with SetValueImage().
     */
     wxBitmap* GetValueImage() const;
@@ -2037,14 +2037,14 @@ public:
             ::wxPG_SETVAL_REFRESH_EDITOR is set by default, to refresh editor
             and redraw properties.
     */
-    void SetValue( wxVariant value, wxVariant* pList = NULL,
+    void SetValue( wxVariant value, wxVariant* pList = nullptr,
                    int flags = wxPG_SETVAL_REFRESH_EDITOR );
 
     /**
-        Set wxBitmap in front of the value. This bitmap may be ignored
-        by custom cell renderers.
+        Set wxBitmap taken from wxBitmapBundle in front of the value.
+        This bitmap may be ignored by custom cell renderers.
     */
-    void SetValueImage( wxBitmap& bmp );
+    void SetValueImage( wxBitmapBundle& bmp );
 
     /**
         Call this function in OnEvent(), OnButtonClick() etc. to change the
@@ -2053,7 +2053,7 @@ public:
         @remarks This method is const since it doesn't actually modify value, but posts
                 given variant as pending value, stored in wxPropertyGrid.
     */
-    void SetValueInEvent( wxVariant value ) const;
+    void SetValueInEvent( const wxVariant& value ) const;
 
     /**
         Sets property's value to unspecified (i.e. Null variant).
@@ -2342,6 +2342,9 @@ public:
         @param rect
             Box reserved for drawing.
 
+        @param propGrid
+            Property grid to which the cell belongs.
+
         @param cell
             Cell information.
 
@@ -2354,6 +2357,7 @@ public:
     */
     int PreDrawCell( wxDC& dc,
                      const wxRect& rect,
+                     const wxPropertyGrid* propGrid,
                      const wxPGCell& cell,
                      int flags ) const;
 
@@ -2447,7 +2451,7 @@ public:
     wxPGCellData();
 
     void SetText( const wxString& text );
-    void SetBitmap( const wxBitmap& bitmap );
+    void SetBitmap( const wxBitmapBundle& bitmap );
     void SetFgCol( const wxColour& col );
     void SetBgCol( const wxColour& col );
     void SetFont( const wxFont& font );
@@ -2456,7 +2460,7 @@ protected:
     virtual ~wxPGCellData();
 
     wxString    m_text;
-    wxBitmap    m_bitmap;
+    wxBitmapBundle m_bitmapBundle;
     wxColour    m_fgCol;
     wxColour    m_bgCol;
     wxFont      m_font;
@@ -2481,7 +2485,7 @@ public:
     wxPGCell();
     wxPGCell(const wxPGCell& other);
     wxPGCell( const wxString& text,
-              const wxBitmap& bitmap = wxNullBitmap,
+              const wxBitmapBundle& bitmap = wxBitmapBundle(),
               const wxColour& fgCol = wxNullColour,
               const wxColour& bgCol = wxNullColour );
 
@@ -2506,7 +2510,7 @@ public:
     void MergeFrom( const wxPGCell& srcCell );
 
     void SetText( const wxString& text );
-    void SetBitmap( const wxBitmap& bitmap );
+    void SetBitmap( const wxBitmapBundle& bitmap );
     void SetFgCol( const wxColour& col );
 
     /**
@@ -2525,7 +2529,7 @@ public:
     void SetBgCol( const wxColour& col );
 
     const wxString& GetText() const;
-    const wxBitmap& GetBitmap() const;
+    const wxBitmapBundle& GetBitmap() const;
     const wxColour& GetFgCol() const;
 
     /**
@@ -2607,7 +2611,7 @@ protected:
     virtual ~wxPGChoicesData();
 };
 
-#define wxPGChoicesEmptyData    ((wxPGChoicesData*)NULL)
+#define wxPGChoicesEmptyData nullptr
 
 
 
@@ -2658,7 +2662,7 @@ public:
 
         @since 3.1.2
      */
-    wxPGChoices(size_t count, const wxString* labels, const long* values = NULL);
+    wxPGChoices(size_t count, const wxString* labels, const long* values = nullptr);
 
     /**
         Constructor overload taking wxChar strings.
@@ -2673,7 +2677,7 @@ public:
             Values for choices. If @NULL, indexes are used. Otherwise must have
             at least the same size as @a labels.
     */
-    wxPGChoices( const wxChar** labels, const long* values = NULL );
+    wxPGChoices( const wxChar** labels, const long* values = nullptr );
 
     /**
         Constructor.
@@ -2711,7 +2715,7 @@ public:
 
         @since 3.1.2
      */
-    void Add(size_t count, const wxString* labels, const long* values = NULL);
+    void Add(size_t count, const wxString* labels, const long* values = nullptr);
 
     /**
         Adds to current.
@@ -2726,7 +2730,7 @@ public:
             Values for added choices. If empty, relevant entry indexes are
             used. Otherwise must have at least the same size as @a labels.
     */
-    void Add( const wxChar** labels, const long* values = NULL );
+    void Add( const wxChar** labels, const long* values = nullptr );
 
     /**
         @overload
@@ -2814,7 +2818,7 @@ public:
         are added to 'unmatched', if not @NULL.
     */
     wxArrayInt GetIndicesForStrings( const wxArrayString& strings,
-                                     wxArrayString* unmatched = NULL ) const;
+                                     wxArrayString* unmatched = nullptr ) const;
 
     /**
         Returns index of item with given label.
@@ -2862,12 +2866,12 @@ public:
 
         This is similar to calling Clear() and the corresponding overload of Add().
     */
-    void Set(size_t count, const wxString* labels, const long* values = NULL);
+    void Set(size_t count, const wxString* labels, const long* values = nullptr);
 
     /**
         @overload
      */
-    void Set( const wxChar** labels, const long* values = NULL );
+    void Set( const wxChar** labels, const long* values = nullptr );
 
     /**
         @overload
@@ -2936,7 +2940,6 @@ public:
 */
 class wxPropertyCategory : public wxPGProperty
 {
-    friend class wxPropertyGrid;
     friend class wxPropertyGridPageState;
 public:
 

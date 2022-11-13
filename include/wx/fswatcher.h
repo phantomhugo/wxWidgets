@@ -159,7 +159,7 @@ public:
         return m_changeType;
     }
 
-    virtual wxEvent* Clone() const wxOVERRIDE
+    virtual wxEvent* Clone() const override
     {
         wxFileSystemWatcherEvent* evt = new wxFileSystemWatcherEvent(*this);
         evt->m_errorMsg = m_errorMsg.Clone();
@@ -169,7 +169,7 @@ public:
         return evt;
     }
 
-    virtual wxEventCategory GetEventCategory() const wxOVERRIDE
+    virtual wxEventCategory GetEventCategory() const override
     {
         // TODO this has to be merged with "similar" categories and changed
         return wxEVT_CATEGORY_UNKNOWN;
@@ -205,7 +205,7 @@ protected:
     wxFileName m_newPath;
     wxString m_errorMsg;
 private:
-    wxDECLARE_DYNAMIC_CLASS_NO_ASSIGN(wxFileSystemWatcherEvent);
+    wxDECLARE_DYNAMIC_CLASS_NO_ASSIGN_DEF_COPY(wxFileSystemWatcherEvent);
 };
 
 typedef void (wxEvtHandler::*wxFileSystemWatcherEventFunction)
@@ -370,15 +370,7 @@ protected:
 
     static wxString GetCanonicalPath(const wxFileName& path)
     {
-        wxFileName path_copy = wxFileName(path);
-        if ( !path_copy.Normalize() )
-        {
-            wxFAIL_MSG(wxString::Format(wxASCII_STR("Unable to normalize path '%s'"),
-                                         path.GetFullPath()));
-            return wxEmptyString;
-        }
-
-        return path_copy.GetFullPath();
+        return path.GetAbsolutePath();
     }
 
 

@@ -408,13 +408,8 @@ wxArrayString wxFSVolumeBase::GetVolumes(int flagsSet, int flagsUnset)
 #if wxUSE_DYNLIB_CLASS
     if (!s_mprLib.IsLoaded() && s_mprLib.Load(wxT("mpr.dll")))
     {
-#ifdef UNICODE
         s_pWNetOpenEnum = (WNetOpenEnumPtr)s_mprLib.GetSymbol(wxT("WNetOpenEnumW"));
         s_pWNetEnumResource = (WNetEnumResourcePtr)s_mprLib.GetSymbol(wxT("WNetEnumResourceW"));
-#else
-        s_pWNetOpenEnum = (WNetOpenEnumPtr)s_mprLib.GetSymbol(wxT("WNetOpenEnumA"));
-        s_pWNetEnumResource = (WNetEnumResourcePtr)s_mprLib.GetSymbol(wxT("WNetEnumResourceA"));
-#endif
         s_pWNetCloseEnum = (WNetCloseEnumPtr)s_mprLib.GetSymbol(wxT("WNetCloseEnum"));
     }
 #endif
@@ -425,7 +420,7 @@ wxArrayString wxFSVolumeBase::GetVolumes(int flagsSet, int flagsUnset)
     // Local and mapped drives first.
     //-------------------------------
     // Allocate the required space for the API call.
-    const DWORD chars = GetLogicalDriveStrings(0, NULL);
+    const DWORD chars = GetLogicalDriveStrings(0, nullptr);
     TCHAR* buf = new TCHAR[chars+1];
 
     // Get the list of drives.
@@ -512,7 +507,7 @@ bool wxFSVolumeBase::Create(const wxString& name)
     long rc = SHGetFileInfo(m_volName.t_str(), 0, &fi, sizeof(fi), SHGFI_DISPLAYNAME);
     if (!rc)
     {
-        wxLogError(_("Cannot read typename from '%s'!"), m_volName.c_str());
+        wxLogError(_("Cannot read typename from '%s'!"), m_volName);
         return false;
     }
     m_dispName = fi.szDisplayName;
@@ -624,7 +619,7 @@ wxIcon wxFSVolume::GetIcon(wxFSIconType type) const
         long rc = SHGetFileInfo(m_volName.t_str(), 0, &fi, sizeof(fi), flags);
         if (!rc || !fi.hIcon)
         {
-            wxLogError(_("Cannot load icon from '%s'."), m_volName.c_str());
+            wxLogError(_("Cannot load icon from '%s'."), m_volName);
         }
         else
         {

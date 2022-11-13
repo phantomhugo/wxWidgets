@@ -90,10 +90,34 @@
 #define PROCESSOR_ARCHITECTURE_ARM64 12
 #endif
 
+#ifndef IMAGE_FILE_MACHINE_ARM64
+#define IMAGE_FILE_MACHINE_ARM64 0xAA64
+#endif
+
+#ifndef IMAGE_FILE_MACHINE_ARMNT
+#define IMAGE_FILE_MACHINE_ARMNT 0x01c4
+#endif
+
 #include <errno.h>
 
 // For wxKillAllChildren
 #include <tlhelp32.h>
+
+// For wxCmpNatural()
+#include <shlwapi.h>
+
+// In some distributions of MinGW32, this function is exported in the library,
+// but not declared in shlwapi.h. Therefore we declare it here.
+#if defined( __MINGW32_TOOLCHAIN__ )
+    extern "C" __declspec(dllimport) int WINAPI StrCmpLogicalW(LPCWSTR psz1, LPCWSTR psz2);
+#endif
+
+// For MSVC we can also link the library containing StrCmpLogicalW()
+// directly from here, for the other compilers this needs to be done at
+// makefiles level.
+#ifdef __VISUALC__
+    #pragma comment(lib, "shlwapi")
+#endif
 
 // ----------------------------------------------------------------------------
 // constants
@@ -177,7 +201,7 @@ bool wxGetFullHostName(wxChar *buf, int maxSize)
 
                         struct hostent *pHostEnt = pfngethostbyname
                                                     ? pfngethostbyname(bufA)
-                                                    : NULL;
+                                                    : nullptr;
 
                         if ( pHostEnt )
                         {
@@ -187,7 +211,7 @@ bool wxGetFullHostName(wxChar *buf, int maxSize)
                             pHostEnt = pfngethostbyaddr
                                         ? pfngethostbyaddr(pHostEnt->h_addr,
                                                            4, AF_INET)
-                                        : NULL;
+                                        : nullptr;
                         }
 
                         if ( pHostEnt )
@@ -262,7 +286,7 @@ bool wxGetUserName(wxChar *buf, int maxSize)
             wszDomain, WXSIZEOF(wszDomain) );
 
     // Get the computer name of a DC for the domain.
-    if ( NetGetDCName( NULL, wszDomain, &ComputerName ) != NERR_Success )
+    if ( NetGetDCName( nullptr, wszDomain, &ComputerName ) != NERR_Success )
     {
         wxLogError(wxT("Cannot find domain controller"));
 
@@ -298,7 +322,7 @@ bool wxGetUserName(wxChar *buf, int maxSize)
 
     // Convert the Unicode full name to ANSI
     WideCharToMultiByte( CP_ACP, 0, ui2->usri2_full_name, -1,
-            buf, maxSize, NULL, NULL );
+            buf, maxSize, nullptr, nullptr );
 
     return true;
 
@@ -331,7 +355,7 @@ const wxChar* wxGetHomeDir(wxString *pstr)
     // first branch is for Cygwin
 #if defined(__UNIX__) && !defined(__WINE__)
     const wxChar *szHome = wxGetenv(wxT("HOME"));
-    if ( szHome == NULL ) {
+    if ( szHome == nullptr ) {
       // we're homeless...
       wxLogWarning(_("can't find user's HOME, using current directory."));
       strDir = wxT(".");
@@ -360,18 +384,18 @@ const wxChar* wxGetHomeDir(wxString *pstr)
     // have unix utilities on them, we should use that.
     const wxChar *szHome = wxGetenv(wxT("HOME"));
 
-    if ( szHome != NULL )
+    if ( szHome != nullptr )
     {
         strDir = szHome;
     }
     else // no HOME, try HOMEDRIVE/PATH
     {
         szHome = wxGetenv(wxT("HOMEDRIVE"));
-        if ( szHome != NULL )
+        if ( szHome != nullptr )
             strDir << szHome;
         szHome = wxGetenv(wxT("HOMEPATH"));
 
-        if ( szHome != NULL )
+        if ( szHome != nullptr )
         {
             strDir << szHome;
 
@@ -392,7 +416,7 @@ const wxChar* wxGetHomeDir(wxString *pstr)
         // Windows NT, 2000 and XP, we should use that as our home directory.
         szHome = wxGetenv(wxT("USERPROFILE"));
 
-        if ( szHome != NULL )
+        if ( szHome != nullptr )
             strDir = szHome;
     }
 
@@ -405,7 +429,7 @@ const wxChar* wxGetHomeDir(wxString *pstr)
     else // fall back to the program directory
     {
         // extract the directory component of the program file name
-        wxFileName::SplitPath(wxGetFullModuleName(), &strDir, NULL, NULL);
+        wxFileName::SplitPath(wxGetFullModuleName(), &strDir, nullptr, nullptr);
     }
 #endif  // UNIX/Win
 
@@ -435,7 +459,7 @@ bool wxGetDiskSpace(const wxString& path,
     if ( !::GetDiskFreeSpaceEx(path.t_str(),
                                &bytesFree,
                                &bytesTotal,
-                               NULL) )
+                               nullptr) )
     {
         wxLogLastError(wxT("GetDiskFreeSpaceEx"));
 
@@ -474,7 +498,7 @@ bool wxGetEnv(const wxString& var,
               wxString *value)
 {
     // first get the size of the buffer
-    DWORD dwRet = ::GetEnvironmentVariable(var.t_str(), NULL, 0);
+    DWORD dwRet = ::GetEnvironmentVariable(var.t_str(), nullptr, 0);
     if ( !dwRet )
     {
         // this means that there is no such variable
@@ -531,7 +555,25 @@ bool wxSetEnv(const wxString& variable, const wxString& value)
 
 bool wxUnsetEnv(const wxString& variable)
 {
-    return wxDoSetEnv(variable, NULL);
+    return wxDoSetEnv(variable, nullptr);
+}
+
+// ----------------------------------------------------------------------------
+// security
+// ----------------------------------------------------------------------------
+
+void wxSecureZeroMemory(void* v, size_t n)
+{
+#if defined(__MINGW32__)
+    // A generic implementation based on the example at:
+    // http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1381.pdf
+    int c = 0;
+    volatile unsigned char *p = reinterpret_cast<unsigned char *>(v);
+    while ( n-- )
+        *p++ = c;
+#else
+    RtlSecureZeroMemory(v, n);
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -586,7 +628,7 @@ int wxKill(long pid, wxSignal sig, wxKillError *krc, int flags)
         dwAccess |= PROCESS_TERMINATE;
 
     HANDLE hProcess = ::OpenProcess(dwAccess, FALSE, (DWORD)pid);
-    if ( hProcess == NULL )
+    if ( hProcess == nullptr )
     {
         if ( krc )
         {
@@ -835,7 +877,7 @@ bool wxShutdown(int flags)
         TOKEN_PRIVILEGES tkp;
 
         // Get the LUID for the shutdown privilege.
-        bOK = ::LookupPrivilegeValue(NULL, SE_SHUTDOWN_NAME,
+        bOK = ::LookupPrivilegeValue(nullptr, SE_SHUTDOWN_NAME,
                                         &tkp.Privileges[0].Luid) != 0;
 
         if ( bOK )
@@ -845,7 +887,7 @@ bool wxShutdown(int flags)
 
             // Get the shutdown privilege for this process.
             ::AdjustTokenPrivileges(hToken, FALSE, &tkp, 0,
-                                    (PTOKEN_PRIVILEGES)NULL, 0);
+                                    nullptr, 0);
 
             // Cannot test the return value of AdjustTokenPrivileges.
             bOK = ::GetLastError() == ERROR_SUCCESS;
@@ -929,7 +971,7 @@ wxLoadUserResource(const void **outData,
                    const wxChar* resourceType,
                    WXHINSTANCE instance)
 {
-    wxCHECK_MSG( outData && outLen, false, "output pointers can't be NULL" );
+    wxCHECK_MSG( outData && outLen, false, "output pointers can't be null" );
 
     HRSRC hResource = ::FindResource(instance,
                                      resourceName.t_str(),
@@ -953,7 +995,7 @@ wxLoadUserResource(const void **outData,
 
     *outLen = ::SizeofResource(instance, hResource);
 
-    // Notice that we do not need to call neither UnlockResource() (which is
+    // Notice that we need to call neither UnlockResource() (which is
     // obsolete in Win32) nor GlobalFree() (resources are freed on process
     // termination only)
 
@@ -969,7 +1011,7 @@ wxLoadUserResource(const wxString& resourceName,
     const void *data;
     size_t len;
     if ( !wxLoadUserResource(&data, &len, resourceName, resourceType, instance) )
-        return NULL;
+        return nullptr;
 
     char *s = new char[len + 1];
     memcpy(s, data, len);
@@ -1118,9 +1160,14 @@ wxString wxGetOsDescription()
                     break;
 
                 case 10:
-                    str = wxIsWindowsServer() == 1
-                            ? "Windows Server 2016"
-                            : "Windows 10";
+                    if (info.dwBuildNumber >= 22000)
+                        str = wxIsWindowsServer() == 1
+                            ? "Windows Server 2022"
+                            : "Windows 11";
+                    else
+                        str = wxIsWindowsServer() == 1
+                                ? "Windows Server 2016"
+                                : "Windows 10";
                     break;
             }
 
@@ -1273,8 +1320,52 @@ wxWinVersion wxGetWinVersion()
     return wxWinVersion_Unknown;
 }
 
+wxString wxGetCpuArchitecureNameFromImageType(USHORT imageType)
+{
+    switch (imageType)
+    {
+    case IMAGE_FILE_MACHINE_I386:
+        return "x86";
+    case IMAGE_FILE_MACHINE_AMD64:
+        return "x64";
+    case IMAGE_FILE_MACHINE_IA64:
+        return "Itanium";
+    case IMAGE_FILE_MACHINE_ARMNT:
+        return "arm";
+    case IMAGE_FILE_MACHINE_ARM64:
+        return "arm64";
+    default:
+        return wxString();
+    }
+}
+
+// Wrap IsWow64Process2 API (Available since Win10 1511)
+BOOL wxIsWow64Process2(HANDLE hProcess, USHORT* pProcessMachine, USHORT* pNativeMachine)
+{
+#if wxUSE_DYNLIB_CLASS // Win32
+
+    typedef BOOL(WINAPI *IsWow64Process2_t)(HANDLE, USHORT *, USHORT *);
+
+    wxDynamicLibrary dllKernel32("kernel32.dll");
+    IsWow64Process2_t pfnIsWow64Process2 =
+        (IsWow64Process2_t)dllKernel32.RawGetSymbol("IsWow64Process2");
+
+    if (pfnIsWow64Process2)
+        return pfnIsWow64Process2(hProcess, pProcessMachine, pNativeMachine);
+    else
+#endif
+    return FALSE;
+}
+
 wxString wxGetCpuArchitectureName()
 {
+    // Try to get the current active CPU architecture via IsWow64Process2()
+    // first, fallback to GetNativeSystemInfo() otherwise
+    USHORT machine;
+    if (wxIsWow64Process2(::GetCurrentProcess(), &machine, nullptr) &&
+        machine != IMAGE_FILE_MACHINE_UNKNOWN)
+        return wxGetCpuArchitecureNameFromImageType(machine);
+
     SYSTEM_INFO si;
     GetNativeSystemInfo(&si);
 
@@ -1300,6 +1391,18 @@ wxString wxGetCpuArchitectureName()
         return wxString();
     }
 }
+
+wxString wxGetNativeCpuArchitectureName()
+{
+    USHORT machine;
+    USHORT nativeMachine;
+    if (wxIsWow64Process2(::GetCurrentProcess(), &machine, &nativeMachine))
+        return wxGetCpuArchitecureNameFromImageType(nativeMachine);
+    else
+        return wxGetCpuArchitectureName();
+}
+
+
 
 // ----------------------------------------------------------------------------
 // sleep functions
@@ -1540,11 +1643,11 @@ extern long wxCharsetToCodepage(const char *name)
 extern "C" WXDLLIMPEXP_BASE HWND
 wxCreateHiddenWindow(LPCTSTR *pclassname, LPCTSTR classname, WNDPROC wndproc)
 {
-    wxCHECK_MSG( classname && pclassname && wndproc, NULL,
-                    wxT("NULL parameter in wxCreateHiddenWindow") );
+    wxCHECK_MSG( classname && pclassname && wndproc, nullptr,
+                    wxT("null parameter in wxCreateHiddenWindow") );
 
     // register the class fi we need to first
-    if ( *pclassname == NULL )
+    if ( *pclassname == nullptr )
     {
         WNDCLASS wndclass;
         wxZeroMemory(wndclass);
@@ -1557,7 +1660,7 @@ wxCreateHiddenWindow(LPCTSTR *pclassname, LPCTSTR classname, WNDPROC wndproc)
         {
             wxLogLastError(wxT("RegisterClass() in wxCreateHiddenWindow"));
 
-            return NULL;
+            return nullptr;
         }
 
         *pclassname = classname;
@@ -1567,13 +1670,13 @@ wxCreateHiddenWindow(LPCTSTR *pclassname, LPCTSTR classname, WNDPROC wndproc)
     HWND hwnd = ::CreateWindow
                   (
                     *pclassname,
-                    NULL,
+                    nullptr,
                     0, 0, 0, 0,
                     0,
-                    (HWND) NULL,
-                    (HMENU)NULL,
+                    nullptr,
+                    nullptr,
                     wxGetInstance(),
-                    (LPVOID) NULL
+                    nullptr
                   );
 
     if ( !hwnd )
@@ -1582,4 +1685,9 @@ wxCreateHiddenWindow(LPCTSTR *pclassname, LPCTSTR classname, WNDPROC wndproc)
     }
 
     return hwnd;
+}
+
+int wxCMPFUNC_CONV wxCmpNatural(const wxString& s1, const wxString& s2)
+{
+    return StrCmpLogicalW(s1.wc_str(), s2.wc_str());
 }

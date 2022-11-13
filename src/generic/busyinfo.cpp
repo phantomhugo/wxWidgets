@@ -69,7 +69,7 @@ void wxBusyInfo::Init(const wxBusyInfoFlags& flags)
     }
     else
     {
-        title = NULL;
+        title = nullptr;
     }
 
     // Vertically center the text in the window.
@@ -126,7 +126,11 @@ void wxBusyInfo::Init(const wxBusyInfoFlags& flags)
 
 void wxBusyInfo::UpdateText(const wxString& str)
 {
+#if wxUSE_MARKUP
     m_text->SetLabelMarkup(str);
+#else // !wxUSE_MARKUP
+    m_text->SetLabelText(str);
+#endif // wxUSE_MARKUP/!wxUSE_MARKUP
 }
 
 void wxBusyInfo::UpdateLabel(const wxString& str)

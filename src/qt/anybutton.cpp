@@ -27,7 +27,7 @@ public:
     wxQtPushButton( wxWindow *parent, wxAnyButton *handler);
 
 private:
-    virtual bool event(QEvent* e) wxOVERRIDE;
+    virtual bool event(QEvent* e) override;
     void action(); // press, release
     void clicked(bool);
 };
@@ -78,7 +78,7 @@ bool wxQtPushButton::event(QEvent* e)
 }
 
 wxAnyButton::wxAnyButton() :
-    m_qtPushButton(NULL)
+    m_qtPushButton(nullptr)
 {
 }
 
@@ -90,13 +90,18 @@ void wxAnyButton::QtCreate(wxWindow *parent)
     m_qtPushButton->setAutoDefault(false);
 }
 
-void wxAnyButton::QtSetBitmap( const wxBitmap &bitmap )
+void wxAnyButton::QtSetBitmap( const wxBitmapBundle &bitmapBundle )
 {
     wxCHECK_RET(m_qtPushButton, "Invalid button.");
 
+    if ( !bitmapBundle.IsOk() )
+        return;
+
+    wxBitmap bitmap = bitmapBundle.GetBitmap(bitmapBundle.GetDefaultSize()*GetDPIScaleFactor());
+
     // load the bitmap and resize the button:
     QPixmap *pixmap = bitmap.GetHandle();
-    if ( pixmap != NULL )
+    if ( pixmap != nullptr )
     {
         m_qtPushButton->setIcon(QIcon(*pixmap));
         m_qtPushButton->setIconSize(pixmap->rect().size());
@@ -110,6 +115,11 @@ void wxAnyButton::SetLabel( const wxString &label )
     m_qtPushButton->setText( wxQtConvertString( label ));
 }
 
+wxString wxAnyButton::GetLabel() const
+{
+    return wxQtConvertString( m_qtPushButton->text() );
+}
+
 QWidget *wxAnyButton::GetHandle() const
 {
     return m_qtPushButton;
@@ -117,10 +127,10 @@ QWidget *wxAnyButton::GetHandle() const
 
 wxBitmap wxAnyButton::DoGetBitmap(State state) const
 {
-    return state < State_Max ? m_bitmaps[state] : wxNullBitmap;
+    return state < State_Max ? m_bitmaps[state].GetBitmap(wxDefaultSize) : wxNullBitmap;
 }
 
-void wxAnyButton::DoSetBitmap(const wxBitmap& bitmap, State which)
+void wxAnyButton::DoSetBitmap(const wxBitmapBundle& bitmap, State which)
 {
     wxCHECK_RET(which < State_Max, "Invalid state");
 
@@ -166,7 +176,7 @@ void wxAnyButton::QtUpdateState()
     State state = QtGetCurrentState();
 
     // Update the bitmap
-    const wxBitmap& bmp = m_bitmaps[state];
+    const wxBitmapBundle& bmp = m_bitmaps[state];
     QtSetBitmap(bmp.IsOk() ? bmp : m_bitmaps[State_Normal]);
 }
 

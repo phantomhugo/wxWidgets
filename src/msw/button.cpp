@@ -42,6 +42,7 @@
 #include "wx/stockitem.h"
 #include "wx/msw/private/button.h"
 #include "wx/msw/private/dc.h"
+#include "wx/private/rescale.h"
 #include "wx/private/window.h"
 
 #if wxUSE_MARKUP
@@ -185,11 +186,8 @@ wxSize wxButtonBase::GetDefaultSize(wxWindow* win)
         // character width metadata stored in the font; see
         // http://support.microsoft.com/default.aspx/kb/145994 for detailed
         // discussion.
-        //
-        // NB: wxMulDivInt32() is used, because it correctly rounds the result
 
-        s_sizeBtn.SetAtNewDPI(wxSize(wxMulDivInt32(50, base.x, 4),
-                                     wxMulDivInt32(14, base.y, 8)));
+        s_sizeBtn.SetAtNewDPI(wxRescaleCoord(50, 14).From(4, 8).To(base));
     }
 
     return s_sizeBtn.Get();
@@ -224,8 +222,8 @@ wxSize wxButtonBase::GetDefaultSize(wxWindow* win)
    and the current control doesn't process Enter itself somehow. This is
    handled by ::DefWindowProc() (or maybe ::DefDialogProc()) using DM_SETDEFID
    Another aspect of "defaultness" is that the default button has different
-   appearance: this is due to BS_DEFPUSHBUTTON style which is completely
-   separate from DM_SETDEFID stuff (!). Also note that BS_DEFPUSHBUTTON should
+   appearance: this is due to BS_DEFPUSHBUTTON style which is only partially
+   handled by using DM_SETDEFID. Also note that BS_DEFPUSHBUTTON should
    be unset if our parent window is not active so it should be unset whenever
    we lose activation and set back when we regain it.
 
@@ -234,7 +232,7 @@ wxSize wxButtonBase::GetDefaultSize(wxWindow* win)
    one.
 
    We handle this by maintaining a permanent and a temporary default items in
-   wxControlContainer (both may be NULL). When a button becomes the current
+   wxControlContainer (both may be null). When a button becomes the current
    control (i.e. gets focus) it sets itself as the temporary default which
    ensures that it has the right appearance and that Enter will be redirected
    to it. When the button loses focus, it unsets the temporary default and so
@@ -256,7 +254,7 @@ wxWindow *wxButton::SetDefault()
 }
 
 // return the top level parent window if it's not being deleted yet, otherwise
-// return NULL
+// return nullptr
 static wxTopLevelWindow *GetTLWParentIfNotBeingDeleted(wxWindow *win)
 {
     for ( ;; )
@@ -267,7 +265,7 @@ static wxTopLevelWindow *GetTLWParentIfNotBeingDeleted(wxWindow *win)
         if ( !parent || win->IsTopLevel() )
         {
             if ( win->IsBeingDeleted() )
-                return NULL;
+                return nullptr;
 
             break;
         }
@@ -311,7 +309,7 @@ void wxButton::UnsetTmpDefault()
     if ( !tlw )
         return;
 
-    tlw->SetTmpDefaultItem(NULL);
+    tlw->SetTmpDefaultItem(nullptr);
 
     wxWindow *winOldDefault = tlw->GetDefaultItem();
 
@@ -327,27 +325,26 @@ void wxButton::UnsetTmpDefault()
 void
 wxButton::SetDefaultStyle(wxButton *btn, bool on)
 {
-    // we may be called with NULL pointer -- simpler to do the check here than
+    // we may be called with null pointer -- simpler to do the check here than
     // in the caller which does wxDynamicCast()
     if ( !btn )
         return;
 
+    // we shouldn't set BS_DEFPUSHBUTTON for any button if we don't have
+    // focus at all any more
+    if ( on && !wxTheApp->IsActive() )
+        return;
+
     // first, let DefDlgProc() know about the new default button
-    if ( on )
-    {
-        // we shouldn't set BS_DEFPUSHBUTTON for any button if we don't have
-        // focus at all any more
-        if ( !wxTheApp->IsActive() )
-            return;
+    wxWindow * const tlw = wxGetTopLevelParent(btn);
+    wxCHECK_RET( tlw, wxT("button without top level window?") );
 
-        wxWindow * const tlw = wxGetTopLevelParent(btn);
-        wxCHECK_RET( tlw, wxT("button without top level window?") );
-
-        ::SendMessage(GetHwndOf(tlw), DM_SETDEFID, btn->GetId(), 0L);
-
-        // sending DM_SETDEFID also changes the button style to
-        // BS_DEFPUSHBUTTON so there is nothing more to do
-    }
+    // passing -1 to indicate absence of the default button is not documented
+    // as being supported, but we need to pass something to DM_SETDEFID when
+    // resetting the default button it in order to prevent DefDlgProc() from
+    // restoring BS_DEFPUSHBUTTON on it later, see #19245, and -1 shouldn't
+    // conflict with anything, as it can never be a valid ID
+    ::SendMessage(GetHwndOf(tlw), DM_SETDEFID, on ? btn->GetId() : -1, 0L);
 
     // then also change the style as needed
     long style = ::GetWindowLong(GetHwndOf(btn), GWL_STYLE);
@@ -464,13 +461,9 @@ bool wxButton::DoGetAuthNeeded() const
 
 void wxButton::DoSetAuthNeeded(bool show)
 {
-    // show/hide UAC symbol on Windows Vista and later
-    if ( wxGetWinVersion() >= wxWinVersion_6 )
-    {
-        m_authNeeded = show;
-        ::SendMessage(GetHwnd(), BCM_SETSHIELD, 0, show);
-        InvalidateBestSize();
-    }
+    m_authNeeded = show;
+    ::SendMessage(GetHwnd(), BCM_SETSHIELD, 0, show);
+    InvalidateBestSize();
 }
 
 #endif // wxUSE_BUTTON

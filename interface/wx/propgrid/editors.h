@@ -14,7 +14,7 @@
 class wxPGWindowList
 {
 public:
-    wxPGWindowList(wxWindow* primary, wxWindow* secondary = NULL);
+    wxPGWindowList(wxWindow* primary, wxWindow* secondary = nullptr);
 
     void SetSecondary(wxWindow* secondary);
 
@@ -553,7 +553,7 @@ public:
     /**
         Adds new bitmap button.
     */
-    void Add( const wxBitmap& bitmap, int id = -2 );
+    void Add( const wxBitmapBundle& bitmap, int id = -2 );
 
     /**
         Call this in CreateControls() of your custom editor class

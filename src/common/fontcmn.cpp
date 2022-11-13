@@ -425,7 +425,7 @@ bool wxFontBase::SetNativeFontInfoUserDesc(const wxString& info)
     return false;
 }
 
-bool wxFontBase::operator==(const wxFont& font) const
+bool wxFontBase::operator==(const wxFontBase& font) const
 {
     // either it is the same font, i.e. they share the same common data or they
     // have different ref datas but still describe the same font
@@ -433,12 +433,7 @@ bool wxFontBase::operator==(const wxFont& font) const
            (
             IsOk() == font.IsOk() &&
             GetPointSize() == font.GetPointSize() &&
-            // in wxGTK1 GetPixelSize() calls GetInternalFont() which uses
-            // operator==() resulting in infinite recursion so we can't use it
-            // in that port
-#if (!defined(__WXGTK__) || defined(__WXGTK20__))
             GetPixelSize() == font.GetPixelSize() &&
-#endif
             GetFamily() == font.GetFamily() &&
             GetStyle() == font.GetStyle() &&
             GetNumericWeight() == font.GetNumericWeight() &&
@@ -713,7 +708,7 @@ void wxNativeFontInfo::SetFaceName(const wxArrayString& facenames)
 
     // set the first valid facename we can find on this system
     wxString validfacename = wxFontEnumerator::GetFacenames().Item(0);
-    wxLogTrace(wxT("font"), wxT("Falling back to '%s'"), validfacename.c_str());
+    wxLogTrace(wxT("font"), wxT("Falling back to '%s'"), validfacename);
     SetFaceName(validfacename);
 #else // !wxUSE_FONTENUM
     SetFaceName(facenames[0]);
@@ -920,7 +915,7 @@ void wxNativeFontInfo::SetEncoding(wxFontEncoding encoding_)
 // conversion to/from user-readable string: this is used in the generic
 // versions and under MSW as well because there is no standard font description
 // format there anyhow (but there is a well-defined standard for X11 fonts used
-// by wxGTK and wxMotif)
+// by wxGTK and wxX11)
 
 #if defined(wxNO_NATIVE_FONTINFO) || defined(__WXMSW__) || defined(__WXOSX__)
 
@@ -1366,7 +1361,7 @@ wxString wxToString(const wxFontBase& font)
 
 bool wxFromString(const wxString& str, wxFontBase *font)
 {
-    wxCHECK_MSG( font, false, wxT("NULL output parameter") );
+    wxCHECK_MSG( font, false, wxT("null output parameter") );
 
     if ( str.empty() )
     {

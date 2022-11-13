@@ -153,12 +153,12 @@ public:
     {
     }
 
-    virtual bool OnInit() wxOVERRIDE
+    virtual bool OnInit() override
     {
         return wxOleInitialize();
     }
 
-    virtual void OnExit() wxOVERRIDE
+    virtual void OnExit() override
     {
         wxOleUninitialize();
     }
@@ -325,7 +325,7 @@ namespace
     Helper class to manipulate console from a GUI app.
 
     Notice that console output is available in the GUI app only if:
-    - AttachConsole() returns TRUE (which means it never works under pre-XP)
+    - AttachConsole() returns TRUE
     - we have a valid STD_ERROR_HANDLE
     - command history hasn't been changed since our startup
 
@@ -386,7 +386,7 @@ private:
 
     // retrieve the command line history into the provided buffer and return
     // its length
-    int GetCommandHistory(wxWxCharBuffer& buf) const;
+    int GetCommandHistory(wxWCharBuffer& buf) const;
 
     // check if the console history has changed
     bool IsHistoryUnchanged() const;
@@ -398,7 +398,7 @@ private:
     HANDLE m_hStderr;           // console handle, if it's valid we must call
                                 // FreeConsole() (even if m_ok != 1)
 
-    wxWxCharBuffer m_history;   // command history on startup
+    wxWCharBuffer m_history;    // command history on startup
     int m_historyLen;           // length command history buffer
 
     wxCharBuffer m_data;        // data between empty line and cursor position
@@ -493,7 +493,7 @@ bool wxConsoleStderr::DoInit()
     return true;
 }
 
-int wxConsoleStderr::GetCommandHistory(wxWxCharBuffer& buf) const
+int wxConsoleStderr::GetCommandHistory(wxWCharBuffer& buf) const
 {
     // these functions are internal and may only be called by cmd.exe
     static const wxChar *CMD_EXE = wxT("cmd.exe");
@@ -504,12 +504,6 @@ int wxConsoleStderr::GetCommandHistory(wxWxCharBuffer& buf) const
         buf.extend(len);
 
         int len2 = m_pfnGetConsoleCommandHistory(buf.data(), len, CMD_EXE);
-
-#if !wxUSE_UNICODE
-        // there seems to be a bug in the GetConsoleCommandHistoryA(), it
-        // returns the length of Unicode string and not ANSI one
-        len2 /= 2;
-#endif // !wxUSE_UNICODE
 
         if ( len2 != len )
         {
@@ -525,7 +519,7 @@ bool wxConsoleStderr::IsHistoryUnchanged() const
     wxASSERT_MSG( m_ok == 1, wxT("shouldn't be called if not initialized") );
 
     // get (possibly changed) command history
-    wxWxCharBuffer history;
+    wxWCharBuffer history;
     const int historyLen = GetCommandHistory(history);
 
     // and compare it with the original one
@@ -564,7 +558,7 @@ bool wxConsoleStderr::Write(const wxString& text)
         return false;
     }
 
-    if ( !::WriteConsole(m_hStderr, text.t_str(), text.length(), &ret, NULL) )
+    if ( !::WriteConsole(m_hStderr, text.t_str(), text.length(), &ret, nullptr) )
     {
         wxLogLastError(wxT("WriteConsole"));
         return false;
@@ -606,7 +600,7 @@ bool wxGUIAppTraits::WriteToStderr(const wxString& WXUNUSED(text))
 WXHWND wxGUIAppTraits::GetMainHWND() const
 {
     const wxWindow* const w = wxApp::GetMainTopWindow();
-    return w ? w->GetHWND() : NULL;
+    return w ? w->GetHWND() : nullptr;
 }
 
 // ===========================================================================
@@ -635,7 +629,7 @@ public:
     wxCallBaseCleanup(wxApp *app) : m_app(app) { }
     ~wxCallBaseCleanup() { if ( m_app ) m_app->wxAppBase::CleanUp(); }
 
-    void Dismiss() { m_app = NULL; }
+    void Dismiss() { m_app = nullptr; }
 
 private:
     wxApp *m_app;
@@ -683,7 +677,7 @@ const wxChar *wxApp::GetRegisteredClassName(const wxChar *name,
 
     wndclass.lpfnWndProc   = (WNDPROC)wxWndProc;
     wndclass.hInstance     = wxGetInstance();
-    wndclass.hCursor       = ::LoadCursor(NULL, IDC_ARROW);
+    wndclass.hCursor       = ::LoadCursor(nullptr, IDC_ARROW);
     wndclass.hbrBackground = (HBRUSH)wxUIntToPtr(bgBrushCol + 1);
     wndclass.style         = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS | extraStyles;
 
@@ -696,7 +690,7 @@ const wxChar *wxApp::GetRegisteredClassName(const wxChar *name,
         {
             wxLogLastError(wxString::Format(wxT("RegisterClass(%s)"),
                            regClass.regname));
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -707,7 +701,7 @@ const wxChar *wxApp::GetRegisteredClassName(const wxChar *name,
         wxLogLastError(wxString::Format(wxT("RegisterClass(%s)"),
                        regClass.regname));
         ::UnregisterClass(regClass.regname.c_str(), wxGetInstance());
-        return NULL;
+        return nullptr;
     }
 
     gs_regClassesInfo.push_back(regClass);
@@ -988,7 +982,7 @@ bool wxApp::OnExceptionInMainLoop()
     switch (
             ::MessageBox
               (
-                NULL,
+                nullptr,
                 wxT("An unhandled exception occurred. Press \"Abort\" to \
 terminate the program,\r\n\
 \"Retry\" to exit the program normally and \"Ignore\" to try to continue."),

@@ -85,15 +85,15 @@ class wxQtStyledItemDelegate : public QStyledItemDelegate
 public:
     explicit wxQtStyledItemDelegate(wxWindow* parent)
         : m_parent(parent),
-        m_textCtrl(NULL)
+        m_textCtrl(nullptr)
     {
     }
 
     QWidget* createEditor(QWidget *parent,
                           const QStyleOptionViewItem &WXUNUSED(option),
-                          const QModelIndex &index) const wxOVERRIDE
+                          const QModelIndex &index) const override
     {
-        if (m_textCtrl != NULL)
+        if (m_textCtrl != nullptr)
             destroyEditor(m_textCtrl->GetHandle(), m_currentModelIndex);
 
         m_currentModelIndex = index;
@@ -103,19 +103,19 @@ public:
     }
 
     void destroyEditor(QWidget *WXUNUSED(editor),
-                       const QModelIndex &WXUNUSED(index)) const wxOVERRIDE
+                       const QModelIndex &WXUNUSED(index)) const override
     {
-        if (m_textCtrl != NULL)
+        if (m_textCtrl != nullptr)
         {
             m_currentModelIndex = QModelIndex(); // invalidate the index
             wxTheApp->ScheduleForDestruction(m_textCtrl);
-            m_textCtrl = NULL;
+            m_textCtrl = nullptr;
         }
     }
 
     void setModelData(QWidget *WXUNUSED(editor),
                       QAbstractItemModel *WXUNUSED(model),
-                      const QModelIndex &WXUNUSED(index)) const wxOVERRIDE
+                      const QModelIndex &WXUNUSED(index)) const override
     {
         // Don't set model data until wx has had a chance to send out events
     }
@@ -147,21 +147,21 @@ class wxQtListModel : public QAbstractTableModel
 {
 public:
     explicit wxQtListModel(wxListCtrl *listCtrl) :
-        m_view(NULL),
+        m_view(nullptr),
         m_listCtrl(listCtrl)
     {
     }
 
-    int rowCount(const QModelIndex& WXUNUSED(parent)) const wxOVERRIDE
+    int rowCount(const QModelIndex& WXUNUSED(parent)) const override
     {
         return static_cast<int>(m_rows.size());
     }
-    int columnCount(const QModelIndex& WXUNUSED(parent)) const wxOVERRIDE
+    int columnCount(const QModelIndex& WXUNUSED(parent)) const override
     {
         return static_cast<int>(m_headers.size());
     }
 
-    QVariant data(const QModelIndex &index, int role) const wxOVERRIDE
+    QVariant data(const QModelIndex &index, int role) const override
     {
         const int row = index.row();
         const int col = index.column();
@@ -187,7 +187,7 @@ public:
             case Qt::DecorationRole:
             {
                 wxImageList *imageList = GetImageList();
-                if ( imageList == NULL )
+                if ( imageList == nullptr )
                     return QVariant();
 
                 int imageIndex = -1;
@@ -238,7 +238,7 @@ public:
         const QModelIndex &index,
         const QVariant &value,
         int role
-    ) wxOVERRIDE
+    ) override
     {
         const int row = index.row();
         const int col = index.column();
@@ -282,7 +282,7 @@ public:
         int section,
         Qt::Orientation orientation,
         int role
-    ) const wxOVERRIDE
+    ) const override
     {
         if ( orientation == Qt::Vertical )
             return QVariant();
@@ -303,7 +303,7 @@ public:
         return QVariant();
     }
 
-    Qt::ItemFlags flags(const QModelIndex &index) const wxOVERRIDE
+    Qt::ItemFlags flags(const QModelIndex &index) const override
     {
         Qt::ItemFlags
             itemFlags = Qt::ItemIsSelectable | Qt::ItemNeverHasChildren;
@@ -317,7 +317,7 @@ public:
          return itemFlags | QAbstractTableModel::flags(index);
     }
 
-    bool removeRows(int row, int count, const QModelIndex &parent) wxOVERRIDE
+    bool removeRows(int row, int count, const QModelIndex &parent) override
     {
         if ( count == 0 )
             return true;
@@ -330,7 +330,7 @@ public:
 
     bool removeColumns(int column,
                        int count,
-                       const QModelIndex &parent) wxOVERRIDE
+                       const QModelIndex &parent) override
     {
         if ( count == 0 )
             return true;
@@ -428,7 +428,7 @@ public:
 
         QVector<int> roles;
 
-        if ( (info.m_mask & wxLIST_MASK_TEXT) && !info.GetText().IsNull() )
+        if ( (info.m_mask & wxLIST_MASK_TEXT) && !info.GetText().empty() )
         {
             columnItem.m_label =  wxQtConvertString(info.GetText());
             roles.push_back(Qt::DisplayRole);
@@ -654,15 +654,15 @@ public:
 
         beginInsertColumns(QModelIndex(), newColumnIndex, newColumnIndex);
 
-        std::vector<ColumnItem>::iterator i = m_headers.begin();
-        std::advance(i, newColumnIndex);
-        m_headers.insert(i, newColumn);
+        std::vector<ColumnItem>::iterator it = m_headers.begin();
+        std::advance(it, newColumnIndex);
+        m_headers.insert(it, newColumn);
 
         const int numberOfRows = m_rows.size();
 
         for (int i = 0; i < numberOfRows; ++i )
         {
-            std::vector<ColumnItem>::iterator it = m_rows[i].m_columns.begin();
+            it = m_rows[i].m_columns.begin();
             std::advance(it, newColumnIndex);
             m_rows[i].m_columns.insert(it, newColumn);
         }
@@ -782,14 +782,14 @@ private:
     struct RowItem
     {
         RowItem() :
-            m_data(NULL),
+            m_data(nullptr),
             m_checked(false)
         {
         }
 
         RowItem(int columnCount ) :
             m_columns(columnCount),
-            m_data(NULL),
+            m_data(nullptr),
             m_checked(false)
         {
         }
@@ -845,12 +845,12 @@ public:
     {
     }
 
-    int rowCount(const QModelIndex& WXUNUSED(parent)) const wxOVERRIDE
+    int rowCount(const QModelIndex& WXUNUSED(parent)) const override
     {
         return m_rowCount;
     }
 
-    QVariant data(const QModelIndex &index, int role) const wxOVERRIDE
+    QVariant data(const QModelIndex &index, int role) const override
     {
         wxListCtrl *listCtrl = GetListCtrl();
 
@@ -866,7 +866,7 @@ public:
         if ( role == Qt::DecorationRole )
         {
             wxImageList *imageList = GetImageList();
-            if ( imageList == NULL )
+            if ( imageList == nullptr )
                 return QVariant();
 
             const int imageIndex = listCtrl->OnGetItemColumnImage(row, col);
@@ -880,7 +880,7 @@ public:
         return QVariant();
     }
 
-    bool GetItem(wxListItem& info) wxOVERRIDE
+    bool GetItem(wxListItem& info) override
     {
         const int row = static_cast<int>(info.GetId());
         const int col = info.m_col;
@@ -893,12 +893,12 @@ public:
         return true;
     }
 
-    bool IsVirtual() const wxOVERRIDE
+    bool IsVirtual() const override
     {
         return true;
     }
 
-    void SetVirtualItemCount(long count) wxOVERRIDE
+    void SetVirtualItemCount(long count) override
     {
         beginResetModel();
         m_rowCount = static_cast<int>(count);
@@ -919,7 +919,7 @@ public:
     void closeEditor(
         QWidget *editor,
         QAbstractItemDelegate::EndEditHint hint
-    ) wxOVERRIDE
+    ) override
     {
         // Close process can re-signal closeEditor so we need to guard against
         // reentrant calls.
@@ -970,14 +970,14 @@ public:
         return m_itemDelegate.GetEditControl();
     }
 
-    virtual void paintEvent(QPaintEvent *event) wxOVERRIDE
+    virtual void paintEvent(QPaintEvent *event) override
     {
         QTreeView::paintEvent(event);
     }
 
     int GetHeaderHeight() const
     {
-        return header() != NULL ? header()->height() : 0;
+        return header() != nullptr ? header()->height() : 0;
     }
 
 private:
@@ -1082,30 +1082,13 @@ bool wxListCtrl::Create(wxWindow *parent,
 void wxListCtrl::Init()
 {
     m_hasCheckBoxes = false;
-    m_model = NULL;
-    m_imageListNormal = NULL;
-    m_ownsImageListNormal = false;
-    m_imageListSmall = NULL;
-    m_ownsImageListSmall = false;
-    m_imageListState = NULL;
-    m_ownsImageListState = false;
-    m_qtTreeWidget = NULL;
+    m_model = nullptr;
+    m_qtTreeWidget = nullptr;
 }
 
 wxListCtrl::~wxListCtrl()
 {
-    if ( m_ownsImageListNormal )
-        delete m_imageListNormal;
-    if ( m_ownsImageListSmall )
-        delete m_imageListSmall;
-    if ( m_ownsImageListState )
-        delete m_imageListState;
-
-    m_imageListNormal = NULL;
-    m_imageListSmall = NULL;
-    m_imageListState = NULL;
-
-    m_qtTreeWidget->setModel(NULL);
+    m_qtTreeWidget->setModel(nullptr);
     m_model->deleteLater();
 }
 
@@ -1551,58 +1534,9 @@ long wxListCtrl::GetNextItem(long item, int WXUNUSED(geometry), int state) const
     return -1;
 }
 
-wxImageList *wxListCtrl::GetImageList(int which) const
+void wxListCtrl::DoUpdateImages(int WXUNUSED(which))
 {
-    if ( which == wxIMAGE_LIST_NORMAL )
-    {
-        return m_imageListNormal;
-    }
-    else if ( which == wxIMAGE_LIST_SMALL )
-    {
-        return m_imageListSmall;
-    }
-    else if ( which == wxIMAGE_LIST_STATE )
-    {
-        return m_imageListState;
-    }
-    return NULL;
-}
-
-
-void wxListCtrl::SetImageList(wxImageList *imageList, int which)
-{
-    if ( which == wxIMAGE_LIST_NORMAL )
-    {
-        if ( m_ownsImageListNormal )
-            delete m_imageListNormal;
-        m_imageListNormal = imageList;
-        m_ownsImageListNormal = false;
-    }
-    else if ( which == wxIMAGE_LIST_SMALL )
-    {
-        if ( m_ownsImageListSmall )
-            delete m_imageListSmall;
-        m_imageListSmall = imageList;
-        m_ownsImageListSmall = false;
-    }
-    else if ( which == wxIMAGE_LIST_STATE )
-    {
-        if ( m_ownsImageListState )
-            delete m_imageListState;
-        m_imageListState = imageList;
-        m_ownsImageListState = false;
-    }
-}
-
-void wxListCtrl::AssignImageList(wxImageList *imageList, int which)
-{
-    SetImageList(imageList, which);
-    if ( which == wxIMAGE_LIST_NORMAL )
-        m_ownsImageListNormal = true;
-    else if ( which == wxIMAGE_LIST_SMALL )
-        m_ownsImageListSmall = true;
-    else if ( which == wxIMAGE_LIST_STATE )
-        m_ownsImageListState = true;
+    // TODO: Ensure the icons are actually updated.
 }
 
 void wxListCtrl::RefreshItem(long item)

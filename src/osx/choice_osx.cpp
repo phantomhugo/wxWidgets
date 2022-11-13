@@ -41,7 +41,7 @@ bool wxChoice::Create(wxWindow *parent,
     const wxValidator& validator,
     const wxString& name )
 {
-    if ( !Create( parent, id, pos, size, 0, NULL, style, validator, name ) )
+    if ( !Create( parent, id, pos, size, 0, nullptr, style, validator, name ) )
         return false;
 
     Append( choices );
@@ -69,7 +69,7 @@ bool wxChoice::Create(wxWindow *parent,
     if ( !wxChoiceBase::Create( parent, id, pos, size, style, validator, name ) )
         return false;
 
-    SetPeer(wxWidgetImpl::CreateChoice( this, parent, id, NULL, pos, size, style, GetExtraStyle() ));
+    SetPeer(wxWidgetImpl::CreateChoice( this, parent, id, nullptr, pos, size, style, GetExtraStyle() ));
 
     MacPostControlCreate( pos, size );
 
@@ -130,7 +130,7 @@ int wxChoice::DoInsertItems(const wxArrayStringsAdapter & items,
         if (text.empty())
             text = " ";  // menu items can't have empty labels
         dynamic_cast<wxChoiceWidgetImpl*>(GetPeer())->InsertItem( idx, i+1, text );
-        m_datas.Insert( NULL, idx );
+        m_datas.Insert( nullptr, idx );
         AssignNewItemClientData(idx, clientData, i, type);
     }
 
@@ -145,6 +145,11 @@ void wxChoice::DoDeleteOneItem(unsigned int n)
 
     if ( HasClientObjectData() )
         delete GetClientObject( n );
+
+    // Deselect item being removed
+    int selIdx = GetSelection();
+    if ( selIdx != -1 && selIdx == int(n) )
+        SetSelection(-1);
 
     dynamic_cast<wxChoiceWidgetImpl*>(GetPeer())->RemoveItem(n);
     m_strings.RemoveAt( n ) ;

@@ -108,11 +108,7 @@ public:
     void Empty() { this->clear(); }
     void Clear() { this->clear(); }
     void Alloc(size_t uiSize) { this->reserve(uiSize); }
-
-    void Shrink()
-    {
-        wxShrinkToFit(*this);
-    }
+    void Shrink() { this->shrink_to_fit(); }
 
     size_t GetCount() const { return this->size(); }
     void SetCount(size_t n, T v = T()) { this->resize(n, v); }
@@ -256,7 +252,7 @@ public:
     }
 
 protected:
-    SCMPFUNC GetCompareFunction() const wxNOEXCEPT { return m_fnCompare; }
+    SCMPFUNC GetCompareFunction() const noexcept { return m_fnCompare; }
 
 private:
     SCMPFUNC m_fnCompare;
@@ -364,7 +360,7 @@ public:
         T* const pItem = Traits::Clone(item);
 
         const size_t nOldSize = size();
-        if ( pItem != NULL )
+        if ( pItem != nullptr )
             base::insert(this->end(), nInsert, pItem);
 
         for ( size_t i = 1; i < nInsert; i++ )
@@ -385,7 +381,7 @@ public:
             return;
 
         T* const pItem = Traits::Clone(item);
-        if ( pItem != NULL )
+        if ( pItem != nullptr )
             base::insert(this->begin() + uiIndex, nInsert, pItem);
 
         for ( size_t i = 1; i < nInsert; ++i )
@@ -445,7 +441,7 @@ private:
 // under Windows if needed.
 //
 // The first (just EXPORTED) macros do it if wxWidgets was compiled as a DLL
-// and so must be used used inside the library. The second kind (USER_EXPORTED)
+// and so must be used inside the library. The second kind (USER_EXPORTED)
 // allow the user code to do it when it wants. This is needed if you have a dll
 // that wants to export a wxArray daubed with your own import/export goo.
 //
@@ -615,7 +611,7 @@ private:
 //  2) Detach() just removes the object from the array (returning pointer to it)
 //
 // NB1: Base type T should have an accessible copy ctor if Add(T&) is used
-// NB2: Never ever cast a array to it's base type: as dtor is not virtual
+// NB2: Never ever cast an array to it's base type: as dtor is not virtual
 //      and so you risk having at least the memory leaks and probably worse
 //
 // Some functions of this class are not inline, so it takes some space to
@@ -631,7 +627,7 @@ private:
 // This is necessary because at the moment of DEFINE_OBJARRAY class parsing the
 // element_type must be fully defined (i.e. forward declaration is not
 // enough), while WX_DECLARE_OBJARRAY may be done anywhere. The separation of
-// two allows to break cicrcular dependencies with classes which have member
+// two allows to break circcular dependencies with classes which have member
 // variables of objarray type.
 // ----------------------------------------------------------------------------
 

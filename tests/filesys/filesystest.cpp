@@ -39,9 +39,9 @@ public:
     wxString RightLocation(const wxString& p) { return GetRightLocation(p); }
     wxString Anchor(const wxString& p) { return GetAnchor(p); }
 
-    bool CanOpen(const wxString& WXUNUSED(url)) wxOVERRIDE { return false; }
+    bool CanOpen(const wxString& WXUNUSED(url)) override { return false; }
     wxFSFile *OpenFile(wxFileSystem& WXUNUSED(fs),
-                       const wxString& WXUNUSED(url)) wxOVERRIDE { return NULL; }
+                       const wxString& WXUNUSED(url)) override { return nullptr; }
 
 
 };
@@ -177,7 +177,7 @@ TEST_CASE("wxFileSystem::UnicodeFileNameToUrlConversion", "[filesys][url][filena
 }
 
 // Test that using FindFirst() after removing a previously found URL works:
-// this used to be broken, see https://trac.wxwidgets.org/ticket/18744
+// this used to be broken, see https://github.com/wxWidgets/wxWidgets/issues/18744
 TEST_CASE("wxFileSystem::MemoryFSHandler", "[filesys][memoryfshandler][find]")
 {
     // Install wxMemoryFSHandler just for the duration of this test.

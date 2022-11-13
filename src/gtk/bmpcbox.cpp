@@ -182,24 +182,25 @@ wxSize wxBitmapComboBox::DoGetBestSize() const
 // Item manipulation
 // ----------------------------------------------------------------------------
 
-void wxBitmapComboBox::SetItemBitmap(unsigned int n, const wxBitmap& bitmap)
+void wxBitmapComboBox::SetItemBitmap(unsigned int n, const wxBitmapBundle& bitmap)
 {
-    if ( bitmap.IsOk() )
+    wxBitmap bmp = bitmap.GetBitmapFor(this);
+    if ( bmp.IsOk() )
     {
         if ( m_bitmapSize.x < 0 )
         {
-            m_bitmapSize.x = bitmap.GetWidth();
-            m_bitmapSize.y = bitmap.GetHeight();
+            m_bitmapSize.x = bmp.GetLogicalWidth();
+            m_bitmapSize.y = bmp.GetLogicalHeight();
         }
 
         GtkComboBox* combobox = GTK_COMBO_BOX( m_widget );
         GtkTreeModel *model = gtk_combo_box_get_model( combobox );
         GtkTreeIter iter;
 
-        if ( gtk_tree_model_iter_nth_child( model, &iter, NULL, n ) )
+        if ( gtk_tree_model_iter_nth_child( model, &iter, nullptr, n ) )
         {
             wxGtkValue value0( G_TYPE_OBJECT );
-            g_value_set_object( value0, bitmap.GetPixbuf() );
+            g_value_set_object( value0, bmp.GetPixbuf() );
             gtk_list_store_set_value( GTK_LIST_STORE(model), &iter,
                                       m_bitmapCellIndex, value0 );
         }
@@ -214,7 +215,7 @@ wxBitmap wxBitmapComboBox::GetItemBitmap(unsigned int n) const
     GtkTreeModel *model = gtk_combo_box_get_model( combobox );
     GtkTreeIter iter;
 
-    if (gtk_tree_model_iter_nth_child (model, &iter, NULL, n))
+    if (gtk_tree_model_iter_nth_child (model, &iter, nullptr, n))
     {
         wxGtkValue value;
         gtk_tree_model_get_value( model, &iter,
@@ -230,7 +231,7 @@ wxBitmap wxBitmapComboBox::GetItemBitmap(unsigned int n) const
     return bitmap;
 }
 
-int wxBitmapComboBox::Append(const wxString& item, const wxBitmap& bitmap)
+int wxBitmapComboBox::Append(const wxString& item, const wxBitmapBundle& bitmap)
 {
     const int n = wxComboBox::Append(item);
     if ( n != wxNOT_FOUND )
@@ -238,7 +239,7 @@ int wxBitmapComboBox::Append(const wxString& item, const wxBitmap& bitmap)
     return n;
 }
 
-int wxBitmapComboBox::Append(const wxString& item, const wxBitmap& bitmap,
+int wxBitmapComboBox::Append(const wxString& item, const wxBitmapBundle& bitmap,
                              void *clientData)
 {
     const int n = wxComboBox::Append(item, clientData);
@@ -247,7 +248,7 @@ int wxBitmapComboBox::Append(const wxString& item, const wxBitmap& bitmap,
     return n;
 }
 
-int wxBitmapComboBox::Append(const wxString& item, const wxBitmap& bitmap,
+int wxBitmapComboBox::Append(const wxString& item, const wxBitmapBundle& bitmap,
                              wxClientData *clientData)
 {
     const int n = wxComboBox::Append(item, clientData);
@@ -257,7 +258,7 @@ int wxBitmapComboBox::Append(const wxString& item, const wxBitmap& bitmap,
 }
 
 int wxBitmapComboBox::Insert(const wxString& item,
-                             const wxBitmap& bitmap,
+                             const wxBitmapBundle& bitmap,
                              unsigned int pos)
 {
     const int n = wxComboBox::Insert(item, pos);
@@ -266,7 +267,7 @@ int wxBitmapComboBox::Insert(const wxString& item,
     return n;
 }
 
-int wxBitmapComboBox::Insert(const wxString& item, const wxBitmap& bitmap,
+int wxBitmapComboBox::Insert(const wxString& item, const wxBitmapBundle& bitmap,
                              unsigned int pos, wxClientData *clientData)
 {
     const int n = wxComboBox::Insert(item, pos, clientData);
@@ -275,7 +276,7 @@ int wxBitmapComboBox::Insert(const wxString& item, const wxBitmap& bitmap,
     return n;
 }
 
-int wxBitmapComboBox::Insert(const wxString& item, const wxBitmap& bitmap,
+int wxBitmapComboBox::Insert(const wxString& item, const wxBitmapBundle& bitmap,
                              unsigned int pos, void *clientData)
 {
     const int n = wxComboBox::Insert(item, pos, clientData);
@@ -294,7 +295,7 @@ void wxBitmapComboBox::GTKInsertComboBoxTextItem( unsigned int n, const wxString
     gtk_list_store_insert( store, &iter, n );
 
     wxGtkValue value( G_TYPE_STRING );
-    g_value_set_string( value, wxGTK_CONV( text ) );
+    g_value_set_string( value, text.utf8_str() );
     gtk_list_store_set_value( store, &iter, m_stringCellIndex, value );
 }
 

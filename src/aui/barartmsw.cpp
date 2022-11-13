@@ -34,20 +34,20 @@ wxAuiMSWToolBarArt::wxAuiMSWToolBarArt()
         wxUxThemeHandle hTheme(window, L"Rebar");
 
         SIZE overflowSize;
-        ::GetThemePartSize(hTheme, NULL, RP_CHEVRON, 0,
-            NULL, TS_TRUE, &overflowSize);
+        ::GetThemePartSize(hTheme, nullptr, RP_CHEVRON, 0,
+            nullptr, TS_TRUE, &overflowSize);
         m_overflowSize = overflowSize.cx;
 
         SIZE gripperSize;
-        ::GetThemePartSize(hTheme, NULL, RP_GRIPPER, 0,
-            NULL, TS_TRUE, &gripperSize);
+        ::GetThemePartSize(hTheme, nullptr, RP_GRIPPER, 0,
+            nullptr, TS_TRUE, &gripperSize);
         m_gripperSize = gripperSize.cx;
 
         wxUxThemeHandle hThemeToolbar(window, L"Toolbar");
 
         SIZE seperatorSize;
-        ::GetThemePartSize(hThemeToolbar, NULL, TP_SEPARATOR, 0,
-            NULL, TS_TRUE, &seperatorSize);
+        ::GetThemePartSize(hThemeToolbar, nullptr, TP_SEPARATOR, 0,
+            nullptr, TS_TRUE, &seperatorSize);
         m_separatorSize = seperatorSize.cx;
 
         // TP_DROPDOWNBUTTON is only 7px, too small to fit the dropdown arrow,
@@ -55,8 +55,8 @@ wxAuiMSWToolBarArt::wxAuiMSWToolBarArt()
         m_dropdownSize = window->FromDIP(14);
 
         SIZE buttonSize;
-        ::GetThemePartSize(hThemeToolbar, NULL, TP_BUTTON, 0,
-            NULL, TS_TRUE, &buttonSize);
+        ::GetThemePartSize(hThemeToolbar, nullptr, TP_BUTTON, 0,
+            nullptr, TS_TRUE, &buttonSize);
         m_buttonSize.Set(buttonSize.cx, buttonSize.cy);
     }
     else
@@ -86,7 +86,7 @@ void wxAuiMSWToolBarArt::DrawBackground(
             RP_BACKGROUND,
             0,
             &r,
-            NULL);
+            nullptr);
     }
     else
         wxAuiGenericToolBarArt::DrawBackground(dc, wnd, rect);
@@ -135,7 +135,7 @@ void wxAuiMSWToolBarArt::DrawButton(
             TP_BUTTON,
             btnState,
             &r,
-            NULL);
+            nullptr);
 
         int textWidth = 0, textHeight = 0;
 
@@ -153,15 +153,16 @@ void wxAuiMSWToolBarArt::DrawButton(
         int bmpX = 0, bmpY = 0;
         int textX = 0, textY = 0;
 
+        const wxBitmap& bmp = item.GetCurrentBitmapFor(wnd);
         if ( m_textOrientation == wxAUI_TBTOOL_TEXT_BOTTOM )
         {
             bmpX = rect.x +
                 (rect.width / 2) -
-                (item.GetBitmap().GetWidth() / 2);
+                (bmp.GetWidth() / 2);
 
             bmpY = rect.y +
                 ((rect.height - textHeight) / 2) -
-                (item.GetBitmap().GetHeight() / 2);
+                (bmp.GetHeight() / 2);
 
             textX = rect.x + (rect.width / 2) - (textWidth / 2) + 1;
             textY = rect.y + rect.height - textHeight - 1;
@@ -172,19 +173,13 @@ void wxAuiMSWToolBarArt::DrawButton(
 
             bmpY = rect.y +
                 (rect.height / 2) -
-                (item.GetBitmap().GetHeight() / 2);
+                (bmp.GetHeight() / 2);
 
-            textX = bmpX + wnd->FromDIP(3) + item.GetBitmap().GetWidth();
+            textX = bmpX + wnd->FromDIP(3) + bmp.GetWidth();
             textY = rect.y +
                 (rect.height / 2) -
                 (textHeight / 2);
         }
-
-        wxBitmap bmp;
-        if ( item.GetState() & wxAUI_BUTTON_STATE_DISABLED )
-            bmp = item.GetDisabledBitmap();
-        else
-            bmp = item.GetBitmap();
 
         if ( bmp.IsOk() )
             dc.DrawBitmap(bmp, bmpX, bmpY, true);
@@ -261,7 +256,7 @@ void wxAuiMSWToolBarArt::DrawDropDownButton(
             TP_SPLITBUTTON,
             btnState,
             &btnR,
-            NULL);
+            nullptr);
 
         ::DrawThemeBackground(
             hTheme,
@@ -269,16 +264,20 @@ void wxAuiMSWToolBarArt::DrawDropDownButton(
             TP_SPLITBUTTONDROPDOWN,
             btnState,
             &dropDownR,
-            NULL);
+            nullptr);
+
+        const wxBitmap& bmp = item.GetCurrentBitmapFor(wnd);
+        if ( !bmp.IsOk() )
+            return;
 
         if ( m_textOrientation == wxAUI_TBTOOL_TEXT_BOTTOM )
         {
             bmpX = buttonRect.x +
                 (buttonRect.width / 2) -
-                (item.GetBitmap().GetWidth() / 2);
+                (bmp.GetWidth() / 2);
             bmpY = buttonRect.y +
                 ((buttonRect.height - textHeight) / 2) -
-                (item.GetBitmap().GetHeight() / 2);
+                (bmp.GetHeight() / 2);
 
             textX = rect.x + (rect.width / 2) - (textWidth / 2) + 1;
             textY = rect.y + rect.height - textHeight - 1;
@@ -289,26 +288,13 @@ void wxAuiMSWToolBarArt::DrawDropDownButton(
 
             bmpY = rect.y +
                 (rect.height / 2) -
-                (item.GetBitmap().GetHeight() / 2);
+                (bmp.GetHeight() / 2);
 
-            textX = bmpX + wnd->FromDIP(3) + item.GetBitmap().GetWidth();
+            textX = bmpX + wnd->FromDIP(3) + bmp.GetWidth();
             textY = rect.y +
                 (rect.height / 2) -
                 (textHeight / 2);
         }
-
-        wxBitmap bmp;
-        if ( item.GetState() & wxAUI_BUTTON_STATE_DISABLED )
-        {
-            bmp = item.GetDisabledBitmap();
-        }
-        else
-        {
-            bmp = item.GetBitmap();
-        }
-
-        if ( !bmp.IsOk() )
-            return;
 
         dc.DrawBitmap(bmp, bmpX, bmpY, true);
 
@@ -355,7 +341,7 @@ void wxAuiMSWToolBarArt::DrawSeparator(
             (m_flags & wxAUI_TB_VERTICAL) ? TP_SEPARATORVERT : TP_SEPARATOR,
             0,
             &r,
-            NULL);
+            nullptr);
     }
     else
         wxAuiGenericToolBarArt::DrawSeparator(dc, wnd, rect);
@@ -379,7 +365,7 @@ void wxAuiMSWToolBarArt::DrawGripper(
             (m_flags & wxAUI_TB_VERTICAL) ? RP_GRIPPERVERT : RP_GRIPPER,
             0,
             &r,
-            NULL);
+            nullptr);
     }
     else
         wxAuiGenericToolBarArt::DrawGripper(dc, wnd, rect);
@@ -412,7 +398,7 @@ void wxAuiMSWToolBarArt::DrawOverflowButton(
             (m_flags & wxAUI_TB_VERTICAL) ? RP_CHEVRONVERT : RP_CHEVRON,
             chevState,
             &r,
-            NULL);
+            nullptr);
     }
     else
         wxAuiGenericToolBarArt::DrawOverflowButton(dc, wnd, rect, state);
@@ -433,7 +419,7 @@ wxSize wxAuiMSWToolBarArt::GetToolSize(
 {
     if ( m_themed )
     {
-        if ( !item.GetBitmap().IsOk() && !(m_flags & wxAUI_TB_TEXT) )
+        if ( !item.GetBitmapBundle().IsOk() && !(m_flags & wxAUI_TB_TEXT) )
             return m_buttonSize;
 
         wxSize size = wxAuiGenericToolBarArt::GetToolSize(dc, wnd, item);

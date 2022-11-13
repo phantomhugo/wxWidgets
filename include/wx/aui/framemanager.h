@@ -24,7 +24,7 @@
 #include "wx/window.h"
 #include "wx/timer.h"
 #include "wx/sizer.h"
-#include "wx/bitmap.h"
+#include "wx/bmpbndl.h"
 
 enum wxAuiManagerDock
 {
@@ -152,8 +152,8 @@ public:
         , floating_pos(wxDefaultPosition)
         , floating_size(wxDefaultSize)
     {
-        window = NULL;
-        frame = NULL;
+        window = nullptr;
+        frame = nullptr;
         state = 0;
         dock_direction = wxAUI_DOCK_LEFT;
         dock_layer = 0;
@@ -180,7 +180,7 @@ public:
         *this = source;
     }
 
-    bool IsOk() const { return window != NULL; }
+    bool IsOk() const { return window != nullptr; }
     bool IsFixed() const { return !HasFlag(optionResizable); }
     bool IsResizable() const { return HasFlag(optionResizable); }
     bool IsShown() const { return !HasFlag(optionHidden); }
@@ -223,7 +223,7 @@ public:
     }
     wxAuiPaneInfo& Name(const wxString& n) { name = n; return *this; }
     wxAuiPaneInfo& Caption(const wxString& c) { caption = c; return *this; }
-    wxAuiPaneInfo& Icon(const wxBitmap& b) { icon = b; return *this; }
+    wxAuiPaneInfo& Icon(const wxBitmapBundle& b) { icon = b; return *this; }
     wxAuiPaneInfo& Left() { dock_direction = wxAUI_DOCK_LEFT; return *this; }
     wxAuiPaneInfo& Right() { dock_direction = wxAUI_DOCK_RIGHT; return *this; }
     wxAuiPaneInfo& Top() { dock_direction = wxAUI_DOCK_TOP; return *this; }
@@ -371,7 +371,7 @@ public:
 public:
     wxString name;        // name of the pane
     wxString caption;     // caption displayed on the window
-    wxBitmap icon;        // icon of the pane, may be invalid
+    wxBitmapBundle icon;  // icon of the pane, may be invalid
 
     wxWindow* window;     // window that is in this pane
     wxFrame* frame;       // floating frame window that holds the pane
@@ -405,7 +405,7 @@ class WXDLLIMPEXP_AUI wxAuiManager : public wxEvtHandler
 
 public:
 
-    wxAuiManager(wxWindow* managedWnd = NULL,
+    wxAuiManager(wxWindow* managedWnd = nullptr,
                    unsigned int flags = wxAUI_MGR_DEFAULT);
     virtual ~wxAuiManager();
     void UnInit();
@@ -486,7 +486,7 @@ public:
 
 public:
 
-    // deprecated -- please use SetManagedWindow() and
+    // deprecated -- please use SetManagedWindow()
     // and GetManagedWindow() instead
 
     wxDEPRECATED( void SetFrame(wxFrame* frame) );
@@ -533,7 +533,7 @@ protected:
     void OnFloatingPaneClosed(wxWindow* window, wxCloseEvent& evt);
     void OnFloatingPaneResized(wxWindow* window, const wxRect& rect);
     void Render(wxDC* dc);
-    void Repaint(wxDC* dc = NULL);
+    void Repaint(wxDC* dc = nullptr);
     void ProcessMgrEvent(wxAuiManagerEvent& event);
     void UpdateButtonOnScreen(wxAuiDockUIPart* buttonUiPart,
                               const wxMouseEvent& event);
@@ -596,14 +596,13 @@ protected:
     wxPoint m_actionStart;      // position where the action click started
     wxPoint m_actionOffset;     // offset from upper left of the item clicked
     wxAuiDockUIPart* m_actionPart; // ptr to the part the action happened to
-    wxWindow* m_actionWindow;   // action frame or window (NULL if none)
+    wxWindow* m_actionWindow;   // action frame or window (nullptr if none)
     wxRect m_actionHintRect;    // hint rectangle for the action
     wxRect m_lastRect;
     wxAuiDockUIPart* m_hoverButton;// button uipart being hovered over
     wxRect m_lastHint;          // last hint rectangle
     wxPoint m_lastMouseMove;   // last mouse move position (see OnMotion)
     int  m_currentDragItem;
-    bool m_skipping;
     bool m_hasMaximized;
 
     double m_dockConstraintX;  // 0.0 .. 1.0; max pct of window width a dock can consume
@@ -631,14 +630,14 @@ class WXDLLIMPEXP_AUI wxAuiManagerEvent : public wxEvent
 public:
     wxAuiManagerEvent(wxEventType type=wxEVT_NULL) : wxEvent(0, type)
     {
-        manager = NULL;
-        pane = NULL;
+        manager = nullptr;
+        pane = nullptr;
         button = 0;
         veto_flag = false;
         canveto_flag = true;
-        dc = NULL;
+        dc = nullptr;
     }
-    wxEvent *Clone() const wxOVERRIDE { return new wxAuiManagerEvent(*this); }
+    wxEvent *Clone() const override { return new wxAuiManagerEvent(*this); }
 
     void SetManager(wxAuiManager* mgr) { manager = mgr; }
     void SetPane(wxAuiPaneInfo* p) { pane = p; }

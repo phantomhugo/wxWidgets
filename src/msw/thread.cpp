@@ -32,11 +32,14 @@
 #include "wx/apptrait.h"
 #include "wx/scopeguard.h"
 
+#include "wx/private/threadinfo.h"
+
 #include "wx/msw/private.h"
 #include "wx/msw/missing.h"
 #include "wx/msw/seh.h"
 
 #include "wx/except.h"
+#include "wx/dynlib.h"
 
 // must have this symbol defined to get _beginthread/_endthread declarations
 #ifndef _MT
@@ -104,10 +107,10 @@ static bool gs_bGuiOwnedByMainThread = true;
 // critical section which controls access to all GUI functions: any secondary
 // thread (i.e. except the main one) must enter this crit section before doing
 // any GUI calls
-static wxCriticalSection *gs_critsectGui = NULL;
+static wxCriticalSection *gs_critsectGui = nullptr;
 
 // critical section which protects gs_nWaitingForGui variable
-static wxCriticalSection *gs_critsectWaitingForGui = NULL;
+static wxCriticalSection *gs_critsectWaitingForGui = nullptr;
 
 // number of threads waiting for GUI in wxMutexGuiEnter()
 static size_t gs_nWaitingForGui = 0;
@@ -161,7 +164,7 @@ public:
     wxMutexInternal(wxMutexType mutexType);
     ~wxMutexInternal();
 
-    bool IsOk() const { return m_mutex != NULL; }
+    bool IsOk() const { return m_mutex != nullptr; }
 
     wxMutexError Lock() { return LockTimeout(INFINITE); }
     wxMutexError Lock(unsigned long ms) { return LockTimeout(ms); }
@@ -185,9 +188,9 @@ wxMutexInternal::wxMutexInternal(wxMutexType mutexType)
     // create a nameless (hence intra process and always private) mutex
     m_mutex = ::CreateMutex
                 (
-                    NULL,       // default secutiry attributes
+                    nullptr,    // default secutiry attributes
                     FALSE,      // not initially locked
-                    NULL        // no name
+                    nullptr     // no name
                 );
 
     m_type = mutexType;
@@ -291,7 +294,7 @@ public:
     wxSemaphoreInternal(int initialcount, int maxcount);
     ~wxSemaphoreInternal();
 
-    bool IsOk() const { return m_semaphore != NULL; }
+    bool IsOk() const { return m_semaphore != nullptr; }
 
     wxSemaError Wait() { return WaitTimeout(INFINITE); }
 
@@ -324,10 +327,10 @@ wxSemaphoreInternal::wxSemaphoreInternal(int initialcount, int maxcount)
 
     m_semaphore = ::CreateSemaphore
                     (
-                        NULL,           // default security attributes
+                        nullptr,           // default security attributes
                         initialcount,
                         maxcount,
-                        NULL            // no name
+                        nullptr            // no name
                     );
     if ( !m_semaphore )
     {
@@ -367,7 +370,7 @@ wxSemaError wxSemaphoreInternal::WaitTimeout(unsigned long milliseconds)
 
 wxSemaError wxSemaphoreInternal::Post()
 {
-    if ( !::ReleaseSemaphore(m_semaphore, 1, NULL /* ptr to previous count */) )
+    if ( !::ReleaseSemaphore(m_semaphore, 1, nullptr /* ptr to previous count */) )
     {
         if ( GetLastError() == ERROR_TOO_MANY_POSTS )
         {
@@ -428,7 +431,7 @@ public:
     wxThreadError WaitForTerminate(wxCriticalSection& cs,
                                    wxThread::ExitCode *pRc,
                                    wxThreadWait waitMode,
-                                   wxThread *threadToDelete = NULL);
+                                   wxThread *threadToDelete = nullptr);
 
     // kill the thread unconditionally
     wxThreadError Kill();
@@ -531,7 +534,7 @@ THREAD_RETVAL wxThreadInternal::DoThreadStart(wxThread *thread)
             return THREAD_ERROR_EXIT;
         }
 
-        rc = wxPtrToUInt(thread->CallEntry());
+        rc = wxPtrToUInt(thread->Entry());
     }
     wxCATCH_ALL( wxTheApp->OnUnhandledException(); )
 
@@ -581,6 +584,10 @@ THREAD_RETVAL THREAD_CALLCONV wxThreadInternal::WinThreadStart(void *param)
     // the thread may delete itself now if it wants, we don't need it any more
     if ( isDetached )
         thread->m_internal->LetDie();
+
+    // Do this as the very last thing to ensure that thread-specific info is
+    // not recreated any longer.
+    wxThreadSpecificInfo::ThreadCleanUp();
 
     return rc;
 }
@@ -632,7 +639,7 @@ bool wxThreadInternal::Create(wxThread *thread, unsigned int stackSize)
 #ifdef wxUSE_BEGIN_THREAD
     m_hThread = (HANDLE)_beginthreadex
                         (
-                          NULL,                             // default security
+                          nullptr,                          // default security
                           stackSize,
                           wxThreadInternal::WinThreadStart, // entry point
                           thread,
@@ -642,7 +649,7 @@ bool wxThreadInternal::Create(wxThread *thread, unsigned int stackSize)
 #else // compiler doesn't have _beginthreadex
     m_hThread = ::CreateThread
                   (
-                    NULL,                               // default security
+                    nullptr,                            // default security
                     stackSize,                          // stack size
                     wxThreadInternal::WinThreadStart,   // thread entry point
                     (LPVOID)thread,                     // parameter
@@ -651,7 +658,7 @@ bool wxThreadInternal::Create(wxThread *thread, unsigned int stackSize)
                   );
 #endif // _beginthreadex/CreateThread
 
-    if ( m_hThread == NULL )
+    if ( m_hThread == nullptr )
     {
         wxLogSysError(_("Can't create thread"));
 
@@ -695,7 +702,7 @@ wxThreadInternal::WaitForTerminate(wxCriticalSection& cs,
 
     // we may either wait passively for the thread to terminate (when called
     // from Wait()) or ask it to terminate (when called from Delete())
-    bool shouldDelete = threadToDelete != NULL;
+    bool shouldDelete = threadToDelete != nullptr;
 
     DWORD rc = 0;
 
@@ -921,7 +928,7 @@ wxThread *wxThread::This()
     {
         wxLogSysError(_("Couldn't get the current thread pointer"));
 
-        // return NULL...
+        // return nullptr...
     }
 
     return thread;
@@ -1121,6 +1128,96 @@ wxThreadError wxThread::Kill()
     return rc;
 }
 
+// At least MSVC 2017 version 15.6 is required for observing the
+// thread names set using this method.
+// Windows 10 version 1607 is required for the SetThreadDescription
+// function.
+static bool wxSetThreadNameOnWindows10(const WCHAR *threadName)
+{
+    typedef HRESULT(WINAPI* SetThreadDescription_t)(HANDLE, PCWSTR);
+    static SetThreadDescription_t s_pfnSetThreadDescription = nullptr;
+
+    static bool s_initDone = false;
+    if ( !s_initDone )
+    {
+        wxLoadedDLL dllKernel32("kernel32.dll");
+        wxDL_INIT_FUNC(s_pfn, SetThreadDescription, dllKernel32);
+        s_initDone = true;
+    }
+
+    if ( s_pfnSetThreadDescription )
+    {
+        HRESULT r = s_pfnSetThreadDescription(GetCurrentThread(), threadName);
+        if (SUCCEEDED(r))
+            return true;
+        else
+            wxLogApiError("SetThreadDescription", r);
+    }
+    return false;
+}
+
+#ifdef _MSC_VER
+// This function works with all MSVC versions.
+static bool wxSetThreadNameOnAnyMSVC(const char* threadName)
+{
+    // This implementation is taken almost verbatim from:
+    // https://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx
+
+    const DWORD MS_VC_EXCEPTION = 0x406D1388;
+#pragma pack(push,8)
+    typedef struct tagTHREADNAME_INFO
+    {
+        DWORD dwType; // Must be 0x1000.
+        LPCSTR szName; // Pointer to name (in user addr space).
+        DWORD dwThreadID; // Thread ID (-1=caller thread).
+        DWORD dwFlags; // Reserved for future use, must be zero.
+    } THREADNAME_INFO;
+#pragma pack(pop)
+
+    THREADNAME_INFO info;
+    info.dwType = 0x1000;
+    info.szName = threadName;
+    info.dwThreadID = (DWORD)-1;
+    info.dwFlags = 0;
+#pragma warning(push)
+#pragma warning(disable: 6320 6322)
+    __try
+    {
+        RaiseException(MS_VC_EXCEPTION, 0,
+            sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+        return true;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+    }
+#pragma warning(pop)
+    return false;
+}
+#endif // MSC_VER
+
+bool wxThread::SetName(const wxString &name)
+{
+    wxCHECK_MSG(this == This(), false,
+        "SetName() must be called in the context of the thread to be named");
+
+    return SetNameForCurrent(name);
+}
+
+/* static */
+bool wxThread::SetNameForCurrent(const wxString &name)
+{
+    bool retval = wxSetThreadNameOnWindows10(name.wc_str());
+
+    // Even if the method above succeeded, we can set
+    // the name through this other, independent way also.
+#ifdef _MSC_VER
+    retval |= wxSetThreadNameOnAnyMSVC(name.c_str());
+#endif
+
+    // return true if at least one call succeeded
+    return retval;
+}
+
 void wxThread::Exit(ExitCode status)
 {
     wxThreadInternal::DoThreadOnExit(this);
@@ -1214,8 +1311,8 @@ bool wxThread::TestDestroy()
 class wxThreadModule : public wxModule
 {
 public:
-    virtual bool OnInit() wxOVERRIDE;
-    virtual void OnExit() wxOVERRIDE;
+    virtual bool OnInit() override;
+    virtual void OnExit() override;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxThreadModule);

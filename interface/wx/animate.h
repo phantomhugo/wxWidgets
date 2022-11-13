@@ -83,7 +83,7 @@ public:
         of the animation is displayed.
 
         @param parent
-            Parent window, must be non-@NULL.
+            Parent window, must be non-null.
         @param id
             The identifier for the control.
         @param anim
@@ -192,7 +192,7 @@ public:
         Note that the inactive bitmap, if smaller than the control's size, will be
         centered in the control; if bigger, it will be stretched to fit it.
     */
-    virtual void SetInactiveBitmap(const wxBitmap& bmp);
+    virtual void SetInactiveBitmap(const wxBitmapBundle& bmp);
 
     /**
         Stops playing the animation.
@@ -248,7 +248,7 @@ public:
         of the animation is displayed.
 
         @param parent
-            Parent window, must be non-@NULL.
+            Parent window, must be non-null.
         @param id
             The identifier for the control.
         @param anim

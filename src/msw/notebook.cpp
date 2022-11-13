@@ -78,10 +78,10 @@
 #if USE_NOTEBOOK_ANTIFLICKER
 
 // the pointer to standard spin button wnd proc
-static WXWNDPROC gs_wndprocNotebookSpinBtn = NULL;
+static WXWNDPROC gs_wndprocNotebookSpinBtn = nullptr;
 
 // the pointer to standard tab control wnd proc
-static WXWNDPROC gs_wndprocNotebook = NULL;
+static WXWNDPROC gs_wndprocNotebook = nullptr;
 
 LRESULT APIENTRY
 wxNotebookWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -109,11 +109,6 @@ static bool HasTroubleWithNonTopTabs()
 wxBEGIN_EVENT_TABLE(wxNotebook, wxBookCtrlBase)
     EVT_SIZE(wxNotebook::OnSize)
     EVT_NAVIGATION_KEY(wxNotebook::OnNavigationKey)
-
-#if USE_NOTEBOOK_ANTIFLICKER
-    EVT_ERASE_BACKGROUND(wxNotebook::OnEraseBackground)
-    EVT_PAINT(wxNotebook::OnPaint)
-#endif // USE_NOTEBOOK_ANTIFLICKER
 wxEND_EVENT_TABLE()
 
 // ============================================================================
@@ -128,7 +123,7 @@ wxEND_EVENT_TABLE()
 void wxNotebook::Init()
 {
 #if wxUSE_UXTHEME
-    m_hbrBackground = NULL;
+    m_hbrBackground = nullptr;
 #endif // wxUSE_UXTHEME
 
 #if USE_NOTEBOOK_ANTIFLICKER
@@ -179,11 +174,7 @@ bool wxNotebook::Create(wxWindow *parent,
     }
 #endif //wxUSE_UXTHEME
 
-#if defined(__WINE__) && wxUSE_UNICODE
-    LPCTSTR className = L"SysTabControl32";
-#else
     LPCTSTR className = WC_TABCONTROL;
-#endif
 
 #if USE_NOTEBOOK_ANTIFLICKER
     // SysTabCtl32 class has natively CS_HREDRAW and CS_VREDRAW enabled and it
@@ -197,7 +188,7 @@ bool wxNotebook::Create(wxWindow *parent,
             // get a copy of standard class and modify it
             WNDCLASS wc;
 
-            if ( ::GetClassInfo(NULL, WC_TABCONTROL, &wc) )
+            if ( ::GetClassInfo(nullptr, WC_TABCONTROL, &wc) )
             {
                 gs_wndprocNotebook = wc.lpfnWndProc;
                 wc.lpszClassName = wxT("_wx_SysTabCtl32");
@@ -447,14 +438,11 @@ bool wxNotebook::SetPageImage(size_t nPage, int nImage)
     return TabCtrl_SetItem(GetHwnd(), nPage, &tcItem) != 0;
 }
 
-void wxNotebook::SetImageList(wxImageList* imageList)
+void wxNotebook::OnImagesChanged()
 {
-    wxNotebookBase::SetImageList(imageList);
+    wxImageList* const iml = GetUpdatedImageListFor(this);
 
-    if ( imageList )
-    {
-        (void) TabCtrl_SetImageList(GetHwnd(), GetHimagelistOf(imageList));
-    }
+    (void) TabCtrl_SetImageList(GetHwnd(), iml ? GetHimagelistOf(iml) : nullptr);
 }
 
 // ----------------------------------------------------------------------------
@@ -511,6 +499,21 @@ void wxNotebook::SetTabSize(const wxSize& sz)
     ::SendMessage(GetHwnd(), TCM_SETITEMSIZE, 0, MAKELPARAM(sz.x, sz.y));
 }
 
+wxRect wxNotebook::GetTabRect(size_t page) const
+{
+    wxRect r;
+    wxCHECK_MSG(IS_VALID_PAGE(page), r, wxT("invalid notebook page"));
+
+    if (GetPageCount() > 0)
+    {
+        RECT rect;
+        if (TabCtrl_GetItemRect(GetHwnd(), page, &rect))
+            r = wxRectFromRECT(rect);
+    }
+
+    return r;
+}
+
 wxSize wxNotebook::CalcSizeFromPage(const wxSize& sizePage) const
 {
     // we can't use TabCtrl_AdjustRect here because it only works for wxNB_TOP
@@ -547,7 +550,7 @@ wxSize wxNotebook::CalcSizeFromPage(const wxSize& sizePage) const
 
 void wxNotebook::AdjustPageSize(wxNotebookPage *page)
 {
-    wxCHECK_RET( page, wxT("NULL page in wxNotebook::AdjustPageSize") );
+    wxCHECK_RET( page, wxT("null page in wxNotebook::AdjustPageSize") );
 
     const wxRect r = GetPageSize();
     if ( !r.IsEmpty() )
@@ -565,7 +568,7 @@ wxNotebookPage *wxNotebook::DoRemovePage(size_t nPage)
 {
     wxNotebookPage *pageRemoved = wxNotebookBase::DoRemovePage(nPage);
     if ( !pageRemoved )
-        return NULL;
+        return nullptr;
 
     // hide the removed page to maintain the invariant that only the
     // selected page is visible and others are hidden:
@@ -633,7 +636,7 @@ bool wxNotebook::InsertPage(size_t nPage,
                             bool bSelect,
                             int imageId)
 {
-    wxCHECK_MSG( pPage != NULL, false, wxT("NULL page in wxNotebook::InsertPage") );
+    wxCHECK_MSG( pPage != nullptr, false, wxT("null page in wxNotebook::InsertPage") );
     wxCHECK_MSG( IS_VALID_PAGE(nPage) || nPage == GetPageCount(), false,
                  wxT("invalid index in wxNotebook::InsertPage") );
 
@@ -674,7 +677,7 @@ bool wxNotebook::InsertPage(size_t nPage,
     // finally do insert it
     if ( TabCtrl_InsertItem(GetHwnd(), nPage, &tcItem) == -1 )
     {
-        wxLogError(wxT("Can't create the notebook page '%s'."), strText.c_str());
+        wxLogError(wxT("Can't create the notebook page '%s'."), strText);
 
         return false;
     }
@@ -795,9 +798,6 @@ void wxNotebook::OnPaint(wxPaintEvent& WXUNUSED(event))
     wxBitmap bmp(rc.right, rc.bottom);
     wxMemoryDC memdc(bmp);
 
-    const wxLayoutDirection dir = dc.GetLayoutDirection();
-    memdc.SetLayoutDirection(dir);
-
     const HDC hdc = GetHdcOf(memdc);
 
     // The drawing logic of the native tab control is absolutely impenetrable
@@ -866,10 +866,7 @@ void wxNotebook::OnPaint(wxPaintEvent& WXUNUSED(event))
         ::ExtFloodFill(hdc, x, y, ::GetSysColor(COLOR_BTNFACE), FLOODFILLSURFACE);
     }
 
-    // For some reason in RTL mode, source offset has to be -1, otherwise the
-    // right border (physical) remains unpainted.
-    const wxCoord ofs = dir == wxLayout_RightToLeft ? -1 : 0;
-    dc.Blit(ofs, 0, rc.right, rc.bottom, &memdc, ofs, 0);
+    dc.Blit(0, 0, rc.right, rc.bottom, &memdc, 0, 0);
 }
 
 #endif // USE_NOTEBOOK_ANTIFLICKER
@@ -1090,6 +1087,28 @@ void wxNotebook::OnNavigationKey(wxNavigationKeyEvent& event)
     }
 }
 
+bool wxNotebook::SetBackgroundColour(const wxColour& colour)
+{
+    if ( !wxNotebookBase::SetBackgroundColour(colour) )
+        return false;
+
+#if wxUSE_UXTHEME
+    UpdateBgBrush();
+#endif // wxUSE_UXTHEME
+
+#if USE_NOTEBOOK_ANTIFLICKER
+    Unbind(wxEVT_ERASE_BACKGROUND, &wxNotebook::OnEraseBackground, this);
+    Unbind(wxEVT_PAINT, &wxNotebook::OnPaint, this);
+    if ( m_hasBgCol || !wxUxThemeIsActive() )
+    {
+        Bind(wxEVT_ERASE_BACKGROUND, &wxNotebook::OnEraseBackground, this);
+        Bind(wxEVT_PAINT, &wxNotebook::OnPaint, this);
+    }
+#endif // USE_NOTEBOOK_ANTIFLICKER
+
+    return true;
+}
+
 #if wxUSE_UXTHEME
 
 WXHBRUSH wxNotebook::QueryBgBitmap()
@@ -1138,7 +1157,7 @@ WXHBRUSH wxNotebook::QueryBgBitmap()
                                     9 /* TABP_PANE */,
                                     0,
                                     &rc,
-                                    NULL
+                                    nullptr
                                 );
     } // deselect bitmap from the memory HDC before using it
 
@@ -1156,7 +1175,7 @@ void wxNotebook::UpdateBgBrush()
     }
     else // no themes or we've got user-defined solid colour
     {
-        m_hbrBackground = NULL;
+        m_hbrBackground = nullptr;
     }
 }
 
@@ -1207,7 +1226,7 @@ bool wxNotebook::MSWPrintChild(WXHDC hDC, wxWindow *child)
                                         9 /* TABP_PANE */,
                                         0,
                                         &rc,
-                                        NULL
+                                        nullptr
                                     );
             return true;
         }
@@ -1270,7 +1289,7 @@ wxColour wxNotebook::GetThemeBackgroundColour() const
             {
                 WCHAR szwThemeFile[1024];
                 WCHAR szwThemeColor[256];
-                if (S_OK == ::GetCurrentThemeName(szwThemeFile, 1024, szwThemeColor, 256, NULL, 0))
+                if (S_OK == ::GetCurrentThemeName(szwThemeFile, 1024, szwThemeColor, 256, nullptr, 0))
                 {
                     wxString themeFile(szwThemeFile);
                     if (themeFile.Find(wxT("Aero")) != -1 && wxString(szwThemeColor) == wxT("NormalColor"))

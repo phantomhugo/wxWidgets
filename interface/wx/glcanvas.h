@@ -511,8 +511,8 @@ public:
             driver defaults will be used.
     */
     wxGLContext(wxGLCanvas* win,
-                const wxGLContext* other = NULL,
-                const wxGLContextAttrs* ctxAttrs = NULL);
+                const wxGLContext* other = nullptr,
+                const wxGLContextAttrs* ctxAttrs = nullptr);
 
     /**
         Checks if the underlying OpenGL rendering context was correctly created
@@ -772,11 +772,10 @@ enum
         On those platforms which use a configure script (e.g. Linux and macOS)
         OpenGL support is automatically enabled if the relative headers and
         libraries are found.
-        To switch it on under the other platforms (e.g. Windows), you need to edit
-        the @c setup.h file and set @c wxUSE_GLCANVAS to @c 1 and then also pass
-        @c USE_OPENGL=1 to the make utility. You may also need to add @c opengl32.lib
-        (and @c glu32.lib for old OpenGL versions) to the list of the libraries
-        your program is linked with.
+        On Windows, OpenGL support is enabled by default (@c wxUSE_GLCANVAS set
+        to @c 1 in the @c setup.h file). If your program links with wxWidgets
+        statically, you need to add @c opengl32.lib (and @c glu32.lib for old
+        OpenGL versions) to the list of the libraries your program is linked with.
 
     @library{wxgl}
     @category{gl}
@@ -872,7 +871,7 @@ public:
             under most platforms.
     */
     wxGLCanvas(wxWindow* parent, wxWindowID id = wxID_ANY,
-               const int* attribList = NULL,
+               const int* attribList = nullptr,
                const wxPoint& pos = wxDefaultPosition,
                const wxSize& size = wxDefaultSize,
                long style = 0,

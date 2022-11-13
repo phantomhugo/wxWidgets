@@ -69,10 +69,9 @@ public:
 
     // Returns true if the character is representable as a single byte in the
     // current locale encoding and return this byte in output argument c (which
-    // must be non-NULL)
+    // must be non-null)
     bool GetAsChar(char *c) const
     {
-#if wxUSE_UNICODE
         if ( !IsAscii() )
         {
 #if !wxUSE_UTF8_LOCALE_ONLY
@@ -82,7 +81,6 @@ public:
 
             return false;
         }
-#endif // wxUSE_UNICODE
 
         *c = wx_truncate_cast(char, m_value);
         return true;
@@ -181,26 +179,18 @@ private:
     // characters purely for performance reasons
     static value_type From8bit(char c)
     {
-#if wxUSE_UNICODE
         if ( (unsigned char)c < 0x80 )
             return c;
 
         return FromHi8bit(c);
-#else
-        return c;
-#endif
     }
 
     static char To8bit(value_type c)
     {
-#if wxUSE_UNICODE
         if ( c < 0x80 )
             return wx_truncate_cast(char, c);
 
         return ToHi8bit(c);
-#else
-        return wx_truncate_cast(char, c);
-#endif
     }
 
     // helpers of the functions above called to deal with non-ASCII chars
@@ -363,8 +353,6 @@ void swap<wxUniCharRef>(wxUniCharRef& lhs, wxUniCharRef& rhs)
 
 } // namespace std
 
-#if __cplusplus >= 201103L || wxCHECK_VISUALC_VERSION(10)
-
 // For std::iter_swap() to work with wxString::iterator, which uses
 // wxUniCharRef as its reference type, we need to ensure that swap() works with
 // wxUniCharRef objects by defining this overload.
@@ -377,8 +365,6 @@ void swap(wxUniCharRef&& lhs, wxUniCharRef&& rhs)
     lhs = rhs;
     rhs = tmp;
 }
-
-#endif // C++11
 
 
 // Comparison operators for the case when wxUniChar(Ref) is the second operand

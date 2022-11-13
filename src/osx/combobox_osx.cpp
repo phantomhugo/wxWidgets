@@ -59,13 +59,13 @@ bool wxComboBox::Create(wxWindow *parent, wxWindowID id,
 {
     DontCreatePeer();
     
-    m_text = NULL;
-    m_choice = NULL;
+    m_text = nullptr;
+    m_choice = nullptr;
     
     if ( !wxControl::Create( parent, id, pos, size, style, validator, name ) )
         return false;
 
-    SetPeer(wxWidgetImpl::CreateComboBox( this, parent, id, NULL, pos, size, style, GetExtraStyle() ));
+    SetPeer(wxWidgetImpl::CreateComboBox( this, parent, id, nullptr, pos, size, style, GetExtraStyle() ));
 
     MacPostControlCreate( pos, size );
 
@@ -107,7 +107,7 @@ int wxComboBox::DoInsertItems(const wxArrayStringsAdapter& items,
 
         if (idx > m_datas.GetCount())
             m_datas.SetCount(idx);
-        m_datas.Insert( NULL, idx );
+        m_datas.Insert( nullptr, idx );
         AssignNewItemClientData(idx, clientData, i, type);
     }
 
@@ -207,8 +207,15 @@ void wxComboBox::SetString(unsigned int n, const wxString& s)
     // Notice that we shouldn't delete and insert the item in this control
     // itself as this would also affect the client data which we need to
     // preserve here.
+    const int sel = GetSelection();
     GetComboPeer()->RemoveItem(n);
     GetComboPeer()->InsertItem(n, s);
+    // When selected item is removed its selection is invalidated
+    // so we need to re-select it manually.
+    if ( sel == int(n) )
+    {
+        SetSelection(n);
+    }
     SetValue(s); // changing the item in the list won't update the display item
 }
 

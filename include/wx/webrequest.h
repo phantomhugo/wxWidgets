@@ -72,7 +72,7 @@ public:
     wxWebAuthChallenge& operator=(const wxWebAuthChallenge& other);
     ~wxWebAuthChallenge();
 
-    bool IsOk() const { return m_impl.get() != NULL; }
+    bool IsOk() const { return m_impl.get() != nullptr; }
 
     Source GetSource() const;
 
@@ -94,7 +94,7 @@ public:
     wxWebResponse& operator=(const wxWebResponse& other);
     ~wxWebResponse();
 
-    bool IsOk() const { return m_impl.get() != NULL; }
+    bool IsOk() const { return m_impl.get() != nullptr; }
 
     wxFileOffset GetContentLength() const;
 
@@ -150,7 +150,7 @@ public:
     wxWebRequest& operator=(const wxWebRequest& other);
     ~wxWebRequest();
 
-    bool IsOk() const { return m_impl.get() != NULL; }
+    bool IsOk() const { return m_impl.get() != nullptr; }
 
     void SetHeader(const wxString& name, const wxString& value);
 
@@ -193,8 +193,9 @@ public:
     bool IsPeerVerifyDisabled() const;
 
 private:
-    // Ctor is only used by wxWebSession.
+    // Ctor is used by wxWebSession and wxWebRequestImpl.
     friend class wxWebSession;
+    friend class wxWebRequestImpl;
     explicit wxWebRequest(const wxWebRequestImplPtr& impl);
 
     wxWebRequestImplPtr m_impl;
@@ -258,14 +259,17 @@ public:
     wxWebRequestEvent(wxEventType type = wxEVT_NULL,
                       int id = wxID_ANY,
                       wxWebRequest::State state = wxWebRequest::State_Idle,
+                      const wxWebRequest& request = wxWebRequest(),
                       const wxWebResponse& response = wxWebResponse(),
                       const wxString& errorDesc = wxString())
         : wxEvent(id, type),
-        m_state(state), m_response(response),
+        m_state(state), m_request(request), m_response(response),
         m_errorDescription(errorDesc)
     { }
 
     wxWebRequest::State GetState() const { return m_state; }
+
+    const wxWebRequest& GetRequest() const { return m_request; }
 
     const wxWebResponse& GetResponse() const { return m_response; }
 
@@ -281,10 +285,11 @@ public:
 
     void SetDataBuffer(const wxMemoryBuffer& dataBuf) { m_dataBuf = dataBuf; }
 
-    wxEvent* Clone() const wxOVERRIDE { return new wxWebRequestEvent(*this); }
+    wxEvent* Clone() const override { return new wxWebRequestEvent(*this); }
 
 private:
     wxWebRequest::State m_state;
+    const wxWebRequest m_request;
     const wxWebResponse m_response; // may be invalid
     wxString m_dataFile;
     wxMemoryBuffer m_dataBuf;

@@ -23,14 +23,12 @@
 
 // Enable support for Direct2D-based implementation of wxGraphicsContext.
 //
-// Default is 1 for compilers which support it, i.e. VC10+ currently. If you
-// use an earlier MSVC version or another compiler and installed the necessary
-// SDK components manually, you need to change this setting.
+// Default is 1 for compilers which support it, i.e. MSVS currently. If you
+// use another compiler and installed the necessary SDK components manually,
+// you need to change this setting.
 //
-// Recommended setting: 1 for faster and better quality graphics under Windows
-// 7 and later systems (if wxUSE_GRAPHICS_GDIPLUS is also enabled, earlier
-// systems will fall back on using GDI+).
-#if defined(_MSC_VER) && _MSC_VER >= 1600
+// Recommended setting: 1 for faster and better quality graphics.
+#if defined(_MSC_VER)
     #define wxUSE_GRAPHICS_DIRECT2D wxUSE_GRAPHICS_CONTEXT
 #else
     #define wxUSE_GRAPHICS_DIRECT2D 0
@@ -77,12 +75,10 @@
 
 // Enable WinRT support
 //
-// Default is 1 for compilers which support it, i.e. VS2012+ currently. If you
-// use an earlier MSVC version or another compiler and installed the necessary
-// SDK components manually, you need to change this setting.
+// Default is 1 for compilers which support it, i.e. MSVS currently.
 //
 // Recommended setting: 1
-#if defined(_MSC_VER) && _MSC_VER >= 1700 && !defined(_USING_V110_SDK71_)
+#if defined(_MSC_VER)
     #define wxUSE_WINRT 1
 #else
     #define wxUSE_WINRT 0
@@ -94,7 +90,7 @@
 // Set this to 1 to enable wxDIB class used internally for manipulating
 // wxBitmap data.
 //
-// Default is 1, set it to 0 only if you don't use wxImage neither
+// Default is 1, set it to 0 only if you don't use wxImage either
 //
 // Recommended setting: 1 (without it conversion to/from wxImage won't work)
 #define wxUSE_WXDIB 1
@@ -166,12 +162,12 @@
 // Recommended setting: 0, nobody uses .INI files any more
 #define wxUSE_INICONF 0
 
-// Set to 1 if you need to include <winsock2.h> over <winsock.h>
+// Set to 0 if you need to include <winsock.h> rather than <winsock2.h>
 //
-// Default is 0.
+// Default is 1.
 //
-// Recommended setting: 0, set to 1 automatically if wxUSE_IPV6 is 1.
-#define wxUSE_WINSOCK2 0
+// Recommended setting: 1, required to be 1 if wxUSE_IPV6 is 1.
+#define wxUSE_WINSOCK2 1
 
 // ----------------------------------------------------------------------------
 // Generic versions of native controls

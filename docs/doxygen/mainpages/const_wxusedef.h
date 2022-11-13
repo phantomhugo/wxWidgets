@@ -34,8 +34,8 @@ library:
     particular is implicitly convertible to @c char* and not std::[w]string).}
 @itemdef{wxUSE_STD_IOSTREAM, Standard C++ classes are used instead of or in
     addition to wx stream classes.}
-@itemdef{wxUSE_UNICODE, Compiled with Unicode support (default in wxWidgets
-    3.0, non-Unicode build is deprecated and will be removed in the future).}
+@itemdef{wxUSE_UNICODE, Always defined as 1 in wxWidgets 3.3 and later, only
+    exists for compatibility.}
 @itemdef{wxUSE_UNICODE_WCHAR, wxString uses wchar_t buffer for internal storage
     (default).}
 @itemdef{wxUSE_UNICODE_UTF8, wxString uses UTF-8 for internal storage (mostly
@@ -84,7 +84,6 @@ library:
 @itemdef{wxUSE_COLOURPICKERCTRL, Use wxColourPickerCtrl class.}
 @itemdef{wxUSE_COMBOBOX, Use wxComboBox class.}
 @itemdef{wxUSE_COMBOCTRL, Use wxComboCtrl class.}
-@itemdef{wxUSE_COMPILER_TLS, Can be set to 0 to prevent using compile thread-specific variables support.}
 @itemdef{wxUSE_CONFIG, Use wxConfig and related classes.}
 @itemdef{wxUSE_CONFIG_NATIVE, When enabled use native OS configuration instead of the wxFileConfig class.}
 @itemdef{wxUSE_CONSOLE_EVENTLOOP, Enable event loop in console programs.}
@@ -158,7 +157,7 @@ library:
 @itemdef{wxUSE_LISTBOX, Use wxListBox class.}
 @itemdef{wxUSE_LISTCTRL, Use wxListCtrl class.}
 @itemdef{wxUSE_LOG, Use wxLog and related classes.}
-@itemdef{wxUSE_LOG_DEBUG, Enabled when wxLog used with __WXDEBUG__ defined.}
+@itemdef{wxUSE_LOG_DEBUG, Enabled when wxLog used with \__WXDEBUG__ defined.}
 @itemdef{wxUSE_LOG_DIALOG, Use wxLogDialog class.}
 @itemdef{wxUSE_LOGGUI, Use wxLogGui class.}
 @itemdef{wxUSE_LOGWINDOW, Use wxLogFrame class.}
@@ -177,6 +176,9 @@ library:
 @itemdef{wxUSE_MINIFRAME, Use wxMiniFrame class.}
 @itemdef{wxUSE_MOUSEWHEEL, Support mouse wheel events.}
 @itemdef{wxUSE_MSGDLG, Use wxMessageDialog class and wxMessageBox function.}
+@itemdef{wxUSE_NANOSVG, Use NanoSVG for rasterizing SVG (this option is new since wxWidgets 3.1.7).}
+@itemdef{wxUSE_NANOSVG_EXTERNAL, Use an external NanoSVG library when wxUSE_NANOSVG is enabled.}
+@itemdef{wxUSE_NANOSVG_EXTERNAL_ENABLE_IMPL, When the external NanoSVG library is header only, define this to enable its implementation.}
 @itemdef{wxUSE_NATIVE_DATAVIEWCTRL, Use native wxDataViewCtrl class (this option is new since wxWidgets 3.1.4).}
 @itemdef{wxUSE_NATIVE_STATUSBAR, Use native wxStatusBar class.}
 @itemdef{wxUSE_NOTEBOOK, Use wxNotebook and related classes.}
@@ -276,7 +278,7 @@ library:
 @itemdef{wxUSE_LIBSDL, Use SDL for wxSound implementation.}
 @itemdef{wxUSE_PLUGINS, See also wxUSE_LIBSDL.}
 @itemdef{wxUSE_UNIX, Enabled on Unix Platform.}
-@itemdef(wxUSE_XTEST, Use XTest extension.}
+@itemdef{wxUSE_XTEST, Use XTest extension.}
 @endDefList
 
 
@@ -307,14 +309,6 @@ library:
 @endDefList
 
 
-@section page_wxusedef_motif wxMotif Symbols
-
-@beginDefList
-@itemdef{wxUSE_GADGETS, Use xmCascadeButtonGadgetClass, xmLabelGadgetClass, xmPushButtonGadgetClass and xmToggleButtonGadgetClass classes.}
-@itemdef{wxUSE_INVISIBLE_RESIZE, See src/motif/dialog.cpp file.}
-@endDefList
-
-
 @section page_wxusedef_msw wxMSW Symbols
 
 @beginDefList
@@ -327,7 +321,7 @@ library:
 @itemdef{wxUSE_DC_CACHEING, cache temporary wxDC objects.}
 @itemdef{wxUSE_DDE_FOR_IPC, See wx/ipc.h file.}
 @itemdef{wxUSE_DPI_AWARE_MANIFEST, Set the DPI awareness of the application
-(0=none, 1=system, 2=per-monitor. Used by CMake and when wxUSE_RC_MANIFEST is enabled.}
+(0=none, 1=system, 2=per-monitor). Used by CMake and when wxUSE_RC_MANIFEST is enabled.}
 @itemdef{wxUSE_ENH_METAFILE, Use wxEnhMetaFile.}
 @itemdef{wxUSE_HOTKEY, Use wxWindow::RegisterHotKey() and wxWindow::UnregisterHotKey}
 @itemdef{wxUSE_INKEDIT, Use InkEdit library. Related to Tablet PCs.}
@@ -340,10 +334,8 @@ manifest from wxWidgets RC file. See also wxUSE_RC_MANIFEST.}
 @itemdef{wxUSE_POSTSCRIPT_ARCHITECTURE_IN_MSW, Use PS printing in wxMSW.}
 @itemdef{wxUSE_PS_PRINTING, See src/msw/dcprint.cpp file.}
 @itemdef{wxUSE_RC_MANIFEST, Include manifest for common controls library v6
-from wxWidgets RC file. This may be needed to be defined explicitly for MSVC 7
-(a.k.a. MSVS 2003) only as later versions of MSVC generate this manifest
-themselves and the manifest generation is enabled by default for the other
-compilers. See also wxUSE_NO_MANIFEST.}
+from wxWidgets RC file. This is disabled by default for MSVC but enabled for
+the other compilers. See also wxUSE_NO_MANIFEST.}
 @itemdef{wxUSE_REGKEY, Use wxRegKey class.}
 @itemdef{wxUSE_RICHEDIT, Enable use of riched32.dll in wxTextCtrl}
 @itemdef{wxUSE_RICHEDIT2, Enable use of riched20.dll in wxTextCtrl}

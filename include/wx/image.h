@@ -146,12 +146,6 @@ public:
     wxBitmapType GetType() const { return m_type; }
     const wxString& GetMimeType() const { return m_mime; }
 
-#if WXWIN_COMPATIBILITY_2_8
-    wxDEPRECATED(
-        void SetType(long type) { SetType((wxBitmapType)type); }
-    )
-#endif // WXWIN_COMPATIBILITY_2_8
-
 protected:
 #if wxUSE_STREAMS
     // NOTE: this function is allowed to change the current stream position
@@ -210,13 +204,13 @@ public:
                                  unsigned char g,
                                  unsigned char b)
     {
-        return (r << 16) | (g << 8) | b;
+        return ((unsigned)r << 16) | ((unsigned)g << 8) | (unsigned)b;
     }
 
     // find first colour that is not used in the image and has higher
     // RGB values than RGB(startR, startG, startB)
     //
-    // returns true and puts this colour in r, g, b (each of which may be NULL)
+    // returns true and puts this colour in r, g, b (each of which may be null)
     // on success or returns false if there are no more free colours
     bool FindFirstUnusedColour(unsigned char *r,
                                unsigned char *g,
@@ -310,7 +304,7 @@ public:
         { LoadFile( name, type, index ); }
     wxImage( const wxString& name, const wxString& mimetype, int index = -1 )
         { LoadFile( name, mimetype, index ); }
-    wxImage( const char* const* xpmData )
+    explicit wxImage( const char* const* xpmData )
         { Create(xpmData); }
 
 #if wxUSE_STREAMS
@@ -389,7 +383,7 @@ public:
     // Rotates the image about the given point, 'angle' radians.
     // Returns the rotated image, leaving this image intact.
     wxImage Rotate(double angle, const wxPoint & centre_of_rotation,
-                   bool interpolating = true, wxPoint * offset_after_rotation = NULL) const;
+                   bool interpolating = true, wxPoint * offset_after_rotation = nullptr) const;
 
     wxImage Rotate90( bool clockwise = true ) const;
     wxImage Rotate180() const;
@@ -410,6 +404,9 @@ public:
 
     // Convert to disabled (dimmed) image.
     wxImage ConvertToDisabled(unsigned char brightness = 255) const;
+
+    // Convert the image based on the given lightness.
+    wxImage ChangeLightness(int alpha) const;
 
     // these routines are slow but safe
     void SetRGB( int x, int y, unsigned char r, unsigned char g, unsigned char b );
@@ -509,9 +506,9 @@ public:
     void SetData( unsigned char *data, bool static_data=false );
     void SetData( unsigned char *data, int new_width, int new_height, bool static_data=false );
 
-    unsigned char *GetAlpha() const;    // may return NULL!
-    bool HasAlpha() const { return GetAlpha() != NULL; }
-    void SetAlpha(unsigned char *alpha = NULL, bool static_data=false);
+    unsigned char *GetAlpha() const;    // may return nullptr!
+    bool HasAlpha() const { return GetAlpha() != nullptr; }
+    void SetAlpha(unsigned char *alpha = nullptr, bool static_data=false);
     void InitAlpha();
     void ClearAlpha();
 
@@ -555,9 +552,29 @@ public:
     // Returned value: # of entries in the histogram
     unsigned long ComputeHistogram( wxImageHistogram &h ) const;
 
-    // Rotates the hue of each pixel of the image. angle is a double in the range
-    // -1.0..1.0 where -1.0 is -360 degrees and 1.0 is 360 degrees
+    // Rotates the hue of each pixel in the image by angle, which is a double in
+    // the range [-1.0..+1.0], where -1.0 corresponds to -360 degrees and +1.0
+    // corresponds to +360 degrees.
     void RotateHue(double angle);
+
+    // Changes the saturation of each pixel in the image. factor is a double in
+    // the range [-1.0..+1.0], where -1.0 corresponds to -100 percent and +1.0
+    // corresponds to +100 percent.
+    void ChangeSaturation(double factor);
+
+    // Changes the brightness (value) of each pixel in the image. factor is a
+    // double in the range [-1.0..+1.0], where -1.0 corresponds to -100 percent
+    // and +1.0 corresponds to +100 percent.
+    void ChangeBrightness(double factor);
+
+    // Changes the hue, the saturation and the brightness (value) of each pixel
+    // in the image. angleH is a double in the range [-1.0..+1.0], where -1.0
+    // corresponds to -360 degrees and +1.0 corresponds to +360 degrees, factorS
+    // is a double in the range [-1.0..+1.0], where -1.0 corresponds to -100
+    // percent and +1.0 corresponds to +100 percent and factorV is a double in
+    // the range [-1.0..+1.0], where -1.0 corresponds to -100 percent and +1.0
+    // corresponds to +100 percent.
+    void ChangeHSV(double angleH, double factorS, double factorV);
 
     static wxList& GetHandlers() { return sm_handlers; }
     static void AddHandler( wxImageHandler *handler );
@@ -577,66 +594,6 @@ public:
     static HSVValue RGBtoHSV(const RGBValue& rgb);
     static RGBValue HSVtoRGB(const HSVValue& hsv);
 
-#if WXWIN_COMPATIBILITY_2_8
-    wxDEPRECATED_CONSTRUCTOR(
-        wxImage(const wxString& name, long type, int index = -1)
-        {
-            LoadFile(name, (wxBitmapType)type, index);
-        }
-    )
-
-#if wxUSE_STREAMS
-    wxDEPRECATED_CONSTRUCTOR(
-        wxImage(wxInputStream& stream, long type, int index = -1)
-        {
-            LoadFile(stream, (wxBitmapType)type, index);
-        }
-    )
-
-    wxDEPRECATED(
-        bool LoadFile(wxInputStream& stream, long type, int index = -1)
-        {
-            return LoadFile(stream, (wxBitmapType)type, index);
-        }
-    )
-
-    wxDEPRECATED(
-        bool SaveFile(wxOutputStream& stream, long type) const
-        {
-            return SaveFile(stream, (wxBitmapType)type);
-        }
-    )
-#endif // wxUSE_STREAMS
-
-    wxDEPRECATED(
-        bool LoadFile(const wxString& name, long type, int index = -1)
-        {
-            return LoadFile(name, (wxBitmapType)type, index);
-        }
-    )
-
-    wxDEPRECATED(
-        bool SaveFile(const wxString& name, long type) const
-        {
-            return SaveFile(name, (wxBitmapType)type);
-        }
-    )
-
-    static wxDEPRECATED(
-        wxImageHandler *FindHandler(const wxString& ext, long type)
-        {
-            return FindHandler(ext, (wxBitmapType)type);
-        }
-    )
-
-    static wxDEPRECATED(
-        wxImageHandler *FindHandler(long imageType)
-        {
-            return FindHandler((wxBitmapType)imageType);
-        }
-    )
-#endif // WXWIN_COMPATIBILITY_2_8
-
 protected:
     static wxList   sm_handlers;
 
@@ -646,11 +603,16 @@ protected:
     // note that index must be multiplied by 3 when using it with RGB array
     long XYToIndex(int x, int y) const;
 
-    virtual wxObjectRefData* CreateRefData() const wxOVERRIDE;
-    virtual wxObjectRefData* CloneRefData(const wxObjectRefData* data) const wxOVERRIDE;
+    virtual wxObjectRefData* CreateRefData() const override;
+    virtual wxObjectRefData* CloneRefData(const wxObjectRefData* data) const override;
 
 private:
     friend class WXDLLIMPEXP_FWD_CORE wxImageHandler;
+
+    // Helper function used internally by wxImage class only: it applies the
+    // given functor, which is passed the pixel data for each image pixel.
+    template <typename F>
+    void ApplyToAllPixels(const F& func);
 
     // Possible values for MakeEmptyClone() flags.
     enum

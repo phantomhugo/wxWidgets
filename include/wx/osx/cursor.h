@@ -19,15 +19,15 @@ class WXDLLIMPEXP_CORE wxCursor : public wxCursorBase
 public:
     wxCursor();
 
+#if wxUSE_IMAGE
     wxCursor(const wxImage & image) ;
+    wxCursor(const char* const* xpmData);
+#endif // wxUSE_IMAGE
     wxCursor(const wxString& name,
              wxBitmapType type = wxCURSOR_DEFAULT_TYPE,
              int hotSpotX = 0, int hotSpotY = 0);
 
     wxCursor(wxStockCursor id) { InitFromStock(id); }
-#if WXWIN_COMPATIBILITY_2_8
-    wxCursor(int id) { InitFromStock((wxStockCursor)id); }
-#endif
     virtual ~wxCursor();
 
     void MacInstall() const ;
@@ -36,13 +36,15 @@ public:
     WXHCURSOR GetHCURSOR() const;
 
 protected:
-    virtual wxGDIRefData *CreateGDIRefData() const wxOVERRIDE;
-    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const wxOVERRIDE;
+    virtual wxGDIRefData *CreateGDIRefData() const override;
+    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const override;
 
 private:
     void InitFromStock(wxStockCursor);
 
-    void CreateFromImage(const wxImage & image) ;
+#if wxUSE_IMAGE
+    void InitFromImage(const wxImage & image) ;
+#endif // wxUSE_IMAGE
 
     wxDECLARE_DYNAMIC_CLASS(wxCursor);
 };

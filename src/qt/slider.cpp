@@ -47,7 +47,7 @@ void wxQtSlider::valueChanged(int position)
 
 
 wxSlider::wxSlider() :
-    m_qtSlider(NULL)
+    m_qtSlider(nullptr)
 {
 }
 
@@ -77,9 +77,8 @@ bool wxSlider::Create(wxWindow *parent,
 
     m_qtSlider->setInvertedAppearance( style & wxSL_INVERSE );
 
-    m_qtSlider->blockSignals(true);
+    wxQtEnsureSignalsBlocked blocker(m_qtSlider);
     SetRange( minValue, maxValue );
-    m_qtSlider->blockSignals(false);
     SetPageSize(wxMax(1, (maxValue - minValue) / 10));
 
 #if 0 // there are not normally ticks for a wxSlider
@@ -105,16 +104,14 @@ int wxSlider::GetValue() const
 
 void wxSlider::SetValue(int value)
 {
-    m_qtSlider->blockSignals(true);
+    wxQtEnsureSignalsBlocked blocker(m_qtSlider);
     m_qtSlider->setValue( value );
-    m_qtSlider->blockSignals(false);
 }
 
 void wxSlider::SetRange(int minValue, int maxValue)
 {
-    m_qtSlider->blockSignals(true);
+    wxQtEnsureSignalsBlocked blocker(m_qtSlider);
     m_qtSlider->setRange( minValue, maxValue );
-    m_qtSlider->blockSignals(false);
 }
 
 int wxSlider::GetMin() const

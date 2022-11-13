@@ -22,6 +22,11 @@
 #include "wx/tarstrm.h"
 #include "wx/zipstrm.h"
 
+#ifdef __WINDOWS__
+    // Needed for wxMulDivInt32().
+    #include "wx/msw/wrapwin.h"
+#endif
+
 // ----------------------------------------------------------------------------
 // test class
 // ----------------------------------------------------------------------------
@@ -34,9 +39,7 @@ public:
 private:
     CPPUNIT_TEST_SUITE( MiscTestCase );
         CPPUNIT_TEST( Assert );
-#ifdef HAVE_VARIADIC_MACROS
         CPPUNIT_TEST( CallForEach );
-#endif // HAVE_VARIADIC_MACROS
         CPPUNIT_TEST( Delete );
         CPPUNIT_TEST( StaticCast );
     CPPUNIT_TEST_SUITE_END();
@@ -73,12 +76,11 @@ void MiscTestCase::Assert()
     WX_ASSERT_FAILS_WITH_ASSERT(AssertIfOdd(1));
 
     // doesn't fail any more
-    wxAssertHandler_t oldHandler = wxSetAssertHandler(NULL);
+    wxAssertHandler_t oldHandler = wxSetAssertHandler(nullptr);
     AssertIfOdd(17);
     wxSetAssertHandler(oldHandler);
 }
 
-#ifdef HAVE_VARIADIC_MACROS
 void MiscTestCase::CallForEach()
 {
     #define MY_MACRO(pos, str) s += str;
@@ -90,29 +92,28 @@ void MiscTestCase::CallForEach()
 
     #undef MY_MACRO
 }
-#endif // HAVE_VARIADIC_MACROS
 
 void MiscTestCase::Delete()
 {
     // Allocate some arbitrary memory to get a valid pointer:
     long *pointer = new long;
-    CPPUNIT_ASSERT( pointer != NULL );
+    CPPUNIT_ASSERT( pointer != nullptr );
 
-    // Check that wxDELETE sets the pointer to NULL:
+    // Check that wxDELETE sets the pointer to nullptr:
     wxDELETE( pointer );
-    CPPUNIT_ASSERT( pointer == NULL );
+    CPPUNIT_ASSERT( pointer == nullptr );
 
     // Allocate some arbitrary array to get a valid pointer:
     long *array = new long[ 3 ];
-    CPPUNIT_ASSERT( array != NULL );
+    CPPUNIT_ASSERT( array != nullptr );
 
-    // Check that wxDELETEA sets the pointer to NULL:
+    // Check that wxDELETEA sets the pointer to nullptr:
     wxDELETEA( array );
-    CPPUNIT_ASSERT( array == NULL );
+    CPPUNIT_ASSERT( array == nullptr );
 
     // this results in compilation error, as it should
 #if 0
-    struct SomeUnknownStruct *p = NULL;
+    struct SomeUnknownStruct *p = nullptr;
     wxDELETE(p);
 #endif
 }
@@ -120,12 +121,16 @@ void MiscTestCase::Delete()
 namespace
 {
 
+#ifdef __WXDEBUG__
+
 // helper function used just to avoid warnings about value computed not being
 // used in WX_ASSERT_FAILS_WITH_ASSERT() in StaticCast() below
 bool IsNull(void *p)
 {
-    return p == NULL;
+    return p == nullptr;
 }
+
+#endif // __WXDEBUG__
 
 } // anonymous namespace
 
@@ -147,6 +152,18 @@ void MiscTestCase::StaticCast()
 
     WX_ASSERT_FAILS_WITH_ASSERT( IsNull(wxStaticCast(entry, wxTarEntry)) );
 #endif // wxUSE_TARSTREAM
+}
+
+TEST_CASE("RTTI::ClassInfo", "[rtti]")
+{
+    wxObject obj;
+    CHECK( obj.GetClassInfo()->IsKindOf(wxCLASSINFO(wxObject)) );
+    CHECK( !obj.GetClassInfo()->IsKindOf(wxCLASSINFO(wxArchiveEntry)) );
+
+#if wxUSE_ZIPSTREAM
+    wxZipEntry zipEntry;
+    CHECK( zipEntry.GetClassInfo()->IsKindOf(wxCLASSINFO(wxArchiveEntry)) );
+#endif // wxUSE_ZIPSTREAM
 }
 
 TEST_CASE("wxCTZ", "[math]")
@@ -186,4 +203,13 @@ TEST_CASE("wxRound", "[math]")
         #pragma warning(pop)
     #endif
 #endif // WXWIN_COMPATIBILITY_3_0
+}
+
+TEST_CASE("wxMulDivInt32", "[math]")
+{
+    // Check that it rounds correctly.
+    CHECK( wxMulDivInt32(15, 3, 2) == 23 );
+
+    // Check that it doesn't overflow.
+    CHECK( wxMulDivInt32((INT_MAX - 1)/2, 200, 100) == INT_MAX - 1 );
 }

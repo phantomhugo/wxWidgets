@@ -132,7 +132,7 @@ bool wxNonOwnedWindow::Create(wxWindow *parent,
     if ( !m_dfbwin->SetOpacity(wxALPHA_TRANSPARENT) )
         return false;
 
-    if ( !wxWindow::Create(NULL, id, pos, size, style, name) )
+    if ( !wxWindow::Create(nullptr, id, pos, size, style, name) )
         return false;
 
     SetParent(parent);
@@ -346,7 +346,7 @@ void wxNonOwnedWindow::HandleQueuedPaintRequests()
 
     DFBRegion r = {paintedRect.GetLeft(), paintedRect.GetTop(),
                    paintedRect.GetRight(), paintedRect.GetBottom()};
-    DFBRegion *rptr = (winRect == paintedRect) ? NULL : &r;
+    DFBRegion *rptr = (winRect == paintedRect) ? nullptr : &r;
 
     GetDfbSurface()->FlipToFront(rptr);
 
@@ -387,18 +387,18 @@ void wxNonOwnedWindow::Update()
 namespace
 {
 
-static wxNonOwnedWindow *gs_insideDFBFocusHandlerOf = NULL;
+static wxNonOwnedWindow *gs_insideDFBFocusHandlerOf = nullptr;
 
 struct InsideDFBFocusHandlerSetter
 {
     InsideDFBFocusHandlerSetter(wxNonOwnedWindow *win)
     {
-        wxASSERT( gs_insideDFBFocusHandlerOf == NULL );
+        wxASSERT( gs_insideDFBFocusHandlerOf == nullptr );
         gs_insideDFBFocusHandlerOf = win;
     }
     ~InsideDFBFocusHandlerSetter()
     {
-        gs_insideDFBFocusHandlerOf = NULL;
+        gs_insideDFBFocusHandlerOf = nullptr;
     }
 };
 
@@ -430,7 +430,7 @@ void wxNonOwnedWindow::SetDfbFocus()
     // Note that the events are processed by event loop, i.e. not between
     // execution of lines (1) and (2) above. So by the time the first
     // DWET_GOTFOCUS event is handled, tlw2->SetFocus() was already executed.
-    // If we onconditionally called RequestFocus() from here, handling the
+    // If we unconditionally called RequestFocus() from here, handling the
     // first event would result in this change to the event queue:
     //
     //     DWET_LOSTFOCUS(tlw1)

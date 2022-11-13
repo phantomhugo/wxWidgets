@@ -36,33 +36,6 @@
  */
 #ifdef __UNIX__
 
-#if defined(HAVE_VSNPRINTF) && !defined(HAVE_VSNPRINTF_DECL)
-#ifdef __cplusplus
-    extern "C"
-#else
-    extern
-#endif
-    int vsnprintf(char *str, size_t size, const char *format, va_list ap);
-#endif /* !HAVE_VSNPRINTF_DECL */
-
-#if defined(HAVE_SNPRINTF) && !defined(HAVE_SNPRINTF_DECL)
-#ifdef __cplusplus
-    extern "C"
-#else
-    extern
-#endif
-    int snprintf(char *str, size_t size, const char *format, ...);
-#endif /* !HAVE_SNPRINTF_DECL */
-
-#if defined(HAVE_VSSCANF) && !defined(HAVE_VSSCANF_DECL)
-#ifdef __cplusplus
-    extern "C"
-#else
-    extern
-#endif
-    int vsscanf(const char *str, const char *format, va_list ap);
-#endif /* !HAVE_VSSCANF_DECL */
-
 /* Wrapper for vsnprintf if it's 3rd parameter is non-const. Note: the
  * same isn't done for snprintf below, the builtin wxSnprintf_ is used
  * instead since it's already a simple wrapper */
@@ -173,9 +146,7 @@
 // for wxString code, define wxUSE_WXVSNPRINTF to indicate that wx
 // implementation is used no matter what (in UTF-8 build, either *A or *W
 // version may be called):
-#if !wxUSE_UNICODE
-    #define wxUSE_WXVSNPRINTF wxUSE_WXVSNPRINTFA
-#elif wxUSE_UNICODE_WCHAR
+#if wxUSE_UNICODE_WCHAR
     #define wxUSE_WXVSNPRINTF wxUSE_WXVSNPRINTFW
 #elif wxUSE_UTF8_LOCALE_ONLY
     #define wxUSE_WXVSNPRINTF wxUSE_WXVSNPRINTFA
@@ -265,27 +236,17 @@
 // user-friendly wrappers to CRT functions
 // ----------------------------------------------------------------------------
 
-    // FIXME-UTF8: remove this
-#if wxUSE_UNICODE
-    #define wxCRT_PrintfNative wxCRT_PrintfW
-    #define wxCRT_FprintfNative wxCRT_FprintfW
-#else
-    #define wxCRT_PrintfNative wxCRT_PrintfA
-    #define wxCRT_FprintfNative wxCRT_FprintfA
-#endif
-
-
 wxGCC_ONLY_WARNING_SUPPRESS(format-nonliteral)
 
 WX_DEFINE_VARARG_FUNC_SANS_N0(int, wxPrintf, 1, (const wxFormatString&),
-                              wxCRT_PrintfNative, wxCRT_PrintfA)
+                              wxCRT_PrintfW, wxCRT_PrintfA)
 inline int wxPrintf(const wxFormatString& s)
 {
     return wxPrintf(wxASCII_STR("%s"), s.InputAsString());
 }
 
 WX_DEFINE_VARARG_FUNC_SANS_N0(int, wxFprintf, 2, (FILE*, const wxFormatString&),
-                              wxCRT_FprintfNative, wxCRT_FprintfA)
+                              wxCRT_FprintfW, wxCRT_FprintfA)
 inline int wxFprintf(FILE *f, const wxFormatString& s)
 {
     return wxFprintf(f, wxASCII_STR("%s"), s.InputAsString());
@@ -357,8 +318,6 @@ WX_DEFINE_VARARG_FUNC(int, wxSnprintf, 3, (char*, size_t, const wxFormatString&)
 int WXDLLIMPEXP_BASE
 wxVsnprintf(char *str, size_t size, const wxString& format, va_list argptr);
 
-#if wxUSE_UNICODE
-
 #if !wxUSE_UTF8_LOCALE_ONLY
 int WXDLLIMPEXP_BASE wxDoSprintfWchar(wchar_t *str, const wxChar *format, ...);
 #endif
@@ -382,8 +341,6 @@ WX_DEFINE_VARARG_FUNC(int, wxSnprintf, 3, (wchar_t*, size_t, const wxFormatStrin
 
 int WXDLLIMPEXP_BASE
 wxVsnprintf(wchar_t *str, size_t size, const wxString& format, va_list argptr);
-
-#endif // wxUSE_UNICODE
 
 // We can't use wxArgNormalizer<T> for variadic arguments to wxScanf() etc.
 // because they are writable, so instead of providing friendly template

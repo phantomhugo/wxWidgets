@@ -48,7 +48,7 @@ public:
     //     it non-virtually and we need to do this to avoid infinite recursion,
     //     so we work around this by calling the method of this object itself
     //     manually in each function.
-    virtual bool SetForegroundColour(const wxColour& colour) wxOVERRIDE
+    virtual bool SetForegroundColour(const wxColour& colour) override
     {
         if ( !BaseWindowClass::SetForegroundColour(colour) )
             return false;
@@ -58,7 +58,7 @@ public:
         return true;
     }
 
-    virtual bool SetBackgroundColour(const wxColour& colour) wxOVERRIDE
+    virtual bool SetBackgroundColour(const wxColour& colour) override
     {
         if ( !BaseWindowClass::SetBackgroundColour(colour) )
             return false;
@@ -68,7 +68,7 @@ public:
         return true;
     }
 
-    virtual bool SetFont(const wxFont& font) wxOVERRIDE
+    virtual bool SetFont(const wxFont& font) override
     {
         if ( !BaseWindowClass::SetFont(font) )
             return false;
@@ -78,7 +78,7 @@ public:
         return true;
     }
 
-    virtual bool SetCursor(const wxCursor& cursor) wxOVERRIDE
+    virtual bool SetCursor(const wxCursor& cursor) override
     {
         if ( !BaseWindowClass::SetCursor(cursor) )
             return false;
@@ -88,7 +88,7 @@ public:
         return true;
     }
 
-    virtual void SetLayoutDirection(wxLayoutDirection dir) wxOVERRIDE
+    virtual void SetLayoutDirection(wxLayoutDirection dir) override
     {
         BaseWindowClass::SetLayoutDirection(dir);
 
@@ -101,13 +101,13 @@ public:
         // wxGTK as the derived window is not fully created yet and calling its
         // SetSize() may be unexpected. This does mean that any future calls to
         // SetLayoutDirection(wxLayout_Default) wouldn't result in a re-layout
-        // neither, but then we're not supposed to be called with it at all.
+        // either, but then we're not supposed to be called with it at all.
         if ( dir != wxLayout_Default )
             this->SetSize(-1, -1, -1, -1, wxSIZE_FORCE);
     }
 
 #if wxUSE_TOOLTIPS
-    virtual void DoSetToolTipText(const wxString &tip) wxOVERRIDE
+    virtual void DoSetToolTipText(const wxString &tip) override
     {
         BaseWindowClass::DoSetToolTipText(tip);
 
@@ -117,7 +117,7 @@ public:
         SetForAllParts(func, tip);
     }
 
-    virtual void DoSetToolTip(wxToolTip *tip) wxOVERRIDE
+    virtual void DoSetToolTip(wxToolTip *tip) override
     {
         BaseWindowClass::DoSetToolTip(tip);
 
@@ -147,7 +147,7 @@ private:
         {
             wxWindow * const child = *i;
 
-            // Allow NULL elements in the list, this makes the code of derived
+            // Allow null elements in the list, this makes the code of derived
             // composite controls which may have optionally shown children
             // simpler and it doesn't cost us much here.
             if ( child )
@@ -163,9 +163,9 @@ template <class W>
 class wxCompositeWindow : public wxCompositeWindowSettersOnly<W>
 {
 public:
-    virtual void SetFocus() wxOVERRIDE
+    virtual void SetFocus() override
     {
-        wxSetFocusToChild(this, NULL);
+        wxSetFocusToChild(this, nullptr);
     }
 
 protected:
@@ -218,11 +218,17 @@ private:
             win = win->GetParent();
         }
 
-        child->Bind(wxEVT_CHAR, &wxCompositeWindow::OnChar, this);
+        // Make all keyboard events occurring in sub-windows appear as coming
+        // from the main window itself.
+        child->Bind(wxEVT_KEY_DOWN, &wxCompositeWindow::OnKeyEvent, this);
+        child->Bind(wxEVT_CHAR, &wxCompositeWindow::OnKeyEvent, this);
+        child->Bind(wxEVT_KEY_UP, &wxCompositeWindow::OnKeyEvent, this);
     }
 
-    void OnChar(wxKeyEvent& event)
+    void OnKeyEvent(wxKeyEvent& event)
     {
+        wxEventObjectOriginSetter setThis(event, this, this->GetId());
+
         if ( !this->ProcessWindowEvent(event) )
             event.Skip();
     }

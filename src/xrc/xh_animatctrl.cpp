@@ -29,7 +29,7 @@ wxAnimationCtrlXmlHandler::wxAnimationCtrlXmlHandler() : wxXmlResourceHandler()
 
 wxObject *wxAnimationCtrlXmlHandler::DoCreateResource()
 {
-    wxAnimationCtrlBase *ctrl = NULL;
+    wxAnimationCtrlBase *ctrl = nullptr;
     if ( m_instance )
         ctrl = wxStaticCast(m_instance, wxAnimationCtrlBase);
 
@@ -61,9 +61,10 @@ wxObject *wxAnimationCtrlXmlHandler::DoCreateResource()
     if ( animation )
         ctrl->SetAnimation(*animation);
 
-    // if no inactive-bitmap has been provided, GetBitmap() will return wxNullBitmap
-    // which just tells wxAnimationCtrl to use the default for inactive status
-    ctrl->SetInactiveBitmap(GetBitmap(wxT("inactive-bitmap")));
+    // if no inactive-bitmap has been provided, GetBitmapBundle() will return
+    // an empty bundle, which just tells wxAnimationCtrl to use the default
+    // bitmap for inactive status
+    ctrl->SetInactiveBitmap(GetBitmapBundle(wxT("inactive-bitmap")));
 
     SetupWindow(ctrl);
 
@@ -81,7 +82,7 @@ wxAnimation* wxXmlResourceHandlerImpl::GetAnimation(const wxString& param,
 {
     wxString name = GetFilePath(GetParamNode(param));
     if ( name.empty() )
-        return NULL;
+        return nullptr;
 
     // load the animation from file
     wxScopedPtr<wxAnimation> ani(ctrl ? new wxAnimation(ctrl->CreateAnimation())
@@ -105,7 +106,7 @@ wxAnimation* wxXmlResourceHandlerImpl::GetAnimation(const wxString& param,
             param,
             wxString::Format("cannot create animation from \"%s\"", name)
         );
-        return NULL;
+        return nullptr;
     }
 
     return ani.release();

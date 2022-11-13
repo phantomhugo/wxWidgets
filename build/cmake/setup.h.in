@@ -17,21 +17,6 @@
 /* the installation location prefix from configure */
 #cmakedefine wxINSTALL_PREFIX "@wxINSTALL_PREFIX@"
 
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#cmakedefine gid_t int
-
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#cmakedefine mode_t int
-
-/* Define to `long' if <sys/types.h> doesn't define.  */
-#cmakedefine off_t long
-
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#cmakedefine pid_t int
-
-/* Define to `unsigned' if <sys/types.h> doesn't define.  */
-#cmakedefine size_t unsigned
-
 /* Define if ssize_t type is available.  */
 #cmakedefine HAVE_SSIZE_T
 
@@ -43,15 +28,9 @@
 #cmakedefine _GNU_SOURCE 1
 #endif
 
-/* Define to `int' if <sys/types.h> doesn't define.  */
-#cmakedefine uid_t int
-
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #cmakedefine WORDS_BIGENDIAN 1
-
-/* Define this if your version of GTK+ is greater than 1.2.7 */
-#cmakedefine __WXGTK127__ 1
 
 /* Define this if your version of GTK+ is greater than 2.0 */
 #cmakedefine __WXGTK20__ 1
@@ -70,15 +49,6 @@
 
 /* Define this if your version of GTK+ is >= 3.90.0 */
 #cmakedefine __WXGTK4__ 1
-
-/* Define this if you want to use GPE features */
-#cmakedefine __WXGPE__ 1
-
-/* Define this if your version of Motif is greater than 2.0 */
-#cmakedefine __WXMOTIF20__ 1
-
-/* Define this if you are using Lesstif */
-#cmakedefine __WXLESSTIF__ 1
 
 /*
  * Define to 1 for Unix[-like] system
@@ -148,9 +118,9 @@
 #endif
 
 
-#cmakedefine01 WXWIN_COMPATIBILITY_2_8
-
 #cmakedefine01 WXWIN_COMPATIBILITY_3_0
+
+#cmakedefine01 WXWIN_COMPATIBILITY_3_2
 
 #cmakedefine01 wxDIALOG_UNIT_COMPATIBILITY
 
@@ -178,11 +148,6 @@
 
 
 
-#ifndef wxUSE_UNICODE
-    #cmakedefine01 wxUSE_UNICODE
-#endif
-
-
 #cmakedefine01 wxUSE_EXCEPTIONS
 
 #cmakedefine01 wxUSE_EXTENDED_RTTI
@@ -202,8 +167,6 @@
 #cmakedefine01 wxUSE_STREAMS
 
 #cmakedefine01 wxUSE_PRINTF_POS_PARAMS
-
-#cmakedefine01 wxUSE_COMPILER_TLS
 
 
 #cmakedefine01 wxUSE_STL
@@ -233,6 +196,8 @@
 #cmakedefine01 wxUSE_FSVOLUME
 
 #cmakedefine01 wxUSE_SECRETSTORE
+
+#cmakedefine01 wxUSE_SPELLCHECK
 
 #cmakedefine01 wxUSE_STDPATHS
 
@@ -328,7 +293,7 @@
 
 #cmakedefine01 wxUSE_XRC
 
-#define wxUSE_XML       wxUSE_XRC
+#cmakedefine01 wxUSE_XML
 
 #cmakedefine01 wxUSE_AUI
 
@@ -348,6 +313,8 @@
 
 #cmakedefine01 wxUSE_WEBVIEW_EDGE
 
+#cmakedefine01 wxUSE_WEBVIEW_EDGE_STATIC
+
 #if (defined(__WXGTK__) && !defined(__WXGTK3__)) || defined(__WXOSX__)
 #cmakedefine01 wxUSE_WEBVIEW_WEBKIT
 #else
@@ -360,13 +327,7 @@
 #cmakedefine01 wxUSE_WEBVIEW_WEBKIT2
 #endif
 
-
-#if defined(_MSC_VER) || \
-    (defined(__MINGW32__) && (__GNUC__ > 4 || __GNUC_MINOR__ >= 8))
 #cmakedefine01 wxUSE_GRAPHICS_CONTEXT
-#else
-#cmakedefine01 wxUSE_GRAPHICS_CONTEXT
-#endif
 
 #cmakedefine01 wxUSE_CAIRO
 
@@ -514,7 +475,6 @@
 
 #cmakedefine01 wxUSE_DIRDLG
 
-
 #cmakedefine01 wxUSE_FILEDLG
 
 #cmakedefine01 wxUSE_FINDREPLDLG
@@ -614,7 +574,6 @@
 #cmakedefine01 wxUSE_DC_TRANSFORM_MATRIX
 
 
-
 #cmakedefine01 wxUSE_IMAGE
 
 #cmakedefine01 wxUSE_LIBPNG
@@ -622,6 +581,10 @@
 #cmakedefine01 wxUSE_LIBJPEG
 
 #cmakedefine01 wxUSE_LIBTIFF
+
+#cmakedefine01 wxUSE_NANOSVG
+
+#cmakedefine01 wxUSE_NANOSVG_EXTERNAL
 
 #cmakedefine01 wxUSE_TGA
 
@@ -685,7 +648,7 @@
 
 #define wxUSE_GRAPHICS_GDIPLUS wxUSE_GRAPHICS_CONTEXT
 
-#if defined(_MSC_VER) && _MSC_VER >= 1600
+#if defined(_MSC_VER)
     #define wxUSE_GRAPHICS_DIRECT2D wxUSE_GRAPHICS_CONTEXT
 #else
     #cmakedefine01 wxUSE_GRAPHICS_DIRECT2D
@@ -700,7 +663,7 @@
 
 #cmakedefine01 wxUSE_ACTIVEX
 
-#if defined(_MSC_VER) && _MSC_VER >= 1700 && !defined(_USING_V110_SDK71_)
+#if defined(_MSC_VER)
     #cmakedefine01 wxUSE_WINRT
 #else
     #cmakedefine01 wxUSE_WINRT
@@ -758,67 +721,6 @@
 #cmakedefine VA_LIST_IS_ARRAY 1
 
 /*
- * Define if you don't want variadic macros to be used even if they are
- * supported by the compiler.
- */
-#cmakedefine wxNO_VARIADIC_MACROS
-
-/*
- * Define if your compiler has std::wstring
- */
-#cmakedefine HAVE_STD_WSTRING 1
-/*
- * Define if your compiler has compliant std::string::compare
- */
-#cmakedefine HAVE_STD_STRING_COMPARE 1
-/*
- * Define if your compiler has <hash_map>
- */
-#cmakedefine HAVE_HASH_MAP 1
-/*
- * Define if your compiler has <ext/hash_map>
- */
-#cmakedefine HAVE_EXT_HASH_MAP 1
-/*
- * Define if your compiler has std::hash_map/hash_set
- */
-#cmakedefine HAVE_STD_HASH_MAP 1
-/*
- * Define if your compiler has __gnu_cxx::hash_map/hash_set
- */
-#cmakedefine HAVE_GNU_CXX_HASH_MAP 1
-
-/*
- * Define if your compiler has std::unordered_map
- */
-#cmakedefine HAVE_STD_UNORDERED_MAP 1
-
-/*
- * Define if your compiler has std::unordered_set
- */
-#cmakedefine HAVE_STD_UNORDERED_SET 1
-
-/*
- * Define if your compiler has std::tr1::unordered_map
- */
-#cmakedefine HAVE_TR1_UNORDERED_MAP 1
-
-/*
- * Define if your compiler has std::tr1::unordered_set
- */
-#cmakedefine HAVE_TR1_UNORDERED_SET 1
-
-/*
- * Define if your compiler has <tr1/type_traits>
- */
-#cmakedefine HAVE_TR1_TYPE_TRAITS 1
-
-/*
- * Define if your compiler has <type_traits>
- */
-#cmakedefine HAVE_TYPE_TRAITS 1
-
-/*
  * Define if the compiler supports simple visibility declarations.
  */
 #cmakedefine HAVE_VISIBILITY 1
@@ -833,12 +735,6 @@
  */
 #cmakedefine HAVE_BROKEN_LIBSTDCXX_VISIBILITY
 
-/*
- * The built-in regex supports advanced REs in additional to POSIX's basic
- * and extended. Your system regex probably won't support this, and in this
- * case WX_NO_REGEX_ADVANCED should be defined.
- */
-#cmakedefine WX_NO_REGEX_ADVANCED
 /*
  * On GNU systems use re_search instead of regexec, since the latter does a
  * strlen on the search text affecting the performance of some operations.
@@ -1000,9 +896,6 @@
 /* Define if you have snprintf() */
 #cmakedefine HAVE_SNPRINTF 1
 
-/* Define if you have snprintf() declaration in the header */
-#cmakedefine HAVE_SNPRINTF_DECL 1
-
 /* Define if you have a snprintf() which supports positional arguments
    (defined in the unix98 standard) */
 #cmakedefine HAVE_UNIX98_PRINTF 1
@@ -1016,17 +909,11 @@
 /* define if you have statvfs function */
 #cmakedefine HAVE_STATVFS 1
 
-/* Define if you have strtoull() and strtoll() */
-#cmakedefine HAVE_STRTOULL 1
-
 /* Define if you have all functions to set thread priority */
 #cmakedefine HAVE_THREAD_PRIORITY_FUNCTIONS 1
 
 /* Define if you have vsnprintf() */
 #cmakedefine HAVE_VSNPRINTF 1
-
-/* Define if you have vsnprintf() declaration in the header */
-#cmakedefine HAVE_VSNPRINTF_DECL 1
 
 /* Define if you have a _broken_ vsnprintf() declaration in the header,
  * with 'char*' for the 3rd parameter instead of 'const char*' */
@@ -1038,9 +925,6 @@
 
 /* Define if you have vsscanf() */
 #cmakedefine HAVE_VSSCANF 1
-
-/* Define if you have vsscanf() declaration in the header */
-#cmakedefine HAVE_VSSCANF_DECL 1
 
 /* Define if you have usleep() */
 #cmakedefine HAVE_USLEEP 1
@@ -1065,9 +949,6 @@
 
 /* Define if you have wcsnlen() function */
 #cmakedefine HAVE_WCSNLEN 1
-
-/* Define if you have wcstoull() and wcstoll() */
-#cmakedefine HAVE_WCSTOULL 1
 
 /* The number of bytes in a wchar_t.  */
 @SIZEOF_WCHAR_T_CODE@

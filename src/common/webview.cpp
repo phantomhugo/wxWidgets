@@ -13,6 +13,8 @@
 
 
 #include "wx/webview.h"
+#include "wx/filesys.h"
+#include "wx/mstream.h"
 
 #if defined(__WXOSX__)
 #include "wx/osx/webview_webkit.h"
@@ -50,6 +52,93 @@ wxDEFINE_EVENT( wxEVT_WEBVIEW_NEWWINDOW, wxWebViewEvent );
 wxDEFINE_EVENT( wxEVT_WEBVIEW_TITLE_CHANGED, wxWebViewEvent );
 wxDEFINE_EVENT( wxEVT_WEBVIEW_FULLSCREEN_CHANGED, wxWebViewEvent);
 wxDEFINE_EVENT( wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, wxWebViewEvent);
+wxDEFINE_EVENT( wxEVT_WEBVIEW_SCRIPT_RESULT, wxWebViewEvent);
+
+// wxWebViewHandlerRequest
+wxString wxWebViewHandlerRequest::GetDataString(const wxMBConv& conv) const
+{
+    wxInputStream* data = GetData();
+    if (!data)
+        return wxString();
+
+    size_t length = data->GetLength();
+    wxMemoryBuffer buffer;
+    data->ReadAll(buffer.GetWriteBuf(length), length);
+    wxString dataStr(static_cast<const char*>(buffer.GetData()), conv, length);
+    return dataStr;
+}
+
+// wxWebViewHandlerResponseDataStream
+class wxWebViewHandlerResponseDataString : public wxWebViewHandlerResponseData
+{
+public:
+    wxWebViewHandlerResponseDataString(const wxCharBuffer& data): m_data(data)
+    {
+        m_stream = new wxMemoryInputStream(m_data, m_data.length());
+    }
+
+    ~wxWebViewHandlerResponseDataString() { delete m_stream; }
+
+    virtual wxInputStream* GetStream() override
+    {
+        return m_stream;
+    }
+
+    wxCharBuffer m_data;
+    wxInputStream* m_stream;
+};
+
+// wxWebViewHandlerResponse
+void wxWebViewHandlerResponse::Finish(const wxString& text,
+    const wxMBConv& conv)
+{
+    Finish(wxSharedPtr<wxWebViewHandlerResponseData>(
+        new wxWebViewHandlerResponseDataString(text.mb_str(conv))));
+}
+
+// wxWebViewHandlerResponseDataFile
+class wxWebViewHandlerResponseDataFile : public wxWebViewHandlerResponseData
+{
+public:
+    wxWebViewHandlerResponseDataFile(wxFSFile* file): m_file(file) { }
+
+    ~wxWebViewHandlerResponseDataFile() { delete m_file; }
+
+    virtual wxInputStream* GetStream() override
+    { return m_file->GetStream(); }
+
+    wxFSFile* m_file;
+};
+
+// wxWebViewHandler
+wxString wxWebViewHandler::GetVirtualHost() const
+{
+    if (m_virtualHost.empty())
+        return GetName() + ".wxsite";
+    else
+        return m_virtualHost;
+}
+
+wxFSFile* wxWebViewHandler::GetFile(const wxString& WXUNUSED(uri))
+{
+    return nullptr;
+}
+
+void wxWebViewHandler::StartRequest(const wxWebViewHandlerRequest& request,
+                                    wxSharedPtr<wxWebViewHandlerResponse> response)
+{
+    wxFSFile* file = GetFile(request.GetURI());
+    if (file)
+    {
+        response->SetContentType(file->GetMimeType());
+        response->Finish(wxSharedPtr<wxWebViewHandlerResponseData>(
+            new wxWebViewHandlerResponseDataFile(file)));
+    }
+    else
+        response->FinishWithError();
+}
+
+// wxWebView
 
 wxStringWebViewFactoryMap wxWebView::m_factoryMap;
 
@@ -224,13 +313,58 @@ wxString wxWebView::GetUserAgent() const
     return userAgent;
 }
 
+bool wxWebView::RunScript(const wxString& javascript, wxString* output) const
+{
+    m_syncScriptResult = -1;
+    m_syncScriptOutput.clear();
+    RunScriptAsync(javascript);
+
+    // Wait for script exection
+    while (m_syncScriptResult == -1)
+        wxYield();
+
+    if (m_syncScriptResult && output)
+        *output = m_syncScriptOutput;
+    return m_syncScriptResult == 1;
+}
+
+void wxWebView::RunScriptAsync(const wxString& WXUNUSED(javascript),
+    void* WXUNUSED(clientData)) const
+{
+    wxLogError(_("RunScriptAsync not supported"));
+}
+
+void wxWebView::SendScriptResult(void* clientData, bool success,
+    const wxString& output) const
+{
+    // If currently running sync RunScript(), don't send an event, but use
+    // the scripts result directly
+    if (m_syncScriptResult == -1)
+    {
+        if (!success)
+            wxLogWarning(_("Error running JavaScript: %s"), output);
+        m_syncScriptOutput = output;
+        m_syncScriptResult = success;
+    }
+    else
+    {
+        wxWebViewEvent evt(wxEVT_WEBVIEW_SCRIPT_RESULT, GetId(), "", "",
+            wxWEBVIEW_NAV_ACTION_NONE);
+        evt.SetEventObject(const_cast<wxWebView*>(this));
+        evt.SetClientData(clientData);
+        evt.SetInt(success);
+        evt.SetString(output);
+        HandleWindowEvent(evt);
+    }
+}
+
 // static
 wxWebView* wxWebView::New(const wxString& backend)
 {
     wxStringWebViewFactoryMap::iterator iter = FindFactory(backend);
 
     if(iter == m_factoryMap.end())
-        return NULL;
+        return nullptr;
     else
         return (*iter).second->Create();
 }
@@ -244,7 +378,7 @@ wxWebView* wxWebView::New(wxWindow* parent, wxWindowID id, const wxString& url,
     wxStringWebViewFactoryMap::iterator iter = FindFactory(backend);
 
     if(iter == m_factoryMap.end())
-        return NULL;
+        return nullptr;
     else
         return (*iter).second->Create(parent, id, url, pos, size, style, name);
 

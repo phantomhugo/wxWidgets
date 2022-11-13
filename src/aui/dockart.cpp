@@ -27,6 +27,7 @@
 #include "wx/aui/tabart.h"
 
 #ifndef WX_PRECOMP
+    #include "wx/app.h"
     #include "wx/settings.h"
     #include "wx/dcclient.h"
     #include "wx/image.h"
@@ -40,12 +41,7 @@
 
 #ifdef __WXGTK__
 #include "wx/renderer.h"
-#ifdef __WXGTK20__
-    #include "wx/gtk/private/wrapgtk.h"
-#else
-    #include <gtk/gtk.h>
-    #define gtk_widget_is_drawable GTK_WIDGET_DRAWABLE
-#endif
+#include "wx/gtk/private/wrapgtk.h"
 #ifdef __WXGTK3__
     #include "wx/graphics.h"
     #include "wx/gtk/private.h"
@@ -93,59 +89,30 @@ wxBitmap wxAuiBitmapFromBits(const unsigned char bits[], int w, int h,
                              const wxColour& color)
 {
     wxImage img = wxBitmap((const char*)bits, w, h).ConvertToImage();
-    if (color.Alpha() == wxALPHA_OPAQUE)
+    img.InitAlpha();
+    const int newr = color.Red();
+    const int newg = color.Green();
+    const int newb = color.Blue();
+    const int newa = color.Alpha();
+    for (int x = 0; x < w; x++)
     {
-        img.Replace(0,0,0,123,123,123);
-        img.Replace(255,255,255,color.Red(),color.Green(),color.Blue());
-        img.SetMaskColour(123,123,123);
-    }
-    else
-    {
-        img.InitAlpha();
-        const int newr = color.Red();
-        const int newg = color.Green();
-        const int newb = color.Blue();
-        const int newa = color.Alpha();
-        for (int x = 0; x < w; x++)
+        for (int y = 0; y < h; y++)
         {
-            for (int y = 0; y < h; y++)
+            int r = img.GetRed(x, y);
+            int g = img.GetGreen(x, y);
+            int b = img.GetBlue(x, y);
+            if (r == 0 && g == 0 && b == 0)
             {
-                int r = img.GetRed(x, y);
-                int g = img.GetGreen(x, y);
-                int b = img.GetBlue(x, y);
-                if (r == 0 && g == 0 && b == 0)
-                {
-                    img.SetAlpha(x, y, wxALPHA_TRANSPARENT);
-                }
-                else
-                {
-                    img.SetRGB(x, y, newr, newg, newb);
-                    img.SetAlpha(x, y, newa);
-                }
+                img.SetAlpha(x, y, wxALPHA_TRANSPARENT);
+            }
+            else
+            {
+                img.SetRGB(x, y, newr, newg, newb);
+                img.SetAlpha(x, y, newa);
             }
         }
     }
     return wxBitmap(img);
-}
-
-// A utility function to scales a bitmap in place for use at the given scale
-// factor.
-void wxAuiScaleBitmap(wxBitmap& bmp, double scale)
-{
-#if wxUSE_IMAGE && !defined(__WXGTK3__) && !defined(__WXMAC__)
-    // scale to a close round number to improve quality
-    scale = floor(scale + 0.25);
-    if (scale > 1.0 && !(bmp.GetScaleFactor() > 1.0))
-    {
-        wxImage img = bmp.ConvertToImage();
-        img.Rescale(bmp.GetWidth()*scale, bmp.GetHeight()*scale,
-            wxIMAGE_QUALITY_BOX_AVERAGE);
-        bmp = wxBitmap(img);
-    }
-#else
-    wxUnusedVar(bmp);
-    wxUnusedVar(scale);
-#endif // wxUSE_IMAGE
 }
 
 static void DrawGradientRectangle(wxDC& dc,
@@ -194,7 +161,7 @@ wxString wxAuiChopText(wxDC& dc, const wxString& text, int max_size)
     if (x <= max_size)
         return text;
 
-    size_t i, len = text.Length();
+    size_t i, len = text.length();
     size_t last_good_length = 0;
     for (i = 0; i < len; ++i)
     {
@@ -237,14 +204,14 @@ wxAuiDefaultDockArt::wxAuiDefaultDockArt()
     GetThemeMetric( kThemeMetricSmallPaneSplitterHeight , &height );
     m_sashSize     = height;
 #elif defined(__WXGTK__)
-    m_sashSize     = wxRendererNative::Get().GetSplitterParams(NULL).widthSash;
+    m_sashSize     = wxRendererNative::Get().GetSplitterParams(nullptr).widthSash;
 #else
-    m_sashSize     = wxWindow::FromDIP( 4, NULL);
+    m_sashSize     = wxWindow::FromDIP( 4, nullptr);
 #endif
-    m_captionSize  = wxWindow::FromDIP(17, NULL);
+    m_captionSize  = wxWindow::FromDIP(17, nullptr);
     m_borderSize   = 1;
-    m_buttonSize   = wxWindow::FromDIP(14, NULL);
-    m_gripperSize  = wxWindow::FromDIP( 9, NULL);
+    m_buttonSize   = wxWindow::FromDIP(14, nullptr);
+    m_gripperSize  = wxWindow::FromDIP( 9, nullptr);
     m_gradientType = wxAUI_GRADIENT_VERTICAL;
 
     InitBitmaps();
@@ -352,7 +319,7 @@ void wxAuiDefaultDockArt::UpdateColoursFromSystem()
     m_gripperBrush = wxBrush(baseColour);
 
     m_borderPen = wxPen(darker2Colour);
-    int pen_width = wxWindow::FromDIP(1, NULL);
+    int pen_width = wxWindow::FromDIP(1, nullptr);
     m_gripperPen1 = wxPen(darker5Colour, pen_width);
     m_gripperPen2 = wxPen(darker3Colour, pen_width);
     m_gripperPen3 = wxPen(*wxStockGDI::GetColour(wxStockGDI::COLOUR_WHITE), pen_width);
@@ -452,25 +419,16 @@ void wxAuiDefaultDockArt::DrawSash(wxDC& dc, wxWindow *window, int orientation, 
     wxUnusedVar(window);
     wxUnusedVar(orientation);
 
-    if ( wxPlatformInfo::Get().CheckOSVersion(10, 14) && wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW).Red() < 128 )
-    {
-        dc.SetPen(*wxTRANSPARENT_PEN);
-        dc.SetBrush(m_sashBrush);
-        dc.DrawRectangle(rect.x, rect.y, rect.width, rect.height);
-    }
-    else
-    {
-        HIRect splitterRect = CGRectMake( rect.x , rect.y , rect.width , rect.height );
-        CGContextRef cgContext ;
-        wxGCDCImpl *impl = (wxGCDCImpl*) dc.GetImpl();
-        cgContext = (CGContextRef) impl->GetGraphicsContext()->GetNativeContext() ;
+    HIRect splitterRect = CGRectMake( rect.x , rect.y , rect.width , rect.height );
+    CGContextRef cgContext ;
+    wxGCDCImpl *impl = (wxGCDCImpl*) dc.GetImpl();
+    cgContext = (CGContextRef) impl->GetGraphicsContext()->GetNativeContext() ;
 
-        HIThemeSplitterDrawInfo drawInfo ;
-        drawInfo.version = 0 ;
-        drawInfo.state = kThemeStateActive ;
-        drawInfo.adornment = kHIThemeSplitterAdornmentNone ;
-        HIThemeDrawPaneSplitter( &splitterRect , &drawInfo , cgContext , kHIThemeOrientationNormal ) ;
-    }
+    HIThemeSplitterDrawInfo drawInfo ;
+    drawInfo.version = 0 ;
+    drawInfo.state = kThemeStateActive ;
+    drawInfo.adornment = kHIThemeSplitterAdornmentMetal ;
+    HIThemeDrawPaneSplitter( &splitterRect , &drawInfo , cgContext , kHIThemeOrientationNormal ) ;
 
 #elif defined(__WXGTK__)
     // clear out the rectangle first
@@ -520,7 +478,7 @@ void wxAuiDefaultDockArt::DrawSash(wxDC& dc, wxWindow *window, int orientation, 
         // flags & wxCONTROL_CURRENT ? GTK_STATE_PRELIGHT : GTK_STATE_NORMAL,
         GTK_STATE_NORMAL,
         GTK_SHADOW_NONE,
-        NULL /* no clipping */,
+        nullptr /* no clipping */,
         window->m_wxwindow,
         "paned",
         rect.x,
@@ -581,7 +539,7 @@ void wxAuiDefaultDockArt::DrawBorder(wxDC& dc, wxWindow* window, const wxRect& _
     else
     {
         // notebooks draw the border themselves, so they can use native rendering (e.g. tabartgtk)
-        wxAuiTabArt* art = 0;
+        wxAuiTabArt* art = nullptr;
         wxAuiNotebook* nb = wxDynamicCast(window, wxAuiNotebook);
         if (nb)
             art = nb->GetArtProvider();
@@ -666,7 +624,8 @@ void wxAuiDefaultDockArt::DrawCaption(wxDC& dc,
     {
         DrawIcon(dc, window, rect, pane);
 
-        caption_offset += pane.icon.GetScaledWidth() + window->FromDIP(3);
+        const wxBitmap& icon = pane.icon.GetBitmapFor(window);
+        caption_offset += icon.GetLogicalWidth() + window->FromDIP(3);
     }
 
     if (pane.state & wxAuiPaneInfo::optionActive)
@@ -698,17 +657,31 @@ void wxAuiDefaultDockArt::DrawCaption(wxDC& dc,
 #if WXWIN_COMPATIBILITY_3_0
 void wxAuiDefaultDockArt::DrawIcon(wxDC& dc, const wxRect& rect, wxAuiPaneInfo& pane)
 {
-    DrawIcon(dc, NULL, rect, pane);
+    DrawIcon(dc, nullptr, rect, pane);
 }
 #endif
 
 void
 wxAuiDefaultDockArt::DrawIcon(wxDC& dc, wxWindow *window, const wxRect& rect, wxAuiPaneInfo& pane)
 {
+    if (!window)
+    {
+        window = wxTheApp->GetTopWindow();
+        wxCHECK_RET( window, "must have some window" );
+    }
+
+    // Ensure the icon fits into the title bar.
+    wxSize iconSize = pane.icon.GetPreferredLogicalSizeFor(window);
+    if (iconSize.y > rect.height)
+    {
+        iconSize *= static_cast<double>(rect.height) / iconSize.y;
+    }
+
     // Draw the icon centered vertically
-    int xOffset = window ? window->FromDIP(2) : 2;
-    dc.DrawBitmap(pane.icon,
-                  rect.x+xOffset, rect.y+(rect.height-pane.icon.GetScaledHeight())/2,
+    int xOffset = window->FromDIP(2);
+    const wxBitmap& icon = pane.icon.GetBitmap(window->ToPhys(iconSize));
+    dc.DrawBitmap(icon,
+                  rect.x+xOffset, rect.y+(rect.height-icon.GetLogicalHeight())/2,
                   true);
 }
 
@@ -771,45 +744,45 @@ void wxAuiDefaultDockArt::DrawPaneButton(wxDC& dc,
                                       const wxRect& _rect,
                                       wxAuiPaneInfo& pane)
 {
-    wxBitmap bmp;
+    wxBitmapBundle bb;
     switch (button)
     {
         default:
         case wxAUI_BUTTON_CLOSE:
             if (pane.state & wxAuiPaneInfo::optionActive)
-                bmp = m_activeCloseBitmap;
+                bb = m_activeCloseBitmap;
             else
-                bmp = m_inactiveCloseBitmap;
+                bb = m_inactiveCloseBitmap;
             break;
         case wxAUI_BUTTON_PIN:
             if (pane.state & wxAuiPaneInfo::optionActive)
-                bmp = m_activePinBitmap;
+                bb = m_activePinBitmap;
             else
-                bmp = m_inactivePinBitmap;
+                bb = m_inactivePinBitmap;
             break;
         case wxAUI_BUTTON_MAXIMIZE_RESTORE:
             if (pane.IsMaximized())
             {
                 if (pane.state & wxAuiPaneInfo::optionActive)
-                    bmp = m_activeRestoreBitmap;
+                    bb = m_activeRestoreBitmap;
                 else
-                    bmp = m_inactiveRestoreBitmap;
+                    bb = m_inactiveRestoreBitmap;
             }
             else
             {
                 if (pane.state & wxAuiPaneInfo::optionActive)
-                    bmp = m_activeMaximizeBitmap;
+                    bb = m_activeMaximizeBitmap;
                 else
-                    bmp = m_inactiveMaximizeBitmap;
+                    bb = m_inactiveMaximizeBitmap;
             }
             break;
     }
 
-    wxAuiScaleBitmap(bmp, window->GetDPIScaleFactor());
+    const wxBitmap& bmp = bb.GetBitmapFor(window);
 
     wxRect rect = _rect;
 
-    rect.y = rect.y + (rect.height/2) - (bmp.GetScaledHeight()/2);
+    rect.y = rect.y + (rect.height/2) - (bmp.GetLogicalHeight()/2);
 
     if (button_state == wxAUI_BUTTON_STATE_PRESSED)
     {
@@ -833,8 +806,8 @@ void wxAuiDefaultDockArt::DrawPaneButton(wxDC& dc,
 
         // draw the background behind the button
         dc.DrawRectangle(rect.x, rect.y,
-            bmp.GetScaledWidth() - window->FromDIP(1),
-            bmp.GetScaledHeight() - window->FromDIP(1));
+            bmp.GetLogicalWidth() - window->FromDIP(1),
+            bmp.GetLogicalHeight() - window->FromDIP(1));
     }
 
     // draw the button itself

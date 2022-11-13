@@ -49,7 +49,7 @@ MSW_SHDefExtractIcon(LPCTSTR pszIconFile, int iIndex, UINT uFlags,
     typedef HRESULT
     (WINAPI *SHDefExtractIcon_t)(LPCTSTR, int, UINT, HICON*, HICON*, UINT);
 
-    static SHDefExtractIcon_t s_SHDefExtractIcon = NULL;
+    static SHDefExtractIcon_t s_SHDefExtractIcon = nullptr;
     if ( !s_SHDefExtractIcon )
     {
         wxDynamicLibrary shell32(wxT("shell32.dll"));
@@ -95,37 +95,14 @@ SHSTOCKICONID MSWGetStockIconIdForArtProviderId(const wxArtID& art_id)
 };
 
 
-// try to load SHGetStockIconInfo dynamically, so this code runs
-// even on pre-Vista Windows versions
-HRESULT
-MSW_SHGetStockIconInfo(SHSTOCKICONID siid,
-                       UINT uFlags,
-                       SHSTOCKICONINFO *psii)
-{
-    typedef HRESULT (WINAPI *PSHGETSTOCKICONINFO)(SHSTOCKICONID, UINT, SHSTOCKICONINFO *);
-    static PSHGETSTOCKICONINFO pSHGetStockIconInfo = (PSHGETSTOCKICONINFO)-1;
-
-    if ( pSHGetStockIconInfo == (PSHGETSTOCKICONINFO)-1 )
-    {
-        wxDynamicLibrary shell32(wxT("shell32.dll"));
-
-        pSHGetStockIconInfo = (PSHGETSTOCKICONINFO)shell32.RawGetSymbol( wxT("SHGetStockIconInfo") );
-    }
-
-    if ( !pSHGetStockIconInfo )
-        return E_FAIL;
-
-    return pSHGetStockIconInfo(siid, uFlags, psii);
-}
-
 #endif // #ifdef wxHAS_SHGetStockIconInfo
 
 // Wrapper for SHDefExtractIcon().
 wxBitmap
 MSWGetBitmapFromIconLocation(const TCHAR* path, int index, const wxSize& size)
 {
-    HICON hIcon = NULL;
-    if ( MSW_SHDefExtractIcon(path, index, 0, &hIcon, NULL, size.x) != S_OK )
+    HICON hIcon = nullptr;
+    if ( MSW_SHDefExtractIcon(path, index, 0, &hIcon, nullptr, size.x) != S_OK )
         return wxNullBitmap;
 
     // Note that using "size.x" twice here is not a typo: normally size.y is
@@ -138,21 +115,6 @@ MSWGetBitmapFromIconLocation(const TCHAR* path, int index, const wxSize& size)
 
     return wxBitmap(icon);
 }
-
-#if !wxUSE_UNICODE
-
-// SHSTOCKICONINFO always uses WCHAR, even in ANSI build, so we need to convert
-// it to TCHAR, which is just CHAR in this case, used by the other functions.
-// Provide an overload doing it as this keeps the code in the main function
-// clean and this entire block (inside !wxUSE_UNICODE check) can be just
-// removed when support for ANSI build is finally dropped.
-wxBitmap
-MSWGetBitmapFromIconLocation(const WCHAR* path, int index, const wxSize& size)
-{
-    return MSWGetBitmapFromIconLocation(wxString(path).mb_str(), index, size);
-}
-
-#endif // !wxUSE_UNICODE
 
 wxBitmap
 MSWGetBitmapForPath(const wxString& path, const wxSize& size, DWORD uFlags = 0)
@@ -200,30 +162,8 @@ class wxWindowsArtProvider : public wxArtProvider
 {
 protected:
     virtual wxBitmap CreateBitmap(const wxArtID& id, const wxArtClient& client,
-                                  const wxSize& size) wxOVERRIDE;
+                                  const wxSize& size) override;
 };
-
-static wxBitmap CreateFromStdIcon(const char *iconName,
-                                  const wxArtClient& client)
-{
-    wxIcon icon(iconName);
-    wxBitmap bmp;
-    bmp.CopyFromIcon(icon);
-
-    // The standard native message box icons are in message box size (32x32).
-    // If they are requested in any size other than the default or message
-    // box size, they must be rescaled first.
-    if ( client != wxART_MESSAGE_BOX && client != wxART_OTHER )
-    {
-        const wxSize size = wxArtProvider::GetNativeSizeHint(client);
-        if ( size != wxDefaultSize )
-        {
-            wxArtProvider::RescaleBitmap(bmp, size);
-        }
-    }
-
-    return bmp;
-}
 
 wxBitmap wxWindowsArtProvider::CreateBitmap(const wxArtID& id,
                                             const wxArtClient& client,
@@ -231,8 +171,12 @@ wxBitmap wxWindowsArtProvider::CreateBitmap(const wxArtID& id,
 {
     wxBitmap bitmap;
 
+    const wxSize
+        sizeNeeded = size.IsFullySpecified()
+                        ? size
+                        : wxArtProvider::GetNativeSizeHint(client);
+
 #ifdef wxHAS_SHGetStockIconInfo
-    // first try to use SHGetStockIconInfo, available only on Vista and higher
     SHSTOCKICONID stockIconId = MSWGetStockIconIdForArtProviderId( id );
     if ( stockIconId != SIID_INVALID )
     {
@@ -240,25 +184,13 @@ wxBitmap wxWindowsArtProvider::CreateBitmap(const wxArtID& id,
 
         UINT uFlags = SHGSI_ICONLOCATION | SHGSI_SYSICONINDEX;
 
-        HRESULT res = MSW_SHGetStockIconInfo(stockIconId, uFlags, &sii);
+        HRESULT res = ::SHGetStockIconInfo(stockIconId, uFlags, &sii);
         if ( res == S_OK )
         {
-            const wxSize
-                sizeNeeded = size.IsFullySpecified()
-                                ? size
-                                : wxArtProvider::GetNativeSizeHint(client);
-
             bitmap = MSWGetBitmapFromIconLocation(sii.szPath, sii.iIcon,
                                                   sizeNeeded);
             if ( bitmap.IsOk() )
-            {
-                if ( bitmap.GetSize() != sizeNeeded )
-                {
-                    wxArtProvider::RescaleBitmap(bitmap, sizeNeeded);
-                }
-
                 return bitmap;
-            }
         }
     }
 #endif // wxHAS_SHGetStockIconInfo
@@ -276,7 +208,7 @@ wxBitmap wxWindowsArtProvider::CreateBitmap(const wxArtID& id,
 
     if ( volKind != wxFS_VOL_OTHER )
     {
-        bitmap = GetDriveBitmapForVolumeType(volKind, size);
+        bitmap = GetDriveBitmapForVolumeType(volKind, sizeNeeded);
         if ( bitmap.IsOk() )
             return bitmap;
     }
@@ -284,15 +216,15 @@ wxBitmap wxWindowsArtProvider::CreateBitmap(const wxArtID& id,
 
     // notice that the directory used here doesn't need to exist
     if ( id == wxART_FOLDER )
-        bitmap = MSWGetBitmapForPath("C:\\wxdummydir\\", size );
+        bitmap = MSWGetBitmapForPath("C:\\wxdummydir\\", sizeNeeded);
     else if ( id == wxART_FOLDER_OPEN )
-        bitmap = MSWGetBitmapForPath("C:\\wxdummydir\\", size, SHGFI_OPENICON );
+        bitmap = MSWGetBitmapForPath("C:\\wxdummydir\\", sizeNeeded, SHGFI_OPENICON );
 
     if ( !bitmap.IsOk() )
     {
         // handle message box icons specially (wxIcon ctor treat these names
         // as special cases via wxICOResourceHandler::LoadIcon):
-        const char *name = NULL;
+        const char *name = nullptr;
         if ( id == wxART_ERROR )
             name = "wxICON_ERROR";
         else if ( id == wxART_INFORMATION )
@@ -303,7 +235,7 @@ wxBitmap wxWindowsArtProvider::CreateBitmap(const wxArtID& id,
             name = "wxICON_QUESTION";
 
         if ( name )
-            return CreateFromStdIcon(name, client);
+            return wxIcon(name);
     }
 
     // for anything else, fall back to generic provider:
@@ -324,35 +256,34 @@ wxBitmap wxWindowsArtProvider::CreateBitmap(const wxArtID& id,
 // ----------------------------------------------------------------------------
 
 /*static*/
-wxSize wxArtProvider::GetNativeSizeHint(const wxArtClient& client)
+wxSize wxArtProvider::GetNativeDIPSizeHint(const wxArtClient& client)
 {
-    const wxWindow* win = wxApp::GetMainTopWindow();
     if ( client == wxART_TOOLBAR )
     {
-        return wxWindow::FromDIP(wxSize(24, 24), win);
+        return wxSize(24, 24);
     }
     else if ( client == wxART_MENU )
     {
-        return wxWindow::FromDIP(wxSize(16, 16), win);
+        return wxSize(16, 16);
     }
     else if ( client == wxART_FRAME_ICON )
     {
-        return wxSize(wxGetSystemMetrics(SM_CXSMICON, win),
-                      wxGetSystemMetrics(SM_CYSMICON, win));
+        return wxSize(::GetSystemMetrics(SM_CXSMICON),
+                      ::GetSystemMetrics(SM_CYSMICON));
     }
     else if ( client == wxART_CMN_DIALOG ||
               client == wxART_MESSAGE_BOX )
     {
-        return wxSize(wxGetSystemMetrics(SM_CXICON, win),
-                      wxGetSystemMetrics(SM_CYICON, win));
+        return wxSize(::GetSystemMetrics(SM_CXICON),
+                      ::GetSystemMetrics(SM_CYICON));
     }
     else if (client == wxART_BUTTON)
     {
-        return wxWindow::FromDIP(wxSize(16, 16), win);
+        return wxSize(16, 16);
     }
     else if (client == wxART_LIST)
     {
-        return wxWindow::FromDIP(wxSize(16, 16), win);
+        return wxSize(16, 16);
     }
 
     return wxDefaultSize;

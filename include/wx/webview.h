@@ -92,6 +92,37 @@ enum wxWebViewUserScriptInjectionTime
     wxWEBVIEW_INJECT_AT_DOCUMENT_END
 };
 
+class WXDLLIMPEXP_WEBVIEW wxWebViewHandlerRequest
+{
+public:
+    virtual ~wxWebViewHandlerRequest() { }
+    virtual wxString GetRawURI() const = 0;
+    virtual wxString GetURI() const { return GetRawURI(); }
+    virtual wxInputStream* GetData() const = 0;
+    virtual wxString GetDataString(const wxMBConv& conv = wxConvUTF8) const;
+    virtual wxString GetMethod() const = 0;
+    virtual wxString GetHeader(const wxString& name) const = 0;
+};
+
+class WXDLLIMPEXP_WEBVIEW wxWebViewHandlerResponseData
+{
+public:
+    virtual ~wxWebViewHandlerResponseData() { }
+    virtual wxInputStream* GetStream() = 0;
+};
+
+class WXDLLIMPEXP_WEBVIEW wxWebViewHandlerResponse
+{
+public:
+    virtual ~wxWebViewHandlerResponse() { }
+    virtual void SetStatus(int status) = 0;
+    virtual void SetContentType(const wxString& contentType) = 0;
+    virtual void SetHeader(const wxString& name, const wxString& value) = 0;
+    virtual void Finish(wxSharedPtr<wxWebViewHandlerResponseData> data) = 0;
+    virtual void Finish(const wxString& text, const wxMBConv& conv = wxConvUTF8);
+    virtual void FinishWithError() = 0;
+};
+
 //Base class for custom scheme handlers
 class WXDLLIMPEXP_WEBVIEW wxWebViewHandler
 {
@@ -100,12 +131,17 @@ public:
         : m_scheme(scheme), m_securityURL() {}
     virtual ~wxWebViewHandler() {}
     virtual wxString GetName() const { return m_scheme; }
-    virtual wxFSFile* GetFile(const wxString &uri) = 0;
+    virtual wxFSFile* GetFile(const wxString &uri);
     virtual void SetSecurityURL(const wxString& url) { m_securityURL = url; }
     virtual wxString GetSecurityURL() const { return m_securityURL; }
+    virtual void SetVirtualHost(const wxString& host) { m_virtualHost = host; }
+    virtual wxString GetVirtualHost() const;
+    virtual void StartRequest(const wxWebViewHandlerRequest& request,
+                              wxSharedPtr<wxWebViewHandlerResponse> response);
 private:
     wxString m_scheme;
     wxString m_securityURL;
+    wxString m_virtualHost;
 };
 
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewNameStr[];
@@ -138,7 +174,7 @@ public:
     wxWebView()
     {
         m_showMenu = true;
-        m_runScriptCount = 0;
+        m_syncScriptResult = 0;
     }
 
     virtual ~wxWebView() {}
@@ -191,7 +227,8 @@ public:
     virtual wxString GetUserAgent() const;
 
     // Script
-    virtual bool RunScript(const wxString& javascript, wxString* output = NULL) const = 0;
+    virtual bool RunScript(const wxString& javascript, wxString* output = nullptr) const;
+    virtual void RunScriptAsync(const wxString& javascript, void* clientData = nullptr) const;
     virtual bool AddScriptMessageHandler(const wxString& name)
     { wxUnusedVar(name); return false; }
     virtual bool RemoveScriptMessageHandler(const wxString& name)
@@ -258,6 +295,7 @@ public:
 
     //Get the pointer to the underlying native engine.
     virtual void* GetNativeBackend() const = 0;
+    virtual void* GetNativeConfiguration() const { return nullptr; }
     //Find function
     virtual long Find(const wxString& text, int flags = wxWEBVIEW_FIND_DEFAULT);
 
@@ -267,15 +305,16 @@ protected:
     bool QueryCommandEnabled(const wxString& command) const;
     void ExecCommand(const wxString& command);
 
-    // Count the number of calls to RunScript() in order to prevent
-    // the_same variable from being used twice in more than one call.
-    mutable int m_runScriptCount;
+    void SendScriptResult(void* clientData, bool success,
+        const wxString& output) const;
 
 private:
     static void InitFactoryMap();
     static wxStringWebViewFactoryMap::iterator FindFactory(const wxString &backend);
 
     bool m_showMenu;
+    mutable int m_syncScriptResult;
+    mutable wxString m_syncScriptOutput;
     wxString m_findText;
     static wxStringWebViewFactoryMap m_factoryMap;
 
@@ -294,6 +333,7 @@ public:
           m_actionFlags(flags), m_messageHandler(messageHandler)
     {}
 
+    bool IsError() const { return GetInt() == 0; }
 
     const wxString& GetURL() const { return m_url; }
     const wxString& GetTarget() const { return m_target; }
@@ -301,14 +341,14 @@ public:
     wxWebViewNavigationActionFlags GetNavigationAction() const { return m_actionFlags; }
     const wxString& GetMessageHandler() const { return m_messageHandler; }
 
-    virtual wxEvent* Clone() const wxOVERRIDE { return new wxWebViewEvent(*this); }
+    virtual wxEvent* Clone() const override { return new wxWebViewEvent(*this); }
 private:
     wxString m_url;
     wxString m_target;
     wxWebViewNavigationActionFlags m_actionFlags;
     wxString m_messageHandler;
 
-    wxDECLARE_DYNAMIC_CLASS_NO_ASSIGN(wxWebViewEvent);
+    wxDECLARE_DYNAMIC_CLASS_NO_ASSIGN_DEF_COPY(wxWebViewEvent);
 };
 
 wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_NAVIGATING, wxWebViewEvent );
@@ -319,6 +359,7 @@ wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_NEWWINDOW, wxWebVie
 wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_TITLE_CHANGED, wxWebViewEvent );
 wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_FULLSCREEN_CHANGED, wxWebViewEvent);
 wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, wxWebViewEvent);
+wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_SCRIPT_RESULT, wxWebViewEvent);
 
 typedef void (wxEvtHandler::*wxWebViewEventFunction)
              (wxWebViewEvent&);
@@ -348,6 +389,18 @@ typedef void (wxEvtHandler::*wxWebViewEventFunction)
 
 #define EVT_WEBVIEW_TITLE_CHANGED(id, fn) \
     wx__DECLARE_EVT1(wxEVT_WEBVIEW_TITLE_CHANGED, id, \
+                     wxWebViewEventHandler(fn))
+
+#define EVT_WEBVIEW_FULLSCREEN_CHANGED(id, fn) \
+    wx__DECLARE_EVT1(wxEVT_WEBVIEW_FULLSCREEN_CHANGED, id, \
+                     wxWebViewEventHandler(fn))
+
+#define EVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED(id, fn) \
+    wx__DECLARE_EVT1(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, id, \
+                     wxWebViewEventHandler(fn))
+
+#define EVT_WEBVIEW_SCRIPT_RESULT(id, fn) \
+    wx__DECLARE_EVT1(wxEVT_WEBVIEW_SCRIPT_RESULT, id, \
                      wxWebViewEventHandler(fn))
 
 // old wxEVT_COMMAND_* constants

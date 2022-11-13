@@ -143,14 +143,14 @@ public:
 
     wxFormatConverterBase()
     {
-        m_fmtOrig = NULL;
-        m_fmtLast = NULL;
+        m_fmtOrig = nullptr;
+        m_fmtLast = nullptr;
         m_nCopied = 0;
     }
 
     wxScopedCharTypeBuffer<CharType> Convert(const CharType *format)
     {
-        // this is reset to NULL if we modify the format string
+        // this is reset to nullptr if we modify the format string
         m_fmtOrig = format;
 
         while ( *format )
@@ -284,7 +284,7 @@ public:
             }
         }
 
-        // notice that we only translated the string if m_fmtOrig == NULL (as
+        // notice that we only translated the string if m_fmtOrig == nullptr (as
         // set by CopyAllBefore()), otherwise we should simply use the original
         // format
         if ( m_fmtOrig )
@@ -369,7 +369,7 @@ private:
 
     void CopyAllBefore()
     {
-        wxASSERT_MSG( m_fmtOrig && m_fmt.data() == NULL, "logic error" );
+        wxASSERT_MSG( m_fmtOrig && m_fmt.data() == nullptr, "logic error" );
 
         // the modified format string is guaranteed to be no longer than
         // 3/2 of the original (worst case: the entire format string consists
@@ -386,7 +386,7 @@ private:
 
         // we won't need it any longer and resetting it also indicates that we
         // modified the format
-        m_fmtOrig = NULL;
+        m_fmtOrig = nullptr;
     }
 
     static bool IsFlagChar(CharType ch)
@@ -452,7 +452,7 @@ class wxPrintfFormatConverterWchar : public wxFormatConverterBase<wchar_t>
 {
     virtual void HandleString(CharType WXUNUSED(conv),
                               SizeModifier WXUNUSED(size),
-                              CharType& outConv, SizeModifier& outSize) wxOVERRIDE
+                              CharType& outConv, SizeModifier& outSize) override
     {
         outConv = 's';
         outSize = Size_Long;
@@ -460,7 +460,7 @@ class wxPrintfFormatConverterWchar : public wxFormatConverterBase<wchar_t>
 
     virtual void HandleChar(CharType WXUNUSED(conv),
                             SizeModifier WXUNUSED(size),
-                            CharType& outConv, SizeModifier& outSize) wxOVERRIDE
+                            CharType& outConv, SizeModifier& outSize) override
     {
         outConv = 'c';
         outSize = Size_Long;
@@ -475,7 +475,7 @@ class wxPrintfFormatConverterUtf8 : public wxFormatConverterBase<char>
 {
     virtual void HandleString(CharType WXUNUSED(conv),
                               SizeModifier WXUNUSED(size),
-                              CharType& outConv, SizeModifier& outSize) wxOVERRIDE
+                              CharType& outConv, SizeModifier& outSize) override
     {
         outConv = 's';
         outSize = Size_Default;
@@ -483,7 +483,7 @@ class wxPrintfFormatConverterUtf8 : public wxFormatConverterBase<char>
 
     virtual void HandleChar(CharType WXUNUSED(conv),
                             SizeModifier WXUNUSED(size),
-                            CharType& outConv, SizeModifier& outSize) wxOVERRIDE
+                            CharType& outConv, SizeModifier& outSize) override
     {
         // chars are represented using wchar_t in both builds, so this is
         // the same as above
@@ -492,27 +492,6 @@ class wxPrintfFormatConverterUtf8 : public wxFormatConverterBase<char>
     }
 };
 #endif // wxUSE_UNICODE_UTF8
-
-#if !wxUSE_UNICODE // FIXME-UTF8: remove
-class wxPrintfFormatConverterANSI : public wxFormatConverterBase<char>
-{
-    virtual void HandleString(CharType WXUNUSED(conv),
-                              SizeModifier WXUNUSED(size),
-                              CharType& outConv, SizeModifier& outSize)
-    {
-        outConv = 's';
-        outSize = Size_Default;
-    }
-
-    virtual void HandleChar(CharType WXUNUSED(conv),
-                            SizeModifier WXUNUSED(size),
-                            CharType& outConv, SizeModifier& outSize)
-    {
-        outConv = 'c';
-        outSize = Size_Default;
-    }
-};
-#endif // ANSI
 
 #ifndef __WINDOWS__
 /*
@@ -533,14 +512,14 @@ class wxPrintfFormatConverterANSI : public wxFormatConverterBase<char>
 class wxScanfFormatConverterWchar : public wxFormatConverterBase<wchar_t>
 {
     virtual void HandleString(CharType conv, SizeModifier size,
-                              CharType& outConv, SizeModifier& outSize) wxOVERRIDE
+                              CharType& outConv, SizeModifier& outSize) override
     {
         outConv = 's';
         outSize = GetOutSize(conv == 'S', size);
     }
 
     virtual void HandleChar(CharType conv, SizeModifier size,
-                            CharType& outConv, SizeModifier& outSize) wxOVERRIDE
+                            CharType& outConv, SizeModifier& outSize) override
     {
         outConv = 'c';
         outSize = GetOutSize(conv == 'C', size);
@@ -583,9 +562,8 @@ const char* wxFormatString::InputAsChar()
     if ( m_char )
         return m_char.data();
 
-    // in ANSI build, wx_str() returns char*, in UTF-8 build, this function
-    // is only called under UTF-8 locales, so we should return UTF-8 string,
-    // which is, again, what wx_str() returns:
+    // in this build, wx_str() returns UTF-8-encoded string and this function
+    // is only called under UTF-8 locales, so we can just return it directly
     if ( m_str )
         return m_str->wx_str();
 
@@ -605,17 +583,13 @@ const char* wxFormatString::InputAsChar()
 const char* wxFormatString::AsChar()
 {
     if ( !m_convertedChar )
-#if !wxUSE_UNICODE // FIXME-UTF8: remove this
-        m_convertedChar = wxPrintfFormatConverterANSI().Convert(InputAsChar());
-#else
         m_convertedChar = wxPrintfFormatConverterUtf8().Convert(InputAsChar());
-#endif
 
     return m_convertedChar.data();
 }
 #endif // !wxUSE_UNICODE_WCHAR
 
-#if wxUSE_UNICODE && !wxUSE_UTF8_LOCALE_ONLY
+#if !wxUSE_UTF8_LOCALE_ONLY
 const wchar_t* wxFormatString::InputAsWChar()
 {
     if ( m_wchar )
@@ -655,7 +629,7 @@ const wchar_t* wxFormatString::AsWChar()
 
     return m_convertedWChar.data();
 }
-#endif // wxUSE_UNICODE && !wxUSE_UTF8_LOCALE_ONLY
+#endif // !wxUSE_UTF8_LOCALE_ONLY
 
 wxString wxFormatString::InputAsString() const
 {
@@ -700,7 +674,7 @@ wxFormatString::ArgumentType DoGetArgumentType(const CharType *format,
         return wxFormatString::Arg_Unused;
     }
 
-    wxCHECK_MSG( parser.pspec[n-1] != NULL, wxFormatString::Arg_Unknown,
+    wxCHECK_MSG( parser.pspec[n-1] != nullptr, wxFormatString::Arg_Unknown,
                  "requested argument not found - invalid format string?" );
 
     switch ( parser.pspec[n-1]->m_type )

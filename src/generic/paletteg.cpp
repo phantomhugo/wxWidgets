@@ -38,7 +38,7 @@ public:
 wxPaletteRefData::wxPaletteRefData()
 {
     m_count = 0;
-    m_entries = NULL;
+    m_entries = nullptr;
 }
 
 wxPaletteRefData::wxPaletteRefData(const wxPaletteRefData& palette)
@@ -62,7 +62,7 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxPalette,wxGDIObject);
 
 wxPalette::wxPalette()
 {
-    m_refData = NULL;
+    m_refData = nullptr;
 }
 
 wxPalette::wxPalette(int n, const unsigned char *red, const unsigned char *green, const unsigned char *blue)
@@ -131,8 +131,11 @@ bool wxPalette::GetRGB(int pixel,
                        unsigned char *green,
                        unsigned char *blue) const
 {
-    if (!m_refData) return false;
-    if (pixel >= M_PALETTEDATA->m_count) return false;
+    if ( !m_refData )
+        return false;
+
+    if ( pixel < 0 || pixel >= M_PALETTEDATA->m_count )
+        return false;
 
     wxPaletteEntry& p = M_PALETTEDATA->m_entries[pixel];
     if (red) *red = p.red;

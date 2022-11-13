@@ -220,8 +220,8 @@ class XmlResApp : public wxAppConsole
 {
 public:
     // don't use builtin cmd line parsing:
-    virtual bool OnInit() wxOVERRIDE { return true; }
-    virtual int OnRun() wxOVERRIDE;
+    virtual bool OnInit() override { return true; }
+    virtual int OnRun() override;
 
 private:
     void ParseParams(const wxCmdLineParser& cmdline);
@@ -271,7 +271,7 @@ int XmlResApp::OnRun()
 #if 0 // not yet implemented
         { wxCMD_LINE_OPTION, "l", "list-of-handlers",  "output list of necessary handlers to this file" },
 #endif
-        { wxCMD_LINE_PARAM,  NULL, NULL, "input file(s)",
+        { wxCMD_LINE_PARAM,  nullptr, nullptr, "input file(s)",
               wxCMD_LINE_VAL_STRING,
               wxCMD_LINE_PARAM_MULTIPLE | wxCMD_LINE_OPTION_MANDATORY },
 
@@ -337,9 +337,7 @@ void XmlResApp::ParseParams(const wxCmdLineParser& cmdline)
     }
     if (!parOutput.empty())
     {
-        wxFileName fn(parOutput);
-        fn.Normalize();
-        parOutput = fn.GetFullPath();
+        parOutput = wxFileName(parOutput).GetAbsolutePath();
         parOutputPath = wxPathOnly(parOutput);
     }
     if (!parOutputPath) parOutputPath = wxT(".");
@@ -474,7 +472,7 @@ static bool NodeContainsFilename(wxXmlNode *node)
 
    // wxBitmapButton:
    wxXmlNode *parent = node->GetParent();
-   if (parent != NULL &&
+   if (parent != nullptr &&
        parent->GetAttribute(wxT("class"), wxT("")) == wxT("wxBitmapButton") &&
        (name == wxT("focus") ||
         name == wxT("disabled") ||
@@ -498,7 +496,7 @@ static bool NodeContainsFilename(wxXmlNode *node)
 
    // URLs in wxHtmlWindow:
    if ( name == wxT("url") &&
-        parent != NULL &&
+        parent != nullptr &&
         parent->GetAttribute(wxT("class"), wxT("")) == wxT("wxHtmlWindow") )
    {
        // FIXME: this is wrong for e.g. http:// URLs
@@ -512,7 +510,7 @@ static bool NodeContainsFilename(wxXmlNode *node)
 void XmlResApp::FindFilesInXML(wxXmlNode *node, wxArrayString& flist, const wxString& inputPath)
 {
     // Is 'node' XML node element?
-    if (node == NULL) return;
+    if (node == nullptr) return;
     if (node->GetType() != wxXML_ELEMENT_NODE) return;
 
     bool containsFilename = NodeContainsFilename(node);
@@ -624,7 +622,7 @@ static wxString FileToCppArray(wxString filename, int num)
             output << wxT("\n");
         }
         output << tmp;
-        linelng += tmp.Length()+1;
+        linelng += tmp.length()+1;
     }
 
     delete[] buffer;
@@ -782,7 +780,7 @@ static wxString FileToPythonArray(wxString filename, int num)
             output << wxT("\\\n");
         }
         output << tmp;
-        linelng += tmp.Length();
+        linelng += tmp.length();
     }
 
     delete[] buffer;
@@ -993,7 +991,7 @@ XmlResApp::FindStrings(const wxString& filename, wxXmlNode *node)
     ExtractedStrings arr;
 
     wxXmlNode *n = node;
-    if (n == NULL) return arr;
+    if (n == nullptr) return arr;
     n = n->GetChildren();
 
     while (n)

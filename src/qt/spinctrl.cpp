@@ -19,7 +19,7 @@
 
 template< typename T, typename Widget >
 wxSpinCtrlQt< T, Widget >::wxSpinCtrlQt() :
-    m_qtSpinBox(NULL)
+    m_qtSpinBox(nullptr)
 {
 }
 
@@ -59,19 +59,23 @@ bool wxSpinCtrlQt< T, Widget >::Create( wxWindow *parent, wxWindowID id,
 }
 
 template< typename T, typename Widget >
+wxString wxSpinCtrlQt< T, Widget >::GetTextValue() const
+{
+    return wxQtConvertString(m_qtSpinBox->text());
+}
+
+template< typename T, typename Widget >
 void wxSpinCtrlQt< T, Widget >::SetValue( T val )
 {
-    m_qtSpinBox->blockSignals(true);
+    wxQtEnsureSignalsBlocked blocker(m_qtSpinBox);
     m_qtSpinBox->setValue( val );
-    m_qtSpinBox->blockSignals(false);
 }
 
 template< typename T, typename Widget >
 void wxSpinCtrlQt< T, Widget >::SetRange( T min, T max )
 {
-    m_qtSpinBox->blockSignals(true);
+    wxQtEnsureSignalsBlocked blocker(m_qtSpinBox);
     m_qtSpinBox->setRange( min, max );
-    m_qtSpinBox->blockSignals(false);
 }
 
 template< typename T, typename Widget >
@@ -237,7 +241,7 @@ void wxSpinCtrl::SetValue( const wxString &value )
 {
     // valueFromText can be called if m_qtSpinBox is an instance of the helper class
     wxQtSpinBox * qtSpinBox = dynamic_cast<wxQtSpinBox *> ((QSpinBox *) m_qtSpinBox);
-    if (qtSpinBox != NULL)
+    if (qtSpinBox != nullptr)
         qtSpinBox->setValue( qtSpinBox->valueFromText( wxQtConvertString( value )));
 }
 
@@ -286,7 +290,7 @@ void wxSpinCtrlDouble::SetValue( const wxString &value )
 {
     // valueFromText can be called if m_qtSpinBox is an instance of the helper class
     wxQtDoubleSpinBox * qtSpinBox = dynamic_cast<wxQtDoubleSpinBox *> ((QDoubleSpinBox *) m_qtSpinBox);
-    if (qtSpinBox != NULL)
+    if (qtSpinBox != nullptr)
         qtSpinBox->setValue( qtSpinBox->valueFromText( wxQtConvertString( value )));
 }
 

@@ -97,7 +97,7 @@ organized into variables for toolkits, platforms and libraries. The variables
 come in pairs: there's always `FOO_SRC` for source files and `FOO_HDR` for header
 files. Platform or toolkit specific files are grouped together in variable
 with platform or toolkit name in them, e.g. `BASE_WIN32_SRC`, `BASE_UNIX_SRC`,
-`GTK_SRC`, `MOTIF_SRC`.
+`GTK_SRC`.
 
 Note: A side effect of this toolkit-centric organization is that one file may
 be present several times in `files.bkl` in different contexts.
@@ -120,24 +120,11 @@ wxUniversal, e.g. GDI classes. Files shared by all X Window System ports
 should be put into `XWIN_LOWLEVEL_SRC`.
 
 
-Adding sample
--------------
+Adding a new sample
+-------------------
 
-Copy the bakefile from another sample, change the ID and files accordingly.
-If the sample uses some data files, make sure to have `<wx-data>` node
-in the sample's bakefile (see e.g. `samples/image/image.bkl` for an example).
-Make sure to add `<wx-lib>` statements for all libraries from multilib build
-that are required by the sample.
-
-The Windows resource specification should use the central .rc file:
-
-        <win32-res>../sample.rc</win32-res>
-
-Run `bakefile_gen` in `$(wx)/build/bakefiles` to regenerate the bakefiles.
-
-Finally commit `$(wx)/build/bakefiles/make_dist.mk` and all the other modified files.
-
-Currently we commit all the generated makefiles.
+This is explained in details in `how-to-add-new-sample.md` file, please see
+there.
 
 
 Adding new core library

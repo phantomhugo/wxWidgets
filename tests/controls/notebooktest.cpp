@@ -25,18 +25,18 @@
 class NotebookTestCase : public BookCtrlBaseTestCase, public CppUnit::TestCase
 {
 public:
-    NotebookTestCase() { m_notebook = NULL; m_numPageChanges = 0; }
+    NotebookTestCase() { m_notebook = nullptr; m_numPageChanges = 0; }
 
-    virtual void setUp() wxOVERRIDE;
-    virtual void tearDown() wxOVERRIDE;
+    virtual void setUp() override;
+    virtual void tearDown() override;
 
 private:
-    virtual wxBookCtrlBase *GetBase() const wxOVERRIDE { return m_notebook; }
+    virtual wxBookCtrlBase *GetBase() const override { return m_notebook; }
 
-    virtual wxEventType GetChangedEvent() const wxOVERRIDE
+    virtual wxEventType GetChangedEvent() const override
     { return wxEVT_NOTEBOOK_PAGE_CHANGED; }
 
-    virtual wxEventType GetChangingEvent() const wxOVERRIDE
+    virtual wxEventType GetChangingEvent() const override
     { return wxEVT_NOTEBOOK_PAGE_CHANGING; }
 
 
@@ -45,10 +45,12 @@ private:
         CPPUNIT_TEST( Image );
         CPPUNIT_TEST( RowCount );
         CPPUNIT_TEST( NoEventsOnDestruction );
+        CPPUNIT_TEST( GetTabRect );
     CPPUNIT_TEST_SUITE_END();
 
     void RowCount();
     void NoEventsOnDestruction();
+    void GetTabRect();
 
     void OnPageChanged(wxNotebookEvent&) { m_numPageChanges++; }
 
@@ -114,7 +116,7 @@ void NotebookTestCase::NoEventsOnDestruction()
     // selected.
     m_notebook->ChangeSelection(1);
     m_notebook->Destroy();
-    m_notebook = NULL;
+    m_notebook = nullptr;
     CHECK( m_numPageChanges == 1 );
 }
 
@@ -161,6 +163,39 @@ TEST_CASE("wxNotebook::AddPageEvents", "[wxNotebook][AddPage][event]")
     // And events for the selection change should have been generated.
     CHECK( countPageChanging.GetCount() == 1 );
     CHECK( countPageChanged.GetCount() == 1 );
+}
+
+void NotebookTestCase::GetTabRect()
+{
+    if (wxIsRunningUnderWine())
+    {
+        // Wine behaves different than Windows. Windows reports the size of a
+        // tab even if it is not visible while Wine returns an empty rectangle.
+        WARN("Skipping test known to fail under Wine.");
+        return;
+    }
+
+    wxNotebook *notebook = new wxNotebook(wxTheApp->GetTopWindow(), wxID_ANY,
+                                          wxDefaultPosition, wxSize(400, 200));
+    wxScopedPtr<wxNotebook> cleanup(notebook);
+
+    notebook->AddPage(new wxPanel(notebook), "First");
+
+    // This function is only really implemented for wxMSW and wxUniv currently.
+#if defined(__WXMSW__) || defined(__WXUNIVERSAL__)
+    // Create many pages, so that at least some of the are not visible.
+    for ( size_t i = 0; i < 30; i++ )
+        notebook->AddPage(new wxPanel(notebook), "Page");
+
+    for ( size_t i = 0; i < notebook->GetPageCount(); i++ )
+    {
+        wxRect r = notebook->GetTabRect(i);
+        CHECK(r.width != 0);
+        CHECK(r.height != 0);
+    }
+#else // !(__WXMSW__ || __WXUNIVERSAL__)
+    WX_ASSERT_FAILS_WITH_ASSERT( notebook->GetTabRect(0) );
+#endif // ports
 }
 
 #endif //wxUSE_NOTEBOOK

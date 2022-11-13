@@ -70,23 +70,23 @@ void wxRichTextPrintout::OnPreparePrinting()
 
         int yOffset = 0;
 
-        wxRichTextLine* lastLine = NULL;
+        wxRichTextLine* lastLine = nullptr;
 
         wxRichTextObjectList::compatibility_iterator node = GetRichTextBuffer()->GetChildren().GetFirst();
         while (node)
         {
             // child is a paragraph
             wxRichTextParagraph* child = wxDynamicCast(node->GetData(), wxRichTextParagraph);
-            wxASSERT (child != NULL);
+            wxASSERT (child != nullptr);
             if (child)
             {
-                wxRichTextLineList::compatibility_iterator node2 = child->GetLines().GetFirst();
-                while (node2)
+                wxRichTextLineVector::const_iterator it = child->GetLines().begin();
+                while (it != child->GetLines().end())
                 {
-                    wxRichTextLine* line = node2->GetData();
+                    wxRichTextLine* line = *it;
 
                     int lineY = child->GetPosition().y + line->GetPosition().y - yOffset;
-                    bool hasHardPageBreak = ((node2 == child->GetLines().GetFirst()) && child->GetAttributes().HasPageBreak());
+                    bool hasHardPageBreak = ((it == child->GetLines().begin()) && child->GetAttributes().HasPageBreak());
 
                     // Break the page if either we're going off the bottom, or this paragraph specifies
                     // an explicit page break
@@ -134,7 +134,7 @@ void wxRichTextPrintout::OnPreparePrinting()
 
                     lastLine = line;
 
-                    node2 = node2->GetNext();
+                    ++it;
                 }
             }
 
@@ -447,11 +447,11 @@ wxRichTextPrinting::wxRichTextPrinting(const wxString& name, wxWindow *parentWin
     : m_title(name)
     , m_previewRect(100, 100, 800, 800)
 {
-    m_richTextBufferPrinting = NULL;
-    m_richTextBufferPreview = NULL;
+    m_richTextBufferPrinting = nullptr;
+    m_richTextBufferPreview = nullptr;
 
     m_parentWindow = parentWindow;
-    m_printData = NULL;
+    m_printData = nullptr;
 
     m_pageSetupData = new wxPageSetupDialogData;
     m_pageSetupData->EnableMargins(true);
@@ -469,7 +469,7 @@ wxRichTextPrinting::~wxRichTextPrinting()
 
 wxPrintData *wxRichTextPrinting::GetPrintData()
 {
-    if (m_printData == NULL)
+    if (m_printData == nullptr)
         m_printData = new wxPrintData();
     return m_printData;
 }
@@ -491,7 +491,7 @@ void wxRichTextPrinting::SetRichTextBufferPrinting(wxRichTextBuffer* buf)
     if (m_richTextBufferPrinting)
     {
         delete m_richTextBufferPrinting;
-        m_richTextBufferPrinting = NULL;
+        m_richTextBufferPrinting = nullptr;
     }
     m_richTextBufferPrinting = buf;
 }
@@ -501,7 +501,7 @@ void wxRichTextPrinting::SetRichTextBufferPreview(wxRichTextBuffer* buf)
     if (m_richTextBufferPreview)
     {
         delete m_richTextBufferPreview;
-        m_richTextBufferPreview = NULL;
+        m_richTextBufferPreview = nullptr;
     }
     m_richTextBufferPreview = buf;
 }
@@ -513,7 +513,7 @@ bool wxRichTextPrinting::PreviewFile(const wxString& richTextFile)
 
     if (!m_richTextBufferPreview->LoadFile(richTextFile))
     {
-        SetRichTextBufferPreview(NULL);
+        SetRichTextBufferPreview(nullptr);
         return false;
     }
     else
@@ -549,7 +549,7 @@ bool wxRichTextPrinting::PrintFile(const wxString& richTextFile, bool showPrintD
 
     if (!m_richTextBufferPrinting->LoadFile(richTextFile))
     {
-        SetRichTextBufferPrinting(NULL);
+        SetRichTextBufferPrinting(nullptr);
         return false;
     }
 

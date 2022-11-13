@@ -37,15 +37,15 @@ public:
                 const wxValidator& validator = wxDefaultValidator,
                 const wxString& name = wxASCII_STR(wxCheckBoxNameStr));
 
-    virtual void SetValue(bool value) wxOVERRIDE;
-    virtual bool GetValue() const wxOVERRIDE;
+    virtual void SetValue(bool value) override;
+    virtual bool GetValue() const override;
 
-    virtual bool OSXHandleClicked( double timestampsec ) wxOVERRIDE;
+    virtual bool OSXHandleClicked( double timestampsec ) override;
 
-    virtual void Command(wxCommandEvent& event) wxOVERRIDE;
+    virtual void Command(wxCommandEvent& event) override;
 
 protected:
-    virtual wxBorder GetDefaultBorder() const wxOVERRIDE { return wxBORDER_NONE; }
+    virtual wxBorder GetDefaultBorder() const override { return wxBORDER_NONE; }
 
 private:
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxToggleButton);
@@ -58,7 +58,7 @@ public:
     wxBitmapToggleButton() {}
     wxBitmapToggleButton(wxWindow *parent,
                    wxWindowID id,
-                   const wxBitmap& label,
+                   const wxBitmapBundle& label,
                    const wxPoint& pos = wxDefaultPosition,
                    const wxSize& size = wxDefaultSize,
                    long style = 0,
@@ -70,7 +70,7 @@ public:
 
     bool Create(wxWindow *parent,
                 wxWindowID id,
-                const wxBitmap& label,
+                const wxBitmapBundle& label,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = 0,

@@ -161,7 +161,7 @@ TEST_CASE_METHOD(XrcTestCase, "XRC::ObjectReferences", "[xrc]")
         // In xrc there's now a dialog containing two panels, one an object
         // reference of the other
         wxDialog dlg;
-        REQUIRE( wxXmlResource::Get()->LoadDialog(&dlg, NULL, "dialog") );
+        REQUIRE( wxXmlResource::Get()->LoadDialog(&dlg, nullptr, "dialog") );
         // Might as well test XRCCTRL too
         wxPanel* panel1 = XRCCTRL(dlg,"panel1",wxPanel);
         wxPanel* panel2 = XRCCTRL(dlg,"ref_of_panel1",wxPanel);
@@ -255,6 +255,49 @@ TEST_CASE("XRC::PathWithFragment", "[xrc][uri]")
 
     CHECK( wxXmlResource::Get()->LoadBitmap("good").IsOk() );
     CHECK( !wxXmlResource::Get()->LoadBitmap("bad").IsOk() );
+}
+
+TEST_CASE("XRC::EnvVarInPath", "[xrc]")
+{
+    wxStringInputStream sis(
+#ifdef __WINDOWS__
+        "<root><bitmap>%WX_TEST_ENV_IN_PATH%.bmp</bitmap></root>"
+#else
+        "<root><bitmap>$(WX_TEST_ENV_IN_PATH).bmp</bitmap></root>"
+#endif
+    );
+    wxXmlDocument xmlDoc(sis, "UTF-8");
+    REQUIRE( xmlDoc.IsOk() );
+
+    class wxTestEnvXmlHandler : public wxXmlResourceHandler
+    {
+    public:
+        wxTestEnvXmlHandler(wxXmlNode* testNode)
+        {
+            varIsSet = wxSetEnv("WX_TEST_ENV_IN_PATH", "horse");
+
+            wxXmlResource::Get()->SetFlags(wxXRC_USE_LOCALE | wxXRC_USE_ENVVARS);
+            SetParentResource(wxXmlResource::Get());
+
+            m_node = testNode;
+        }
+        ~wxTestEnvXmlHandler()
+        {
+            wxUnsetEnv("WX_TEST_ENV_IN_PATH");
+            wxXmlResource::Get()->SetFlags(wxXRC_USE_LOCALE);
+        }
+        virtual wxObject* DoCreateResource() override { return nullptr; }
+        virtual bool CanHandle(wxXmlNode*) override { return false; }
+        bool varIsSet;
+    } handler(xmlDoc.GetRoot());
+
+    REQUIRE( handler.varIsSet );
+
+    wxXmlResourceHandlerImpl *impl = new wxXmlResourceHandlerImpl(&handler);
+    handler.SetImpl(impl);
+
+    CHECK( impl->GetBitmap().IsOk() );
+    CHECK( impl->GetBitmapBundle().IsOk() );
 }
 
 // This test is disabled by default as it requires the environment variable

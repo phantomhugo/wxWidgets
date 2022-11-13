@@ -122,6 +122,7 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         sysColor = [NSColor controlBackgroundColor];
         break;
     case wxSYS_COLOUR_BTNSHADOW:
+    case wxSYS_COLOUR_3DDKSHADOW:
         sysColor = [NSColor controlShadowColor];
         break;
     case wxSYS_COLOUR_BTNTEXT:
@@ -141,9 +142,6 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         break;
     case wxSYS_COLOUR_GRAYTEXT:
         sysColor = [NSColor disabledControlTextColor];
-        break;
-    case wxSYS_COLOUR_3DDKSHADOW:
-        sysColor = [NSColor controlShadowColor];
         break;
     case wxSYS_COLOUR_3DLIGHT:
         sysColor = [NSColor controlHighlightColor];
@@ -259,11 +257,11 @@ int wxSystemSettingsNative::GetMetric(wxSystemMetric index, const wxWindow* WXUN
         // TODO case wxSYS_WINDOWMIN_Y:
 
         case wxSYS_SCREEN_X:
-            wxDisplaySize(&value, NULL);
+            wxDisplaySize(&value, nullptr);
             return value;
 
         case wxSYS_SCREEN_Y:
-            wxDisplaySize(NULL, &value);
+            wxDisplaySize(nullptr, &value);
             return value;
 
         // TODO case wxSYS_FRAMESIZE_X:

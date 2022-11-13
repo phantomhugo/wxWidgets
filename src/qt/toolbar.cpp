@@ -28,23 +28,23 @@ class wxQtToolButton;
 class wxToolBarTool : public wxToolBarToolBase
 {
 public:
-    wxToolBarTool(wxToolBar *tbar, int id, const wxString& label, const wxBitmap& bitmap1,
-                  const wxBitmap& bitmap2, wxItemKind kind, wxObject *clientData,
+    wxToolBarTool(wxToolBar *tbar, int id, const wxString& label, const wxBitmapBundle& bitmap1,
+                  const wxBitmapBundle& bitmap2, wxItemKind kind, wxObject *clientData,
                   const wxString& shortHelpString, const wxString& longHelpString)
         : wxToolBarToolBase(tbar, id, label, bitmap1, bitmap2, kind,
                             clientData, shortHelpString, longHelpString)
     {
-        m_qtToolButton = NULL;
+        m_qtToolButton = nullptr;
     }
 
     wxToolBarTool(wxToolBar *tbar, wxControl *control, const wxString& label)
         : wxToolBarToolBase(tbar, control, label)
     {
-        m_qtToolButton = NULL;
+        m_qtToolButton = nullptr;
     }
 
-    virtual void SetLabel( const wxString &label ) wxOVERRIDE;
-    virtual void SetDropdownMenu(wxMenu* menu) wxOVERRIDE;
+    virtual void SetLabel( const wxString &label ) override;
+    virtual void SetDropdownMenu(wxMenu* menu) override;
 
     void SetIcon();
     void ClearToolTip();
@@ -64,9 +64,9 @@ public:
     }
 
 private:
-    void mouseReleaseEvent( QMouseEvent *event ) wxOVERRIDE;
-    void mousePressEvent( QMouseEvent *event ) wxOVERRIDE;
-    void enterEvent( QEvent *event ) wxOVERRIDE;
+    void mouseReleaseEvent( QMouseEvent *event ) override;
+    void mousePressEvent( QMouseEvent *event ) override;
+    void enterEvent( QEvent *event ) override;
 };
 
 void wxQtToolButton::mouseReleaseEvent( QMouseEvent *event )
@@ -150,7 +150,7 @@ QWidget *wxToolBar::GetHandle() const
 
 void wxToolBar::Init()
 {
-    m_qtToolBar = NULL;
+    m_qtToolBar = nullptr;
 }
 
 wxToolBar::~wxToolBar()
@@ -179,7 +179,7 @@ wxToolBarToolBase *wxToolBar::FindToolForPosition(wxCoord WXUNUSED(x),
 {
 //    actionAt(x, y);
     wxFAIL_MSG( wxT("wxToolBar::FindToolForPosition() not implemented") );
-    return NULL;
+    return nullptr;
 }
 
 void wxToolBar::SetToolShortHelp( int id, const wxString& helpString )
@@ -194,7 +194,7 @@ void wxToolBar::SetToolShortHelp( int id, const wxString& helpString )
     }
 }
 
-void wxToolBar::SetToolNormalBitmap( int id, const wxBitmap& bitmap )
+void wxToolBar::SetToolNormalBitmap( int id, const wxBitmapBundle& bitmap )
 {
     wxToolBarTool* tool = static_cast<wxToolBarTool*>(FindById(id));
     if ( tool )
@@ -206,7 +206,7 @@ void wxToolBar::SetToolNormalBitmap( int id, const wxBitmap& bitmap )
     }
 }
 
-void wxToolBar::SetToolDisabledBitmap( int id, const wxBitmap& bitmap )
+void wxToolBar::SetToolDisabledBitmap( int id, const wxBitmapBundle& bitmap )
 {
     wxToolBarTool* tool = static_cast<wxToolBarTool*>(FindById(id));
     if ( tool )
@@ -267,12 +267,12 @@ bool wxToolBar::Realize()
 
 QActionGroup* wxToolBar::GetActionGroup(size_t pos)
 {
-    QActionGroup *actionGroup = NULL;
+    QActionGroup *actionGroup = nullptr;
     if (pos > 0)
         actionGroup = m_qtToolBar->actions().at(pos-1)->actionGroup();
-    if (actionGroup == NULL && (int)pos < m_qtToolBar->actions().size() - 1)
+    if (actionGroup == nullptr && (int)pos < m_qtToolBar->actions().size() - 1)
         actionGroup = m_qtToolBar->actions().at(pos+1)->actionGroup();
-    if (actionGroup == NULL)
+    if (actionGroup == nullptr)
         actionGroup = new QActionGroup(m_qtToolBar);
     return actionGroup;
 }
@@ -280,7 +280,7 @@ QActionGroup* wxToolBar::GetActionGroup(size_t pos)
 bool wxToolBar::DoInsertTool(size_t pos, wxToolBarToolBase *toolBase)
 {
     wxToolBarTool* tool = static_cast<wxToolBarTool*>(toolBase);
-    QAction *before = NULL;
+    QAction *before = nullptr;
     if (pos < (size_t)m_qtToolBar->actions().size())
         before = m_qtToolBar->actions().at(pos);
 
@@ -339,7 +339,7 @@ bool wxToolBar::DoDeleteTool(size_t /* pos */, wxToolBarToolBase *toolBase)
 {
     wxToolBarTool* tool = static_cast<wxToolBarTool*>(toolBase);
     delete tool->m_qtToolButton;
-    tool->m_qtToolButton = NULL;
+    tool->m_qtToolButton = nullptr;
 
     InvalidateBestSize();
     return true;
@@ -364,8 +364,8 @@ void wxToolBar::DoSetToggle(wxToolBarToolBase * WXUNUSED(tool),
     wxFAIL_MSG( wxT("not implemented") );
 }
 
-wxToolBarToolBase *wxToolBar::CreateTool(int id, const wxString& label, const wxBitmap& bmpNormal,
-                                      const wxBitmap& bmpDisabled, wxItemKind kind, wxObject *clientData,
+wxToolBarToolBase *wxToolBar::CreateTool(int id, const wxString& label, const wxBitmapBundle& bmpNormal,
+                                      const wxBitmapBundle& bmpDisabled, wxItemKind kind, wxObject *clientData,
                                       const wxString& shortHelp, const wxString& longHelp)
 {
     return new wxToolBarTool(this, id, label, bmpNormal, bmpDisabled, kind,

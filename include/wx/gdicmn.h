@@ -183,8 +183,17 @@ enum wxEllipsizeMode
 // macros
 // ---------------------------------------------------------------------------
 
+// The difference between wxHAS_IMAGES_IN_RESOURCES and wxHAS_IMAGE_RESOURCES
+// is that the former is, historically, only defined under MSW while the latter
+// is also defined under macOS, which uses a different resource concept, and
+// may be also defined for any other ports where images don't need to be
+// embedded into the program text in order to be available during run-time.
 #if defined(__WINDOWS__) && wxUSE_WXDIB
     #define wxHAS_IMAGES_IN_RESOURCES
+#endif
+
+#if defined(wxHAS_IMAGES_IN_RESOURCES) || defined(__WXOSX__)
+    #define wxHAS_IMAGE_RESOURCES
 #endif
 
 /* Useful macro for creating icons portably, for example:
@@ -209,9 +218,6 @@ enum wxEllipsizeMode
 #elif defined(__WXMAC__)
     // Initialize from an included XPM
     #define wxICON(X) wxIcon( X##_xpm )
-#elif defined(__WXMOTIF__)
-    // Initialize from an included XPM
-    #define wxICON(X) wxIcon( X##_xpm )
 #elif defined(__WXX11__)
     // Initialize from an included XPM
     #define wxICON(X) wxIcon( X##_xpm )
@@ -225,19 +231,15 @@ enum wxEllipsizeMode
 
 /* Another macro: this one is for portable creation of bitmaps. We assume that
    under Unix bitmaps live in XPMs and under Windows they're in resources.
+
+   This is a legacy macro, prefer using wxBITMAP_PNG() in the new code.
  */
 
 #if defined(__WINDOWS__) && wxUSE_WXDIB
     #define wxBITMAP(name) wxBitmap(wxT(#name), wxBITMAP_TYPE_BMP_RESOURCE)
-#elif defined(__WXGTK__)   || \
-      defined(__WXMOTIF__) || \
-      defined(__WXX11__)   || \
-      defined(__WXMAC__)   || \
-      defined(__WXDFB__)
+#else
     // Initialize from an included XPM
     #define wxBITMAP(name) wxBitmap(name##_xpm)
-#else // other platforms
-    #define wxBITMAP(name) wxBitmap(name##_xpm, wxBITMAP_TYPE_XPM)
 #endif // platform
 
 // Macro for creating wxBitmap from in-memory PNG data.
@@ -256,7 +258,7 @@ enum wxEllipsizeMode
 // resource type and under OS X the PNG file with the specified name must be
 // available in the resource subdirectory of the bundle. Elsewhere, this is
 // exactly the same thing as wxBITMAP_PNG_FROM_DATA() described above.
-#if (defined(__WINDOWS__) && wxUSE_WXDIB) || defined(__WXOSX__)
+#ifdef wxHAS_IMAGE_RESOURCES
     #define wxBITMAP_PNG(name) wxBitmap(wxS(#name), wxBITMAP_TYPE_PNG_RESOURCE)
 #else
     #define wxBITMAP_PNG(name) wxBITMAP_PNG_FROM_DATA(name)
@@ -424,6 +426,11 @@ inline wxSize operator*(const wxSize& s, unsigned long i)
 inline wxSize operator*(unsigned long i, const wxSize& s)
 {
     return wxSize(int(s.x * i), int(s.y * i));
+}
+
+inline wxSize operator/(const wxSize& s, double i)
+{
+    return wxSize(wxRound(s.x / i), wxRound(s.y / i));
 }
 
 inline wxSize operator*(const wxSize& s, double i)
@@ -825,7 +832,7 @@ public:
         return r;
     }
 
-    // return true if the point is (not strcitly) inside the rect
+    // return true if the point is (not strictly) inside the rect
     bool Contains(int x, int y) const;
     bool Contains(const wxPoint& pt) const { return Contains(pt.x, pt.y); }
     // return true if the rectangle 'rect' is (not strictly) inside this rect
@@ -837,7 +844,7 @@ public:
     // like Union() but don't ignore empty rectangles
     wxRect& operator+=(const wxRect& rect);
 
-    // intersections of two rectrangles not testing for empty rectangles
+    // intersections of two rectangles not testing for empty rectangles
     wxRect& operator*=(const wxRect& rect);
 
     // centre this rectangle in the given (usually, but not necessarily,
@@ -909,6 +916,9 @@ public:
     wxColour Find(const wxString& name) const;
     wxString FindName(const wxColour& colour) const;
 
+    // list all known colours by name
+    wxVector<wxString> GetAllNames() const;
+
     // add a new colour to the database
     void AddColour(const wxString& name, const wxColour& colour);
 
@@ -939,7 +949,7 @@ public:
 
   wxStockGDI creates the stock GDI objects on demand.  Pointers to the
   created objects are stored in the ms_stockObject array, which is indexed
-  by the Item enum values.  Platorm-specific fonts can be created by
+  by the Item enum values.  Platform-specific fonts can be created by
   implementing a derived class with an override for the GetFont function.
   wxStockGDI operates as a singleton, accessed through the ms_instance
   pointer.  By default this pointer is set to an instance of wxStockGDI.

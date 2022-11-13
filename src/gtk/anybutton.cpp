@@ -182,25 +182,25 @@ void wxAnyButton::GTKUpdateBitmap()
     }
 }
 
-void wxAnyButton::GTKDoShowBitmap(const wxBitmap& bitmap)
+void wxAnyButton::GTKDoShowBitmap(const wxBitmapBundle& bitmap)
 {
     wxCHECK_RET(bitmap.IsOk(), "invalid bitmap");
 
     GtkWidget* image = gtk_button_get_image(GTK_BUTTON(m_widget));
-    if (image == NULL)
+    if (image == nullptr)
         image = gtk_bin_get_child(GTK_BIN(m_widget));
 
-    wxCHECK_RET(GTK_IS_IMAGE(image), "must have image widget");
+    wxCHECK_RET(WX_GTK_IS_IMAGE(image), "must have image widget");
 
     WX_GTK_IMAGE(image)->Set(bitmap);
 }
 
 wxBitmap wxAnyButton::DoGetBitmap(State which) const
 {
-    return m_bitmaps[which];
+    return m_bitmaps[which].GetBitmap(wxDefaultSize);
 }
 
-void wxAnyButton::DoSetBitmap(const wxBitmap& bitmap, State which)
+void wxAnyButton::DoSetBitmap(const wxBitmapBundle& bitmap, State which)
 {
     switch ( which )
     {
@@ -217,6 +217,14 @@ void wxAnyButton::DoSetBitmap(const wxBitmap& bitmap, State which)
             else
             {
                 GtkWidget *image = gtk_button_get_image(GTK_BUTTON(m_widget));
+                if ( image && !WX_GTK_IS_IMAGE(image) )
+                {
+                    // This must be the GtkImage created for stock buttons, we
+                    // want to replace it with our own wxGtkImage as only it
+                    // handles showing appropriately-sized bitmaps in high DPI.
+                    image = nullptr;
+                }
+
                 if ( image && !bitmap.IsOk() )
                 {
                     gtk_container_remove(GTK_CONTAINER(m_widget), image);
@@ -370,7 +378,7 @@ void wxAnyButton::DoSetBitmap(const wxBitmap& bitmap, State which)
 
 #if GTK_CHECK_VERSION(3,6,0) && !defined(__WXGTK4__)
     // Allow explicitly set bitmaps to be shown regardless of theme setting
-    if (gtk_check_version(3,6,0) == NULL && bitmap.IsOk())
+    if (gtk_check_version(3,6,0) == nullptr && bitmap.IsOk())
         gtk_button_set_always_show_image(GTK_BUTTON(m_widget), true);
 #endif
 

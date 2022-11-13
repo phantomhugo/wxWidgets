@@ -95,11 +95,11 @@ public:
     DirCtrlWidgetsPage(WidgetsBookCtrl *book, wxImageList *imaglist);
     virtual ~DirCtrlWidgetsPage() {}
 
-    virtual wxWindow *GetWidget() const wxOVERRIDE { return m_dirCtrl; }
-    virtual void RecreateWidget() wxOVERRIDE { CreateDirCtrl(); }
+    virtual wxWindow *GetWidget() const override { return m_dirCtrl; }
+    virtual void RecreateWidget() override { CreateDirCtrl(); }
 
     // lazy creation of the content
-    virtual void CreateContent() wxOVERRIDE;
+    virtual void CreateContent() override;
 
 protected:
     // event handlers
@@ -169,7 +169,7 @@ DirCtrlWidgetsPage::DirCtrlWidgetsPage(WidgetsBookCtrl *book,
                                        wxImageList *imaglist)
                    :WidgetsPage(book, imaglist, dirctrl_xpm)
 {
-    m_dirCtrl = NULL;
+    m_dirCtrl = nullptr;
 }
 
 void DirCtrlWidgetsPage::CreateContent()
@@ -275,7 +275,7 @@ void DirCtrlWidgetsPage::CreateDirCtrl(bool defaultPath)
     wxGenericDirCtrl *dirCtrl = new wxGenericDirCtrl(
         this,
         DirCtrlPage_Ctrl,
-        defaultPath ? wxDirDialogDefaultFolderStr : m_dirCtrl->GetPath(),
+        defaultPath ? wxString(wxDirDialogDefaultFolderStr) : m_dirCtrl->GetPath(),
         wxDefaultPosition,
         wxDefaultSize,
         style

@@ -31,9 +31,9 @@
     What makes sizers so well fitted for use in wxWidgets is the fact that every
     control reports its own minimal size and the algorithm can handle differences in
     font sizes or different window (dialog item) sizes on different platforms without
-    problems. If e.g. the standard font as well as the overall design of Motif widgets
+    problems. If e.g. the standard font as well as the overall design of GTK widgets
     requires more space than on Windows, the initial dialog size will automatically
-    be bigger on Motif than on Windows.
+    be bigger on GTK than on Windows.
 
     Sizers may also be used to control the layout of custom drawn items on the
     window. The wxSizer::Add(), wxSizer::Insert(), and wxSizer::Prepend() functions
@@ -187,7 +187,7 @@ public:
                      int proportion = 0,
                      int flag = 0,
                      int border = 0,
-                     wxObject* userData = NULL);
+                     wxObject* userData = nullptr);
 
     /**
         Appends a child to the sizer.
@@ -245,7 +245,7 @@ public:
                      int proportion = 0,
                      int flag = 0,
                      int border = 0,
-                     wxObject* userData = NULL);
+                     wxObject* userData = nullptr);
 
     /**
         Appends a spacer child to the sizer.
@@ -293,7 +293,7 @@ public:
                      int proportion = 0,
                      int flag = 0,
                      int border = 0,
-                     wxObject* userData = NULL);
+                     wxObject* userData = nullptr);
 
     /**
         Appends a spacer child to the sizer.
@@ -440,7 +440,7 @@ public:
     virtual bool InformFirstDirection(int direction, int size, int availableOtherDir);
 
 
-    //@{
+    ///@{
     /**
         Returns the list of the items in this sizer.
 
@@ -449,7 +449,7 @@ public:
     */
     wxSizerItemList& GetChildren();
     const wxSizerItemList& GetChildren() const;
-    //@}
+    ///@}
 
     /**
         Returns the window this sizer is used in or @NULL if none.
@@ -578,7 +578,7 @@ public:
                         int proportion = 0,
                         int flag = 0,
                         int border = 0,
-                        wxObject* userData = NULL);
+                        wxObject* userData = nullptr);
 
     /**
         Insert a child into the sizer before any existing item at @a index.
@@ -597,7 +597,7 @@ public:
                         int proportion = 0,
                         int flag = 0,
                         int border = 0,
-                        wxObject* userData = NULL);
+                        wxObject* userData = nullptr);
 
     /**
         Insert a child into the sizer before any existing item at @a index.
@@ -608,7 +608,7 @@ public:
                         int proportion = 0,
                         int flag = 0,
                         int border = 0,
-                        wxObject* userData = NULL);
+                        wxObject* userData = nullptr);
     /**
         Insert a child into the sizer before any existing item at @a index.
 
@@ -681,7 +681,7 @@ public:
     wxSizerItem* Prepend(wxWindow* window, int proportion = 0,
                          int flag = 0,
                          int border = 0,
-                         wxObject* userData = NULL);
+                         wxObject* userData = nullptr);
 
     /**
         Same as Add(), but prepends the items to the beginning of the
@@ -697,7 +697,7 @@ public:
     wxSizerItem* Prepend(wxSizer* sizer, int proportion = 0,
                          int flag = 0,
                          int border = 0,
-                         wxObject* userData = NULL);
+                         wxObject* userData = nullptr);
 
     /**
         Same as Add(), but prepends the items to the beginning of the
@@ -707,7 +707,7 @@ public:
                          int proportion = 0,
                          int flag = 0,
                          int border = 0,
-                         wxObject* userData = NULL);
+                         wxObject* userData = nullptr);
 
     /**
         Same as Add(), but prepends the items to the beginning of the
@@ -867,7 +867,7 @@ public:
             @true if the minimal size was successfully set or @false if the
             item was not found.
     */
-    //@{
+    ///@{
     bool SetItemMinSize(wxWindow* window, int width, int height);
     bool SetItemMinSize(wxWindow* window, const wxSize& size);
 
@@ -876,7 +876,7 @@ public:
 
     bool SetItemMinSize(size_t index, int width, int height);
     bool SetItemMinSize(size_t index, const wxSize& size);
-    //@}
+    ///@}
 
     /**
         Call this to give the sizer a minimal size.
@@ -897,14 +897,34 @@ public:
         This method first calls Fit() and then wxTopLevelWindow::SetSizeHints()
         on the @a window passed to it.
 
-        This only makes sense when @a window is actually a wxTopLevelWindow such
+        This function is only when @a window is actually a wxTopLevelWindow such
         as a wxFrame or a wxDialog, since SetSizeHints only has any effect in these classes.
         It does nothing in normal windows or controls.
 
-        This method is implicitly used by wxWindow::SetSizerAndFit() which is
-        commonly invoked in the constructor of a toplevel window itself (see
-        the sample in the description of wxBoxSizer) if the toplevel window is
-        resizable.
+        Note that @a window does @e not need to be the window using this sizer
+        and it is, in fact, common to call this function on the sizer
+        associated with the panel covering the client area of a frame passing
+        it the frame pointer, as this has the desired effect of adjusting the
+        frame size to the size fitting the panel, e.g.:
+        @code
+        MyFrame::MyFrame(...) : wxFrame(...)
+        {
+            wxPanel* panel = new wxPanel(this);
+            wxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+            sizer->Add(...);
+            sizer->Add(...);
+            panel->SetSizer(sizer);
+
+            // Use the panel sizer to set the initial and minimal size of the
+            // frame to fit its contents.
+            sizer->SetSizeHints(this);
+        }
+        @endcode
+
+        This function is also used by wxWindow::SetSizerAndFit() which is
+        commonly invoked in the constructor of wxDialog-derived classes, which
+        don't need to use an intermediate panel, see the example in @ref
+        overview_sizer_programming_box "wxBoxSizer overview".
     */
     void SetSizeHints(wxWindow* window);
 
@@ -1071,27 +1091,27 @@ public:
         Construct a sizer item for tracking a spacer.
     */
     wxSizerItem(int width, int height, int proportion=0, int flag=0,
-                int border=0, wxObject* userData=NULL);
+                int border=0, wxObject* userData=nullptr);
 
-    //@{
+    ///@{
     /**
         Construct a sizer item for tracking a window.
     */
     wxSizerItem(wxWindow* window, const wxSizerFlags& flags);
     wxSizerItem(wxWindow* window, int proportion=0, int flag=0,
                 int border=0,
-                wxObject* userData=NULL);
-    //@}
+                wxObject* userData=nullptr);
+    ///@}
 
-    //@{
+    ///@{
     /**
         Construct a sizer item for tracking a subsizer.
     */
     wxSizerItem(wxSizer* sizer, const wxSizerFlags& flags);
     wxSizerItem(wxSizer* sizer, int proportion=0, int flag=0,
                 int border=0,
-                wxObject* userData=NULL);
-    //@}
+                wxObject* userData=nullptr);
+    ///@}
 
     /**
         Deletes the user data and subsizer, if any.
@@ -1124,7 +1144,7 @@ public:
     */
     void AssignSizer(wxSizer *sizer);
 
-    //@{
+    ///@{
     /**
         Set the size of the spacer tracked by this item.
 
@@ -1132,7 +1152,7 @@ public:
     */
     void AssignSpacer(const wxSize& size);
     void AssignSpacer(int w, int h);
-    //@}
+    ///@}
 
     /**
         Calculates the minimum desired size for the item, including any space
@@ -1295,14 +1315,14 @@ public:
     */
     void SetProportion(int proportion);
 
-    //@{
+    ///@{
     /**
         Set the ratio item attribute.
     */
     void SetRatio(int width, int height);
     void SetRatio(wxSize size);
     void SetRatio(float ratio);
-    //@}
+    ///@}
 
     /**
         Set the sizer tracked by this item.
@@ -1481,6 +1501,33 @@ public:
     wxSizerFlags& CentreVertical();
 
     /**
+        Globally disable checks for sizer flag consistency in debug builds.
+
+        By default, sizer classes such as wxBoxSizer and wxFlexGridSizer assert
+        when passed invalid flags, even though doing this usually doesn't
+        result in any catastrophic consequences and the invalid flags are
+        simply ignored later. Due to this, and the fact that these checks were
+        only added in wxWidgets 3.1, existing code may run into multiple
+        asserts warning about incorrect sizer flags use. Using this function
+        provides a temporary solution for avoiding such asserts when upgrading
+        to wxWidgets 3.1 from a previous version and will prevent such checks
+        from being done.
+
+        Please do note that correcting the code by removing the invalid flags
+        remains a much better solution as these asserts may be very helpful to
+        understand why some code using sizer flags doesn't work as expected, so
+        using this function, especially permanently, rather than a temporary
+        workaround, is @e not recommended.
+
+        Notice that the same effect as calling this function can be achieved by
+        setting the environment variable @c WXSUPPRESS_SIZER_FLAGS_CHECK to any
+        value.
+
+        @since 3.1.6
+     */
+    static void DisableConsistencyChecks();
+
+    /**
         Sets the border in the given @a direction having twice the default
         border size.
     */
@@ -1618,7 +1665,7 @@ enum wxFlexSizerGrowMode
 class wxFlexGridSizer : public wxGridSizer
 {
 public:
-    //@{
+    ///@{
     /**
         wxFlexGridSizer constructors.
 
@@ -1631,7 +1678,7 @@ public:
 
     wxFlexGridSizer( int rows, int cols, int vgap, int hgap );
     wxFlexGridSizer( int rows, int cols, const wxSize& gap );
-    //@}
+    ///@}
 
     /**
         Specifies that column @a idx (starting from zero) should be grown if
@@ -1775,7 +1822,7 @@ public:
 class wxGridSizer : public wxSizer
 {
 public:
-    //@{
+    ///@{
     /**
         wxGridSizer constructors.
 
@@ -1807,7 +1854,7 @@ public:
 
     wxGridSizer( int rows, int cols, int vgap, int hgap );
     wxGridSizer( int rows, int cols, const wxSize& gap );
-    //@}
+    ///@}
 
     /**
         Returns the number of columns that has been specified for the

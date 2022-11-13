@@ -116,7 +116,7 @@ void wxNotebook::Init()
 
     m_offset = 0;
 
-    m_spinbtn = NULL;
+    m_spinbtn = nullptr;
 }
 
 bool wxNotebook::Create(wxWindow *parent,
@@ -163,7 +163,7 @@ bool wxNotebook::SetPageText(size_t nPage, const wxString& strText)
 
         if ( FixedSizeTabs() )
         {
-            // it's enough to just reresh this one
+            // it's enough to just refresh this one
             RefreshTab(nPage);
         }
         else // var width tabs
@@ -328,9 +328,6 @@ bool wxNotebook::InsertPage(size_t nPage,
     // it's enough to just redraw the tabs
     if ( nPages == 0 )
     {
-        // always select the first tab to have at least some selection
-        bSelect = true;
-
         Relayout();
         Refresh();
     }
@@ -345,7 +342,11 @@ bool wxNotebook::InsertPage(size_t nPage,
     }
     else // pages added to the notebook are initially hidden
     {
-        pPage->Hide();
+        // always select the first tab to have at least some selection
+        if ( nPages == 0 )
+            ChangeSelection(0);
+        else
+            pPage->Hide();
     }
 
     return true;
@@ -372,7 +373,7 @@ bool wxNotebook::DeleteAllPages()
 
 wxNotebookPage *wxNotebook::DoRemovePage(size_t nPage)
 {
-    wxCHECK_MSG( IS_VALID_PAGE(nPage), NULL, wxT("invalid notebook page") );
+    wxCHECK_MSG( IS_VALID_PAGE(nPage), nullptr, wxT("invalid notebook page") );
 
     wxNotebookPage *page = m_pages[nPage];
     m_pages.erase(m_pages.begin() + nPage);
@@ -555,7 +556,7 @@ void wxNotebook::DoDraw(wxControlRenderer *renderer)
         {
             // unfortunately we can't do this because the selected tab hangs
             // over its neighbours and so we might need to refresh more tabs -
-            // of course, we could still avoid rereshing some of them with more
+            // of course, we could still avoid refreshing some of them with more
             // complicated checks, but it doesn't seem too bad to refresh all
             // of them, I still don't see flicker, so leaving as is for now
 
@@ -658,21 +659,7 @@ bool wxNotebook::IsVertical() const
     return dir == wxLEFT || dir == wxRIGHT;
 }
 
-wxDirection wxNotebook::GetTabOrientation() const
-{
-    long style = GetWindowStyle();
-    if ( style & wxBK_BOTTOM )
-        return wxBOTTOM;
-    else if ( style & wxBK_RIGHT )
-        return wxRIGHT;
-    else if ( style & wxBK_LEFT )
-        return wxLEFT;
-
-    // wxBK_TOP == 0 so we don't have to test for it
-    return wxTOP;
-}
-
-wxRect wxNotebook::GetTabRect(int page) const
+wxRect wxNotebook::GetTabRect(size_t page) const
 {
     wxRect rect;
     wxCHECK_MSG( IS_VALID_PAGE(page), rect, wxT("invalid notebook page") );
@@ -687,7 +674,7 @@ wxRect wxNotebook::GetTabRect(int page) const
     else
     {
         widthBefore = 0;
-        for ( int n = 0; n < page; n++ )
+        for ( size_t n = 0; n < page; n++ )
         {
             widthBefore += m_widths[n];
         }
@@ -778,7 +765,7 @@ wxRect wxNotebook::GetTabsPart() const
 
 void wxNotebook::GetTabSize(int page, wxCoord *w, wxCoord *h) const
 {
-    wxCHECK_RET( w && h, wxT("NULL pointer in GetTabSize") );
+    wxCHECK_RET( w && h, wxT("null pointer in GetTabSize") );
 
     if ( IsVertical() )
     {
@@ -1104,7 +1091,7 @@ void wxNotebook::UpdateSpinBtn()
             // efficient
             m_offset -= GetTabWidth(m_firstVisible--);
 
-            // reclaculate after m_firstVisible change
+            // recalculate after m_firstVisible change
             CalcLastVisibleTab();
         }
 
@@ -1143,6 +1130,8 @@ void wxNotebook::UpdateSpinBtn()
         {
             m_spinbtn->Hide();
         }
+        // reset offset to zero if all tabs are visible
+        m_offset = 0;
     }
 }
 
@@ -1246,7 +1235,7 @@ void wxNotebook::ScrollLastTo(size_t page)
     // go to it
     ScrollTo(m_firstVisible);
 
-    // consitency check: the page we were asked to show should be shown
+    // consistency check: the page we were asked to show should be shown
     wxASSERT_MSG( (size_t)page < m_lastVisible, wxT("bug in ScrollLastTo") );
 }
 

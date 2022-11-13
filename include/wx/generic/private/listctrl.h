@@ -96,13 +96,13 @@ public:
     wxUIntPtr m_data;
 
     // the item coordinates are not used in report mode; instead this pointer is
-    // NULL and the owner window is used to retrieve the item position and size
+    // null and the owner window is used to retrieve the item position and size
     wxRect *m_rect;
 
     // the list ctrl we are in
     wxListMainWindow *m_owner;
 
-    // custom attributes or NULL
+    // custom attributes or nullptr
     wxItemAttr *m_attr;
 
 protected:
@@ -190,9 +190,9 @@ public:
                             wxT("width can only be increased") );
 
             m_rectAll.width = w;
-            m_rectLabel.x = m_rectAll.x + (w - m_rectLabel.width) / 2;
-            m_rectIcon.x = m_rectAll.x + (w - m_rectIcon.width) / 2;
-            m_rectHighlight.x = m_rectAll.x + (w - m_rectHighlight.width) / 2;
+            m_rectLabel.x += (w - m_rectLabel.width) / 2;
+            m_rectIcon.x += (w - m_rectIcon.width) / 2;
+            m_rectHighlight.x += (w - m_rectHighlight.width) / 2;
         }
     }
     *m_gi;
@@ -221,7 +221,7 @@ public:
         if ( inReportView )
         {
             delete m_gi;
-            m_gi = NULL;
+            m_gi = nullptr;
         }
         else
         {
@@ -365,7 +365,7 @@ public:
     virtual ~wxListHeaderWindow();
 
     // We never need focus as we don't have any keyboard interface.
-    virtual bool AcceptsFocus() const wxOVERRIDE { return false; }
+    virtual bool AcceptsFocus() const override { return false; }
 
     void DrawCurrent();
     void AdjustDC( wxDC& dc );
@@ -381,9 +381,12 @@ public:
     int m_colToSend;
     int m_widthToSend;
 
-    virtual wxWindow *GetMainWindowOfCompositeControl() wxOVERRIDE { return GetParent(); }
+    bool m_sortAsc;
+    int m_sortCol;
 
-    virtual void OnInternalIdle() wxOVERRIDE;
+    virtual wxWindow *GetMainWindowOfCompositeControl() override { return GetParent(); }
+
+    virtual void OnInternalIdle() override;
 
 private:
     // common part of all ctors
@@ -407,7 +410,7 @@ private:
 
 public:
     wxListRenameTimer( wxListMainWindow *owner );
-    void Notify() wxOVERRIDE;
+    void Notify() override;
 };
 
 //-----------------------------------------------------------------------------
@@ -425,7 +428,7 @@ public:
     {
     }
 
-    virtual void Notify() wxOVERRIDE;
+    virtual void Notify() override;
 
 private:
     wxListMainWindow *m_owner;
@@ -599,13 +602,13 @@ public:
 
     wxTextCtrl *GetEditControl() const
     {
-        return m_textctrlWrapper ? m_textctrlWrapper->GetText() : NULL;
+        return m_textctrlWrapper ? m_textctrlWrapper->GetText() : nullptr;
     }
 
     void ResetTextControl(wxTextCtrl *text)
     {
         delete text;
-        m_textctrlWrapper = NULL;
+        m_textctrlWrapper = nullptr;
     }
 
     void OnRenameTimer();
@@ -637,7 +640,7 @@ public:
     void DrawImage( int index, wxDC *dc, int x, int y );
     void GetImageSize( int index, int &width, int &height ) const;
 
-    void SetImageList( wxImageList *imageList, int which );
+    void SetImages( wxWithImages *images, const int which );
     void SetItemSpacing( int spacing, bool isSmall = false );
     int GetItemSpacing( bool isSmall = false );
 
@@ -691,14 +694,15 @@ public:
         SetItem( info );
     }
 
-    wxImageList* GetSmallImageList() const
-        { return m_small_image_list; }
+    wxWithImages* GetSmallImages() const
+        { return m_small_images; }
+
 
     // set the scrollbars and update the positions of the items
-    void RecalculatePositions(bool noRefresh = false);
+    void RecalculatePositions();
 
-    // refresh the window and the header
-    void RefreshAll();
+    // do the same thing and also call Refresh()
+    void RecalculatePositionsAndRefresh();
 
     long GetNextItem( long item, int geometry, int state ) const;
     void DeleteItem( long index );
@@ -730,7 +734,7 @@ public:
                      const wxPoint& point = wxDefaultPosition );
 
     // override base class virtual to reset m_lineHeight when the font changes
-    virtual bool SetFont(const wxFont& font) wxOVERRIDE
+    virtual bool SetFont(const wxFont& font) override
     {
         if ( !wxWindow::SetFont(font) )
             return false;
@@ -766,7 +770,7 @@ public:
         return m_hasFocus ? m_highlightBrush : m_highlightUnfocusedBrush;
     }
 
-    bool HasFocus() const wxOVERRIDE
+    bool HasFocus() const override
     {
         return m_hasFocus;
     }
@@ -808,8 +812,9 @@ protected:
     bool                 m_dirty;
 
     wxColour            *m_highlightColour;
-    wxImageList         *m_small_image_list;
-    wxImageList         *m_normal_image_list;
+    wxWithImages        *m_small_images;
+    wxWithImages        *m_normal_images;
+
     int                  m_small_spacing;
     int                  m_normal_spacing;
     bool                 m_hasFocus;
@@ -841,7 +846,7 @@ protected:
     bool m_hasCheckBoxes;
 
 protected:
-    wxWindow *GetMainWindowOfCompositeControl() wxOVERRIDE { return GetParent(); }
+    wxWindow *GetMainWindowOfCompositeControl() override { return GetParent(); }
 
     // the total count of items selected in a non virtual list control with
     // multiple selections (always 0 otherwise)
@@ -890,7 +895,7 @@ protected:
     // get the colour to be used for drawing the rules
     wxColour GetRuleColour() const
     {
-        return wxSystemSettings::GetColour(wxSYS_COLOUR_3DLIGHT);
+        return wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
     }
 
 private:
@@ -943,7 +948,7 @@ private:
             *m_highlightUnfocusedBrush;
 
     // wrapper around the text control currently used for in place editing or
-    // NULL if no item is being edited
+    // nullptr if no item is being edited
     wxListTextCtrlWrapper *m_textctrlWrapper;
 
     // tells whether or not to paint empty rows with alternate colour and draw

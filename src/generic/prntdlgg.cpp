@@ -208,9 +208,9 @@ void wxGenericPrintDialog::Init(wxWindow * WXUNUSED(parent))
     choices[0] = _("All");
     choices[1] = _("Pages");
 
-    m_fromText = NULL;
-    m_toText = NULL;
-    m_rangeRadioBox = NULL;
+    m_fromText = nullptr;
+    m_toText = nullptr;
+    m_rangeRadioBox = nullptr;
 
     if (m_printDialogData.GetFromPage() != 0)
     {
@@ -249,7 +249,6 @@ void wxGenericPrintDialog::Init(wxWindow * WXUNUSED(parent))
     if ( sizerBtn )
         mainsizer->Add(sizerBtn, 0, wxEXPAND|wxALL, 10 );
 
-    SetAutoLayout( true );
     SetSizer( mainsizer );
 
     mainsizer->Fit( this );
@@ -659,7 +658,6 @@ void wxGenericPrintSetupDialog::Init(wxPrintData* data)
 
     main_sizer->Add( CreateButtonSizer( wxOK|wxCANCEL), 0, wxEXPAND|wxALL, 10 );
 
-    SetAutoLayout( true );
     SetSizer( main_sizer );
 
     main_sizer->Fit( this );
@@ -762,7 +760,7 @@ bool wxGenericPrintSetupDialog::TransferDataFromWindow()
         if (selectedItem != -1)
         {
             wxPrintPaperType *paper = wxThePrintPaperDatabase->Item(selectedItem);
-            if (paper != NULL)
+            if (paper != nullptr)
               m_printData.SetPaperId( paper->GetId());
         }
     }
@@ -913,7 +911,7 @@ wxGenericPageSetupDialog::wxGenericPageSetupDialog( wxWindow *parent,
     }
     else
     {
-        m_printerButton = NULL;
+        m_printerButton = nullptr;
     }
 
     //  if (m_printData.GetEnableHelp())
@@ -921,7 +919,6 @@ wxGenericPageSetupDialog::wxGenericPageSetupDialog( wxWindow *parent,
     mainsizer->Add( buttonsizer, 0, wxEXPAND|wxALL, 10 );
 
 
-    SetAutoLayout( true );
     SetSizer( mainsizer );
 
     mainsizer->Fit( this );

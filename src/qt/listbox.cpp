@@ -66,7 +66,7 @@ void wxQtListWidget::itemChanged(QListWidgetItem *item)
 }
 
 wxListBox::wxListBox() :
-    m_qtListWidget(NULL)
+    m_qtListWidget(nullptr)
 {
     Init();
 }
@@ -203,14 +203,14 @@ unsigned wxListBox::GetCount() const
 wxString wxListBox::GetString(unsigned int n) const
 {
     QListWidgetItem* item = m_qtListWidget->item(n);
-    wxCHECK_MSG(item != NULL, wxString(), wxT("wrong listbox index") );
+    wxCHECK_MSG(item != nullptr, wxString(), wxT("wrong listbox index") );
     return wxQtConvertString( item->text() );
 }
 
 void wxListBox::SetString(unsigned int n, const wxString& s)
 {
     QListWidgetItem* item = m_qtListWidget->item(n);
-    wxCHECK_RET(item != NULL, wxT("wrong listbox index") );
+    wxCHECK_RET(item != nullptr, wxT("wrong listbox index") );
     if ( m_hasCheckBoxes )
     {
         item->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
@@ -245,7 +245,7 @@ void wxListBox::DoSetSelection(int n, bool select)
         return;
     }
 
-    m_qtListWidget->setItemSelected( m_qtListWidget->item(n), select);
+    m_qtListWidget->item(n)->setSelected(select);
 }
 
 int wxListBox::DoInsertItems(const wxArrayStringsAdapter & items,
@@ -275,7 +275,7 @@ int wxListBox::DoInsertOneItem(const wxString& text, unsigned int pos)
 void wxListBox::DoSetItemClientData(unsigned int n, void *clientData)
 {
     QListWidgetItem* item = m_qtListWidget->item(n);
-    QVariant variant = qVariantFromValue(clientData);
+    QVariant variant = QVariant::fromValue(clientData);
     item->setData(Qt::UserRole, variant);
 }
 
@@ -316,6 +316,6 @@ void wxListBox::UnSelectAll()
 {
     Q_FOREACH(QListWidgetItem* l, m_qtListWidget->selectedItems())
     {
-        m_qtListWidget->setItemSelected( l, false );
+        l->setSelected(false);
     }
 }

@@ -46,8 +46,8 @@ public:
     wxButtonToolBarTool(wxButtonToolBar *tbar,
                   int id,
                   const wxString& label,
-                  const wxBitmap& bmpNormal,
-                  const wxBitmap& bmpDisabled,
+                  const wxBitmapBundle& bmpNormal,
+                  const wxBitmapBundle& bmpDisabled,
                   wxItemKind kind,
                   wxObject *clientData,
                   const wxString& shortHelp,
@@ -59,7 +59,7 @@ public:
         m_width =
         m_height = 0;
 
-        m_button = NULL;
+        m_button = nullptr;
     }
 
     wxButtonToolBarTool(wxButtonToolBar *tbar,
@@ -70,7 +70,7 @@ public:
         m_x = m_y = wxDefaultCoord;
         m_width =
         m_height = 0;
-        m_button = NULL;
+        m_button = nullptr;
     }
 
     wxBitmapButton* GetButton() const { return m_button; }
@@ -169,7 +169,7 @@ wxToolBarToolBase *wxButtonToolBar::FindToolForPosition(wxCoord x, wxCoord y) co
     if ( IsVertical() )
     {
         if ( x < 0 || x > m_maxWidth )
-            return NULL;
+            return nullptr;
 
         // we always use x, even for a vertical toolbar, this makes the code
         // below simpler
@@ -178,7 +178,7 @@ wxToolBarToolBase *wxButtonToolBar::FindToolForPosition(wxCoord x, wxCoord y) co
     else // horizontal
     {
         if ( y < 0 || y > m_maxHeight )
-            return NULL;
+            return nullptr;
     }
 
     for ( wxToolBarToolsList::compatibility_iterator node = m_tools.GetFirst();
@@ -195,18 +195,18 @@ wxToolBarToolBase *wxButtonToolBar::FindToolForPosition(wxCoord x, wxCoord y) co
         {
             // don't return the separators from here, they don't accept any
             // input anyhow
-            return tool->IsSeparator() ? NULL : tool;
+            return tool->IsSeparator() ? nullptr : tool;
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void wxButtonToolBar::GetRectLimits(const wxRect& rect,
                               wxCoord *start,
                               wxCoord *end) const
 {
-    wxCHECK_RET( start && end, wxT("NULL pointer in GetRectLimits") );
+    wxCHECK_RET( start && end, wxT("null pointer in GetRectLimits") );
 
     if ( IsVertical() )
     {
@@ -261,8 +261,8 @@ void wxButtonToolBar::DoSetToggle(wxToolBarToolBase *WXUNUSED(tool), bool WXUNUS
 
 wxToolBarToolBase *wxButtonToolBar::CreateTool(int id,
                                          const wxString& label,
-                                         const wxBitmap& bmpNormal,
-                                         const wxBitmap& bmpDisabled,
+                                         const wxBitmapBundle& bmpNormal,
+                                         const wxBitmapBundle& bmpDisabled,
                                          wxItemKind kind,
                                          wxObject *clientData,
                                          const wxString& shortHelp,
@@ -288,7 +288,7 @@ wxRect wxButtonToolBar::GetToolRect(wxToolBarToolBase *toolBase) const
 
     wxRect rect;
 
-    wxCHECK_MSG( tool, rect, wxT("GetToolRect: NULL tool") );
+    wxCHECK_MSG( tool, rect, wxT("GetToolRect: null tool") );
 
     // ensure that we always have the valid tool position
     if ( m_needsLayout )

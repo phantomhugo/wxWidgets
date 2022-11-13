@@ -112,7 +112,7 @@ private:
     wxDECLARE_NO_COPY_CLASS(TreeItemUnlocker);
 };
 
-HTREEITEM TreeItemUnlocker::ms_unlockedItem = NULL;
+HTREEITEM TreeItemUnlocker::ms_unlockedItem = nullptr;
 
 // another helper class: set the variable to true during its lifetime and reset
 // it to false when it is destroyed
@@ -421,7 +421,7 @@ class wxTreeItemParam
 public:
     wxTreeItemParam()
     {
-        m_data = NULL;
+        m_data = nullptr;
 
         for ( size_t n = 0; n < WXSIZEOF(m_images); n++ )
         {
@@ -526,7 +526,7 @@ private:
 #pragma warning( default : 4097 )
 #endif
 
-// a macro to get the virtual root, returns NULL if none
+// a macro to get the virtual root, returns nullptr if none
 #define GET_VIRTUAL_ROOT() ((wxVirtualNode *)m_pVirtualRoot)
 
 // returns true if the item is the virtual root
@@ -581,7 +581,7 @@ public:
                 DoTraverse(tree->GetRootItem());
         }
 
-    virtual bool OnVisit(const wxTreeItemId& item) wxOVERRIDE
+    virtual bool OnVisit(const wxTreeItemId& item) override
     {
         const wxTreeCtrl * const tree = GetTree();
 
@@ -621,7 +621,7 @@ public:
             DoTraverse(root, recursively);
         }
 
-    virtual bool OnVisit(const wxTreeItemId& WXUNUSED(item)) wxOVERRIDE
+    virtual bool OnVisit(const wxTreeItemId& WXUNUSED(item)) override
     {
         m_count++;
 
@@ -713,12 +713,12 @@ bool wxTreeTraversal::Traverse(const wxTreeItemId& root, bool recursively)
 
 void wxTreeCtrl::Init()
 {
-    m_textCtrl = NULL;
+    m_textCtrl = nullptr;
     m_hasAnyAttr = false;
 #if wxUSE_DRAGIMAGE
-    m_dragImage = NULL;
+    m_dragImage = nullptr;
 #endif
-    m_pVirtualRoot = NULL;
+    m_pVirtualRoot = nullptr;
     m_dragStarted = false;
     m_focusLost = true;
     m_changingSelection = false;
@@ -921,18 +921,19 @@ void wxTreeCtrl::SetAnyImageList(wxImageList *imageList, int which)
 
 void wxTreeCtrl::SetImageList(wxImageList *imageList)
 {
-    if (m_ownsImageListNormal)
-        delete m_imageListNormal;
-
-    SetAnyImageList(m_imageListNormal = imageList, TVSIL_NORMAL);
-    m_ownsImageListNormal = false;
+    wxWithImages::SetImageList(imageList);
+    SetAnyImageList(imageList, TVSIL_NORMAL);
 }
 
 void wxTreeCtrl::SetStateImageList(wxImageList *imageList)
 {
-    if (m_ownsImageListState) delete m_imageListState;
-    SetAnyImageList(m_imageListState = imageList, TVSIL_STATE);
-    m_ownsImageListState = false;
+    m_imagesState.SetImageList(imageList);
+    SetAnyImageList(imageList, TVSIL_STATE);
+}
+
+void wxTreeCtrl::OnImagesChanged()
+{
+    SetAnyImageList(GetUpdatedImageListFor(this), TVSIL_NORMAL);
 }
 
 size_t wxTreeCtrl::GetChildrenCount(const wxTreeItemId& item,
@@ -1063,7 +1064,7 @@ void wxTreeCtrl::SetItemImage(const wxTreeItemId& item, int image,
 
 wxTreeItemParam *wxTreeCtrl::GetItemParam(const wxTreeItemId& item) const
 {
-    wxCHECK_MSG( item.IsOk(), NULL, wxT("invalid tree item") );
+    wxCHECK_MSG( item.IsOk(), nullptr, wxT("invalid tree item") );
 
     wxTreeViewItem tvItem(item, TVIF_PARAM);
 
@@ -1076,7 +1077,7 @@ wxTreeItemParam *wxTreeCtrl::GetItemParam(const wxTreeItemId& item) const
     // visible node.
     if ( !DoGetItem(&tvItem) )
     {
-        return NULL;
+        return nullptr;
     }
 
     return (wxTreeItemParam *)tvItem.lParam;
@@ -1096,7 +1097,7 @@ wxTreeItemData *wxTreeCtrl::GetItemData(const wxTreeItemId& item) const
 {
     wxTreeItemParam *data = GetItemParam(item);
 
-    return data ? data->GetData() : NULL;
+    return data ? data->GetData() : nullptr;
 }
 
 void wxTreeCtrl::SetItemData(const wxTreeItemId& item, wxTreeItemData *data)
@@ -1511,7 +1512,7 @@ wxTreeItemId wxTreeCtrl::DoInsertAfter(const wxTreeItemId& parent,
     tvIns.hParent = HITEM(parent);
     tvIns.hInsertAfter = HITEM(hInsertAfter);
 
-    // this is how we insert the item as the first child: supply a NULL
+    // this is how we insert the item as the first child: supply a null
     // hInsertAfter
     if ( !tvIns.hInsertAfter )
     {
@@ -1526,7 +1527,7 @@ wxTreeItemId wxTreeCtrl::DoInsertAfter(const wxTreeItemId& parent,
     }
     else
     {
-        tvIns.item.pszText = NULL;
+        tvIns.item.pszText = nullptr;
         tvIns.item.cchTextMax = 0;
     }
 
@@ -1546,37 +1547,17 @@ wxTreeItemId wxTreeCtrl::DoInsertAfter(const wxTreeItemId& parent,
     tvIns.item.lParam = (LPARAM)param;
     tvIns.item.mask = mask;
 
-    // apparently some Windows versions (2000 and XP are reported to do this)
-    // sometimes don't refresh the tree after adding the first child and so we
-    // need this to make the "[+]" appear
-    //
-    // don't use this hack below for the children of hidden root nor for modern
-    // MSW versions as it would just unnecessarily slow down the item insertion
-    // at best
-    const bool refreshFirstChild =
-        (wxGetWinVersion() < wxWinVersion_Vista) &&
-            !IsHiddenRoot(parent) &&
-                !TreeView_GetChild(GetHwnd(), HITEM(parent));
-
     HTREEITEM id = TreeView_InsertItem(GetHwnd(), &tvIns);
     if ( id == 0 )
     {
         wxLogLastError(wxT("TreeView_InsertItem"));
     }
 
-    if ( refreshFirstChild )
-    {
-        TVGetItemRectParam param2;
-
-        wxTreeView_GetItemRect(GetHwnd(), HITEM(parent), param2, FALSE);
-        ::InvalidateRect(GetHwnd(), &param2.rect, FALSE);
-    }
-
     // associate the application tree item with Win32 tree item handle
     param->SetItem(id);
 
     // setup wxTreeItemData
-    if ( data != NULL )
+    if ( data != nullptr )
     {
         param->SetData(data);
         data->SetId(id);
@@ -1731,7 +1712,7 @@ void wxTreeCtrl::DeleteAllItems()
     if ( GET_VIRTUAL_ROOT() )
     {
         delete GET_VIRTUAL_ROOT();
-        m_pVirtualRoot = NULL;
+        m_pVirtualRoot = nullptr;
     }
 
     // and all the real items
@@ -2059,7 +2040,7 @@ wxTextCtrl *wxTreeCtrl::EditLabel(const wxTreeItemId& item,
     if ( !hWnd )
     {
         wxDELETE(m_textCtrl);
-        return NULL;
+        return nullptr;
     }
 
     // textctrl is subclassed in MSWOnNotify
@@ -3369,7 +3350,7 @@ bool wxTreeCtrl::MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result)
 
                 event.m_item = info->item.hItem;
                 event.m_label = info->item.pszText;
-                event.m_editCancelled = info->item.pszText == NULL;
+                event.m_editCancelled = info->item.pszText == nullptr;
                 break;
             }
 
@@ -3558,16 +3539,18 @@ bool wxTreeCtrl::MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result)
                         // so we have to add temp image (of zero index) to state image list
                         // before we draw any item, then after items are drawn we have to
                         // delete it (in POSTPAINT notify)
-                        if (m_imageListState && m_imageListState->GetImageCount() > 0)
+                        if ( m_imagesState.HasImages() )
                         {
+                            wxImageList* const
+                                imageListState = m_imagesState.GetImageList();
                             const HIMAGELIST
-                                hImageList = GetHimagelistOf(m_imageListState);
+                                hImageList = GetHimagelistOf(imageListState);
 
                             // add temporary image
                             int width, height;
-                            m_imageListState->GetSize(0, width, height);
+                            imageListState->GetSize(0, width, height);
 
-                            HBITMAP hbmpTemp = ::CreateBitmap(width, height, 1, 1, NULL);
+                            HBITMAP hbmpTemp = ::CreateBitmap(width, height, 1, 1, nullptr);
                             int index = ::ImageList_Add(hImageList, hbmpTemp, hbmpTemp);
                             ::DeleteObject(hbmpTemp);
 
@@ -3590,8 +3573,8 @@ bool wxTreeCtrl::MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result)
                     case CDDS_POSTPAINT:
                         // we are deleting temp image of 0 index, which was
                         // added before items were drawn (in PREPAINT notify)
-                        if (m_imageListState && m_imageListState->GetImageCount() > 0)
-                            m_imageListState->Remove(0);
+                        if ( m_imagesState.HasImages() )
+                            m_imagesState.GetImageList()->Remove(0);
                         break;
 
                     case CDDS_ITEMPREPAINT:

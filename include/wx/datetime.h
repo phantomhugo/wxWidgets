@@ -927,7 +927,7 @@ public:
 
     // all conversions functions return true to indicate whether parsing
     // succeeded or failed and fill in the provided end iterator, which must
-    // not be NULL, with the location of the character where the parsing
+    // not be null, with the location of the character where the parsing
     // stopped (this will be end() of the passed string if everything was
     // parsed)
 
@@ -1021,7 +1021,7 @@ public:
 
     // backwards compatible versions of the parsing functions: they return an
     // object representing the next character following the date specification
-    // (i.e. the one where the scan had to stop) or a special NULL-like object
+    // (i.e. the one where the scan had to stop) or a special nullptr-like object
     // on failure
     //
     // they're not deprecated because a lot of existing code uses them and
@@ -1070,7 +1070,7 @@ public:
     // if the overloads above were used.
     //
     // And then we also have to provide the overloads for wxCStrData, as usual.
-    // Unfortunately those ones can't return anything as we don't have any
+    // Unfortunately those can't return anything as we don't have any
     // sufficiently long-lived wxAnyStrPtr to return from them: any temporary
     // strings it would point to would be destroyed when this function returns
     // making it impossible to dereference the return value. So we just don't
@@ -1120,7 +1120,7 @@ public:
     inline wxLongLong GetValue() const;
 
     // a helper function to get the current time_t
-    static time_t GetTimeNow() { return time(NULL); }
+    static time_t GetTimeNow() { return time(nullptr); }
 
     // another one to get the current time broken down
     static struct tm *GetTmNow()
@@ -1149,6 +1149,10 @@ private:
 
     // assign the preferred first day of a week to flags, if necessary
     void UseEffectiveWeekDayFlags(WeekFlags &flags) const;
+
+    // parse time zone (e.g. "+0100") between [iterator,dateEnd)
+    bool ParseRFC822TimeZone(wxString::const_iterator* iterator,
+                             const wxString::const_iterator& dateEnd);
 
     // the internal representation of the time is the amount of milliseconds
     // elapsed since the origin which is set by convention to the UNIX/C epoch
@@ -1586,10 +1590,10 @@ private:
 class WXDLLIMPEXP_BASE wxDateTimeWorkDays : public wxDateTimeHolidayAuthority
 {
 protected:
-    virtual bool DoIsHoliday(const wxDateTime& dt) const wxOVERRIDE;
+    virtual bool DoIsHoliday(const wxDateTime& dt) const override;
     virtual size_t DoGetHolidaysInRange(const wxDateTime& dtStart,
                                         const wxDateTime& dtEnd,
-                                        wxDateTimeArray& holidays) const wxOVERRIDE;
+                                        wxDateTimeArray& holidays) const override;
 };
 
 // ============================================================================

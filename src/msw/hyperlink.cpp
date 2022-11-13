@@ -15,7 +15,7 @@
 #include "wx/wxprec.h"
 
 
-#if wxUSE_HYPERLINKCTRL && wxUSE_UNICODE
+#if wxUSE_HYPERLINKCTRL
 
 #include "wx/hyperlink.h"
 
@@ -150,9 +150,7 @@ void wxHyperlinkCtrl::SetLabel(const wxString &label)
 
 wxSize wxHyperlinkCtrl::DoGetBestClientSize() const
 {
-    // LM_GETIDEALSIZE only exists under Vista so use the generic version even
-    // when using the native control under XP
-    if ( !HasNativeHyperlinkCtrl() || (wxGetWinVersion() < wxWinVersion_6) )
+    if ( !HasNativeHyperlinkCtrl() )
         return wxGenericHyperlinkCtrl::DoGetBestClientSize();
 
     SIZE idealSize;
@@ -183,4 +181,4 @@ bool wxHyperlinkCtrl::MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result)
    return wxGenericHyperlinkCtrl::MSWOnNotify(idCtrl, lParam, result);
 }
 
-#endif // wxUSE_HYPERLINKCTRL && wxUSE_UNICODE
+#endif // wxUSE_HYPERLINKCTRL

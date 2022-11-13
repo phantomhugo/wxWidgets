@@ -89,7 +89,6 @@ set(TEST_SRC
     uris/ftp.cpp
     uris/uris.cpp
     uris/url.cpp
-    vectors/vectors.cpp
     weakref/evtconnection.cpp
     weakref/weakref.cpp
     xlocale/xlocale.cpp
@@ -114,7 +113,7 @@ set(TEST_DATA
     horse.bmp
     horse.png
     horse.xpm
-    testdata.fc
+    testdata.conf
     )
 
 wx_add_test(test_base CONSOLE ${TEST_SRC}

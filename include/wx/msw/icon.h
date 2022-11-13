@@ -29,7 +29,7 @@ public:
     wxIconRefData() { }
     virtual ~wxIconRefData() { Free(); }
 
-    virtual void Free() wxOVERRIDE;
+    virtual void Free() override;
 };
 
 // ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ public:
 #endif // WXWIN_COMPATIBILITY_3_0
 
     WXHICON GetHICON() const { return (WXHICON)GetHandle(); }
-    bool InitFromHICON(WXHICON icon, int width, int height);
+    bool InitFromHICON(WXHICON icon, int width, int height, double scale = 1.0);
 
     // create from bitmap (which should have a mask unless it's monochrome):
     // there shouldn't be any implicit bitmap -> icon conversion (i.e. no
@@ -79,12 +79,12 @@ public:
     void CopyFromBitmap(const wxBitmap& bmp);
 
 protected:
-    virtual wxGDIImageRefData *CreateData() const wxOVERRIDE
+    virtual wxGDIImageRefData *CreateData() const override
     {
         return new wxIconRefData;
     }
 
-    virtual wxObjectRefData *CloneRefData(const wxObjectRefData *data) const wxOVERRIDE;
+    virtual wxObjectRefData *CloneRefData(const wxObjectRefData *data) const override;
 
     // create from XPM data
     void CreateIconFromXpm(const char* const* data);

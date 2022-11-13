@@ -481,7 +481,7 @@ wxDbgHelpDLL::DumpUDT(wxPSYMBOL_INFO pSym, void *pVariable, unsigned level)
         // between GetWriteBuf() and UngetWriteBuf() calls) and assert when we
         // try to access it contents using public methods, so instead use our
         // knowledge of its internals
-        const wxChar *p = NULL;
+        const wxChar *p = nullptr;
         if ( !::IsBadReadPtr(ps, sizeof(wxString)) )
         {
             p = ps->data();
@@ -489,7 +489,7 @@ wxDbgHelpDLL::DumpUDT(wxPSYMBOL_INFO pSym, void *pVariable, unsigned level)
             if ( ::IsBadReadPtr(data, sizeof(wxStringData)) ||
                     ::IsBadReadPtr(p, sizeof(wxChar *)*data->nAllocLength) )
             {
-                p = NULL; // don't touch this pointer with 10 feet pole
+                p = nullptr; // don't touch this pointer with 10 feet pole
             }
         }
 
@@ -649,7 +649,7 @@ public:
     #define wxMODULE_NAMEA PCSTR
 #endif
 
-#if defined(UNICODE) && defined(wxHAS_NON_CONST_MODULE_NAME)
+#if defined(wxHAS_NON_CONST_MODULE_NAME)
 
 static BOOL CALLBACK
 wxEnumLoadedW64Callback(PWSTR ModuleName,
@@ -663,7 +663,7 @@ wxEnumLoadedW64Callback(PWSTR ModuleName,
     return (*bridge.m_callback)(ModuleName, ModuleBase, ModuleSize, bridge.m_data);
 }
 
-#endif // UNICODE && wxHAS_NON_CONST_MODULE_NAME
+#endif // wxHAS_NON_CONST_MODULE_NAME
 
 static BOOL CALLBACK
 wxEnumLoaded64Callback(wxMODULE_NAMEA ModuleName,
@@ -676,11 +676,7 @@ wxEnumLoaded64Callback(wxMODULE_NAMEA ModuleName,
 
     return (*bridge.m_callback)
            (
-#ifdef UNICODE
                 wxConvLocal.cMB2WC(ModuleName),
-#else // !UNICODE
-                ModuleName,
-#endif // UNICODE
                 ModuleBase, ModuleSize, bridge.m_data
            );
 }
@@ -696,11 +692,7 @@ wxEnumLoadedCallback(wxMODULE_NAMEA ModuleName,
 
     return (*bridge.m_callback)
            (
-#ifdef UNICODE
                 wxConvLocal.cMB2WC(ModuleName),
-#else // !UNICODE
-                ModuleName,
-#endif // UNICODE
                 ModuleBase, ModuleSize, bridge.m_data
            );
 }
@@ -711,7 +703,6 @@ wxDbgHelpDLL::CallEnumerateLoadedModules(HANDLE handle,
                                          wxPENUMLOADED_MODULES_CALLBACK callback,
                                          PVOID callbackParam)
 {
-#ifdef UNICODE
     if ( EnumerateLoadedModulesW64 )
     {
 #ifdef wxHAS_NON_CONST_MODULE_NAME
@@ -726,7 +717,6 @@ wxDbgHelpDLL::CallEnumerateLoadedModules(HANDLE handle,
             return TRUE;
 #endif // old/new SDK
     }
-#endif // UNICODE
 
     if ( EnumerateLoadedModules64 )
     {
@@ -755,17 +745,15 @@ wxDbgHelpDLL::CallEnumerateLoadedModules(HANDLE handle,
 BOOL
 wxDbgHelpDLL::CallSymInitialize(HANDLE hProcess, BOOL fInvadeProcess)
 {
-#ifdef UNICODE
     if ( SymInitializeW )
     {
-        if ( SymInitializeW(hProcess, NULL, fInvadeProcess) )
+        if ( SymInitializeW(hProcess, nullptr, fInvadeProcess) )
             return TRUE;
     }
-#endif // UNICODE
 
     if ( SymInitialize )
     {
-        if ( SymInitialize(hProcess, NULL, fInvadeProcess) )
+        if ( SymInitialize(hProcess, nullptr, fInvadeProcess) )
             return TRUE;
     }
 
@@ -781,7 +769,6 @@ wxDbgHelpDLL::CallSymFromAddr(HANDLE hProcess,
 {
     DWORD64 dwDisplacement;
 
-#ifdef UNICODE
     if ( SymFromAddrW )
     {
         VarSizedStruct<SYMBOL_INFOW> infoW;
@@ -792,7 +779,6 @@ wxDbgHelpDLL::CallSymFromAddr(HANDLE hProcess,
             return TRUE;
         }
     }
-#endif // UNICODE
 
     if ( SymFromAddr )
     {
@@ -817,7 +803,6 @@ wxDbgHelpDLL::CallSymGetLineFromAddr(HANDLE hProcess,
 {
     DWORD dwDisplacement;
 
-#ifdef UNICODE
     if ( SymGetLineFromAddrW64 )
     {
         SizedStruct<IMAGEHLP_LINEW64> lineW64;
@@ -828,7 +813,6 @@ wxDbgHelpDLL::CallSymGetLineFromAddr(HANDLE hProcess,
             return TRUE;
         }
     }
-#endif // UNICODE
 
     if ( SymGetLineFromAddr64 )
     {
@@ -854,8 +838,6 @@ wxDbgHelpDLL::CallSymGetLineFromAddr(HANDLE hProcess,
 
     return FALSE;
 }
-
-#ifdef UNICODE
 
 // Allow to adapt callback supposed to be used with SymEnumSymbolsW() with
 // SymEnumSymbols().
@@ -902,8 +884,6 @@ wxEnumSymbolsCallback(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, PVOID UserContext
     return (*bridge.m_callback)(infoW, SymbolSize, bridge.m_data);
 }
 
-#endif // UNICODE
-
 /* static */
 BOOL
 wxDbgHelpDLL::CallSymEnumSymbols(HANDLE hProcess,
@@ -911,10 +891,9 @@ wxDbgHelpDLL::CallSymEnumSymbols(HANDLE hProcess,
                                  wxPSYM_ENUMERATESYMBOLS_CALLBACK callback,
                                  const PVOID callbackParam)
 {
-#ifdef UNICODE
     if ( SymEnumSymbolsW )
     {
-        if ( SymEnumSymbolsW(hProcess, baseOfDll, NULL, callback, callbackParam) )
+        if ( SymEnumSymbolsW(hProcess, baseOfDll, nullptr, callback, callbackParam) )
             return TRUE;
     }
 
@@ -922,16 +901,9 @@ wxDbgHelpDLL::CallSymEnumSymbols(HANDLE hProcess,
     {
         wxEnumSymbolsCallbackBridge br(callback, callbackParam);
 
-        if ( SymEnumSymbols(hProcess, baseOfDll, NULL, wxEnumSymbolsCallback, &br) )
+        if ( SymEnumSymbols(hProcess, baseOfDll, nullptr, wxEnumSymbolsCallback, &br) )
             return TRUE;
     }
-#else // !UNICODE
-    if ( SymEnumSymbols )
-    {
-        if ( SymEnumSymbols(hProcess, baseOfDll, NULL, callback, callbackParam) )
-            return TRUE;
-    }
-#endif // UNICODE/!UNICODE
 
     return FALSE;
 }

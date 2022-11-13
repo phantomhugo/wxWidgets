@@ -33,11 +33,11 @@ protected:
         m_handler = handler;
     }
 
-    void EmitEvent( wxEvent &event ) const
+    bool EmitEvent( wxEvent &event ) const
     {
         wxWindow *handler = GetHandler();
         event.SetEventObject( handler );
-        handler->HandleWindowEvent( event );
+        return handler->HandleWindowEvent( event );
     }
 
     virtual Handler *GetHandler() const
@@ -54,7 +54,7 @@ class wxQtEventSignalHandler : public Widget, public wxQtSignalHandler< Handler 
 {
 public:
     wxQtEventSignalHandler( wxWindow *parent, Handler *handler )
-        : Widget( parent != NULL ? parent->GetHandle() : NULL )
+        : Widget( parent != nullptr ? parent->GetHandle() : nullptr )
         , wxQtSignalHandler< Handler >( handler )
     {
         // Set immediately as it is used to check if wxWindow is alive
@@ -71,16 +71,21 @@ public:
     {
     }
 
-    virtual Handler *GetHandler() const wxOVERRIDE
+    virtual Handler *GetHandler() const override
     {
         // Only process the signal / event if the wxWindow is not destroyed
         if ( !wxWindow::QtRetrieveWindowPointer( this ) )
         {
-            return NULL;
+            return nullptr;
         }
         else
             return wxQtSignalHandler< Handler >::GetHandler();
     }
+
+    // Hack used by wxTextEntry derived classes (by specializing this function)
+    // to toggle the dialog's default button off and on on focus events.
+    // see src/qt/textentry.cpp for the reason.
+    void ToggleDefaultButtonOnFocusEvent() { }
 
 protected:
     /* Not implemented here: wxHelpEvent, wxIdleEvent wxJoystickEvent,
@@ -88,7 +93,7 @@ protected:
      * wxPowerEvent, wxScrollWinEvent, wxSysColourChangedEvent */
 
     //wxActivateEvent
-    virtual void changeEvent ( QEvent * event ) wxOVERRIDE
+    virtual void changeEvent ( QEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -100,7 +105,7 @@ protected:
     }
 
     //wxCloseEvent
-    virtual void closeEvent ( QCloseEvent * event ) wxOVERRIDE
+    virtual void closeEvent ( QCloseEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -112,7 +117,7 @@ protected:
     }
 
     //wxContextMenuEvent
-    virtual void contextMenuEvent ( QContextMenuEvent * event ) wxOVERRIDE
+    virtual void contextMenuEvent ( QContextMenuEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -127,7 +132,7 @@ protected:
     //virtual void dropEvent ( QDropEvent * event ) { }
 
     //wxMouseEvent
-    virtual void enterEvent ( QEvent * event ) wxOVERRIDE
+    virtual void enterEvent ( QEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -139,10 +144,12 @@ protected:
     }
 
     //wxFocusEvent.
-    virtual void focusInEvent ( QFocusEvent * event ) wxOVERRIDE
+    virtual void focusInEvent ( QFocusEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
+
+        ToggleDefaultButtonOnFocusEvent();
 
         if ( !this->GetHandler()->QtHandleFocusEvent(this, event) )
             Widget::focusInEvent(event);
@@ -151,10 +158,12 @@ protected:
     }
 
     //wxFocusEvent.
-    virtual void focusOutEvent ( QFocusEvent * event ) wxOVERRIDE
+    virtual void focusOutEvent ( QFocusEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
+
+        ToggleDefaultButtonOnFocusEvent();
 
         if ( !this->GetHandler()->QtHandleFocusEvent(this, event) )
             Widget::focusOutEvent(event);
@@ -163,7 +172,7 @@ protected:
     }
 
     //wxShowEvent
-    virtual void hideEvent ( QHideEvent * event ) wxOVERRIDE
+    virtual void hideEvent ( QHideEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -175,7 +184,7 @@ protected:
     }
 
     //wxKeyEvent
-    virtual void keyPressEvent ( QKeyEvent * event ) wxOVERRIDE
+    virtual void keyPressEvent ( QKeyEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -187,7 +196,7 @@ protected:
     }
 
     //wxKeyEvent
-    virtual void keyReleaseEvent ( QKeyEvent * event ) wxOVERRIDE
+    virtual void keyReleaseEvent ( QKeyEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -199,7 +208,7 @@ protected:
     }
 
     //wxMouseEvent
-    virtual void leaveEvent ( QEvent * event ) wxOVERRIDE
+    virtual void leaveEvent ( QEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -211,7 +220,7 @@ protected:
     }
 
     //wxMouseEvent
-    virtual void mouseDoubleClickEvent ( QMouseEvent * event ) wxOVERRIDE
+    virtual void mouseDoubleClickEvent ( QMouseEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -223,7 +232,7 @@ protected:
     }
 
     //wxMouseEvent
-    virtual void mouseMoveEvent ( QMouseEvent * event ) wxOVERRIDE
+    virtual void mouseMoveEvent ( QMouseEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -235,7 +244,7 @@ protected:
     }
 
     //wxMouseEvent
-    virtual void mousePressEvent ( QMouseEvent * event ) wxOVERRIDE
+    virtual void mousePressEvent ( QMouseEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -247,7 +256,7 @@ protected:
     }
 
     //wxMouseEvent
-    virtual void mouseReleaseEvent ( QMouseEvent * event ) wxOVERRIDE
+    virtual void mouseReleaseEvent ( QMouseEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -259,7 +268,7 @@ protected:
     }
 
     //wxMoveEvent
-    virtual void moveEvent ( QMoveEvent * event ) wxOVERRIDE
+    virtual void moveEvent ( QMoveEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -271,7 +280,7 @@ protected:
     }
 
     //wxEraseEvent then wxPaintEvent
-    virtual void paintEvent ( QPaintEvent * event ) wxOVERRIDE
+    virtual void paintEvent ( QPaintEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -283,7 +292,7 @@ protected:
     }
 
     //wxSizeEvent
-    virtual void resizeEvent ( QResizeEvent * event ) wxOVERRIDE
+    virtual void resizeEvent ( QResizeEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -295,7 +304,7 @@ protected:
     }
 
     //wxShowEvent
-    virtual void showEvent ( QShowEvent * event ) wxOVERRIDE
+    virtual void showEvent ( QShowEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -307,7 +316,7 @@ protected:
     }
 
     //wxMouseEvent
-    virtual void wheelEvent ( QWheelEvent * event ) wxOVERRIDE
+    virtual void wheelEvent ( QWheelEvent * event ) override
     {
         if ( !this->GetHandler() )
             return;
@@ -456,6 +465,30 @@ protected:
 
         }
     }
+};
+
+// RAII wrapper for blockSignals(). It blocks signals in its constructor and in
+// the destructor it restores the state to what it was before the constructor ran.
+class wxQtEnsureSignalsBlocked
+{
+public:
+    // Use QObject instead of QWidget to avoid including <QWidget> from here.
+    wxQtEnsureSignalsBlocked(QObject *widget) :
+        m_widget(widget)
+    {
+        m_restore = m_widget->blockSignals(true);
+    }
+
+    ~wxQtEnsureSignalsBlocked()
+    {
+        m_widget->blockSignals(m_restore);
+    }
+
+private:
+    QObject* const m_widget;
+    bool m_restore;
+
+    wxDECLARE_NO_COPY_CLASS(wxQtEnsureSignalsBlocked);
 };
 
 #endif

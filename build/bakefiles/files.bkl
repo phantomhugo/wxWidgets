@@ -671,6 +671,7 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     src/wasm/utils.cpp
     src/wasm/window.cpp
     src/wasm/treectrl.cpp
+    src/wasm/glcanvas.cpp
 </set>
 
 <set var="MEDIA_WASM_SRC" hints="files">

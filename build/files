@@ -560,6 +560,7 @@ WASM_SRC=
     src/wasm/fontutil.cpp
     src/wasm/frame.cpp
     src/wasm/gauge.cpp
+    src/wasm/glcanvas.cpp
     src/wasm/listbox.cpp
     src/wasm/listctrl.cpp
     src/wasm/mdi.cpp

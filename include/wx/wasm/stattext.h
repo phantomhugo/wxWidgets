@@ -30,13 +30,13 @@ public:
                 long style = 0,
                 const wxString &name = wxASCII_STR(wxStaticTextNameStr) );
 
-    virtual void SetLabel(const wxString& label) wxOVERRIDE;
+    virtual void SetLabel(const wxString& label) override;
 
-    virtual WXWidget GetHandle() const wxOVERRIDE;
+    virtual WXWidget GetHandle() const override;
 
 protected:
-    virtual wxString WXGetVisibleLabel() const wxOVERRIDE;
-    virtual void WXSetVisibleLabel(const wxString& str) wxOVERRIDE;
+    virtual wxString WXGetVisibleLabel() const override;
+    virtual void WXSetVisibleLabel(const wxString& str) override;
 
 private:
     wxDECLARE_DYNAMIC_CLASS( wxStaticText );

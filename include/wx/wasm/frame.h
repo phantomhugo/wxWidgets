@@ -41,18 +41,18 @@ public:
                 long style = wxDEFAULT_FRAME_STYLE,
                 const wxString& name = wxASCII_STR(wxFrameNameStr));
 
-    virtual void SetMenuBar(wxMenuBar *menubar) wxOVERRIDE;
-    virtual void SetStatusBar(wxStatusBar *statusBar ) wxOVERRIDE;
-    virtual void SetToolBar(wxToolBar *toolbar) wxOVERRIDE;
+    virtual void SetMenuBar(wxMenuBar *menubar) override;
+    virtual void SetStatusBar(wxStatusBar *statusBar ) override;
+    virtual void SetToolBar(wxToolBar *toolbar) override;
 
-    virtual void SetWindowStyleFlag( long style ) wxOVERRIDE;
+    virtual void SetWindowStyleFlag( long style ) override;
 
-    virtual void AddChild( wxWindowBase *child ) wxOVERRIDE;
-    virtual void RemoveChild( wxWindowBase *child ) wxOVERRIDE;
+    virtual void AddChild( wxWindowBase *child ) override;
+    virtual void RemoveChild( wxWindowBase *child ) override;
 
 protected:
-    virtual void DoGetClientSize(int *width, int *height) const wxOVERRIDE;
-    virtual void DoSetClientSize(int width, int height) wxOVERRIDE;
+    virtual void DoGetClientSize(int *width, int *height) const override;
+    virtual void DoSetClientSize(int width, int height) override;
 
 private:
     // Common part of all ctors.

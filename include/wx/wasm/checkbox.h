@@ -74,8 +74,8 @@ public:
                 const wxString& name = wxASCII_STR(wxCheckBoxNameStr));
 
     // implement the checkbox interface
-    virtual void SetValue(bool value) wxOVERRIDE;
-    virtual bool GetValue() const wxOVERRIDE;
+    virtual void SetValue(bool value) override;
+    virtual bool GetValue() const override;
 
     // set/get the bitmaps to use for the checkbox indicator
     void SetBitmap(const wxBitmap& bmp, State state, Status status);
@@ -88,10 +88,10 @@ public:
     virtual void ChangeValue(bool value);
 
 protected:
-    virtual void DoSet3StateValue(wxCheckBoxState WXUNUSED(state)) wxOVERRIDE;
-    virtual wxCheckBoxState DoGet3StateValue() const wxOVERRIDE;
+    virtual void DoSet3StateValue(wxCheckBoxState WXUNUSED(state)) override;
+    virtual wxCheckBoxState DoGet3StateValue() const override;
 
-    virtual wxSize DoGetBestClientSize() const wxOVERRIDE;
+    virtual wxSize DoGetBestClientSize() const override;
 
     // get the size of the bitmap using either the current one or the default
     // one (query renderer then)

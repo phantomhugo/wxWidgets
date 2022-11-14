@@ -16,7 +16,7 @@ public:
     wxApp();
     ~wxApp();
 
-    virtual bool Initialize(int& argc, wxChar **argv) wxOVERRIDE;
+    virtual bool Initialize(int& argc, wxChar **argv) override;
 
 private:
     wxDECLARE_DYNAMIC_CLASS_NO_COPY( wxApp );

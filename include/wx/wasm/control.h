@@ -56,10 +56,10 @@ public:
 
     // this function will filter out '&' characters and will put the
     // accelerator char (the one immediately after '&') into m_chAccel
-    virtual void SetLabel(const wxString& label) wxOVERRIDE;
+    virtual void SetLabel(const wxString& label) override;
 
     // return the current label
-    virtual wxString GetLabel() const wxOVERRIDE { return wxControlBase::GetLabel(); }
+    virtual wxString GetLabel() const override { return wxControlBase::GetLabel(); }
 
     // wxUniversal-specific methods
 

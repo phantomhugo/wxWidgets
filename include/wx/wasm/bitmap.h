@@ -62,12 +62,17 @@ class WXDLLIMPEXP_CORE wxBitmap: public wxBitmapBase
 {
 public:
     wxBitmap() {}
-    wxBitmap( int width, int height, int depth = -1 ) { Create( width, height, depth ); }
-    wxBitmap( const wxSize& sz, int depth = -1 ) { Create( sz, depth ); }
+    wxBitmap(const char bits[], int width, int height, int depth = 1);
+    wxBitmap(int width, int height, int depth = wxBITMAP_SCREEN_DEPTH);
+    wxBitmap(const wxSize& sz, int depth = wxBITMAP_SCREEN_DEPTH);
+    wxBitmap(int width, int height, const wxDC& dc);
+    wxBitmap(const char* const* bits);
+    wxBitmap(const wxString &filename, wxBitmapType type = wxBITMAP_TYPE_XPM);
+    wxBitmap(const wxImage& image, const wxDC& dc);
 
-    wxBitmap( const char bits[], int width, int height, int depth = 1 );
-    wxBitmap( const char* const* bits );
-    wxBitmap( const wxString &filename, wxBitmapType type = wxBITMAP_DEFAULT_TYPE );
+    // Convert from wxIcon / wxCursor
+    wxBitmap(const wxIcon& icon) { CopyFromIcon(icon); }
+    explicit wxBitmap(const wxCursor& cursor);
     virtual ~wxBitmap();
 
     static void InitStandardHandlers();

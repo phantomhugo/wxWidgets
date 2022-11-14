@@ -35,8 +35,8 @@ public:
 
 public:     // overrides from wxGenericDirDialog
 
-    wxString GetPath() const wxOVERRIDE;
-    void SetPath(const wxString& path) wxOVERRIDE;
+    wxString GetPath() const override;
+    void SetPath(const wxString& path) override;
 
 private:
 

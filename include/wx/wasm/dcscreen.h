@@ -20,7 +20,7 @@ public:
     ~wxScreenDCImpl();
 
 protected:
-    virtual void DoGetSize(int *width, int *height) const wxOVERRIDE;
+    virtual void DoGetSize(int *width, int *height) const override;
 
     wxDECLARE_ABSTRACT_CLASS(wxScreenDCImpl);
 };

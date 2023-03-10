@@ -57,6 +57,8 @@ wxEND_EVENT_TABLE()
 
 - (void)setWebView:(wxWebViewWebKit*)webView;
 
+- (void)doCommandBySelector:(SEL)aSelector;
+
 @end
 
 @interface WebViewNavigationDelegate : NSObject<WKNavigationDelegate>
@@ -647,6 +649,16 @@ void wxWebViewWebKit::RegisterHandler(wxSharedPtr<wxWebViewHandler> handler)
 
     return [super performKeyEquivalent:event];
 }
+
+- (void)doCommandBySelector:(SEL)aSelector
+{
+    wxWidgetCocoaImpl* impl = (wxWidgetCocoaImpl* ) wxWidgetImpl::FindFromWXWidget( self );
+    if (aSelector != @selector(noop:))
+        [super doCommandBySelector:aSelector];
+    else if (impl)
+        impl->doCommandBySelector(aSelector, self, _cmd);
+}
+
 #endif // !defined(__WXOSX_IPHONE__)
 
 @end
@@ -839,6 +851,9 @@ wxString nsErrorToWxHtmlError(NSError* error, wxWebViewNavigationError* out)
                          webKitWindow->GetId(),
                          wxCFStringRef::AsString( url ), "", navFlags);
 
+    if (navigationAction.targetFrame && navigationAction.targetFrame.isMainFrame)
+        event.SetInt(1);
+
     if (webKitWindow && webKitWindow->GetEventHandler())
         webKitWindow->GetEventHandler()->ProcessEvent(event);
 
@@ -868,6 +883,8 @@ public:
         if (!m_data && m_request.HTTPBody)
             m_data = new wxMemoryInputStream(m_request.HTTPBody.bytes, m_request.HTTPBody.length);
 
+        if (m_data)
+            m_data->SeekI(0);
         return m_data;
     }
 

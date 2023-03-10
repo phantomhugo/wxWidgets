@@ -753,6 +753,9 @@
     <ClCompile Include="..\..\src\msw\customdraw.cpp">
       <Filter>MSW Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\msw\darkmode.cpp">
+      <Filter>MSW Sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\msw\data.cpp">
       <Filter>MSW Sources</Filter>
     </ClCompile>
@@ -937,6 +940,9 @@
       <Filter>MSW Sources</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\msw\ole\uuid.cpp">
+      <Filter>MSW Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\msw\overlay.cpp">
       <Filter>MSW Sources</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\msw\ownerdrw.cpp">
@@ -1202,6 +1208,9 @@
       <Filter>Common Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\wx\commandlinkbutton.h">
+      <Filter>Common Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\wx\compositebookctrl.h">
       <Filter>Common Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\wx\compositewin.h">
@@ -1475,9 +1484,6 @@
       <Filter>Generic Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\wx\generic\numdlgg.h">
-      <Filter>Generic Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\wx\generic\panelg.h">
       <Filter>Generic Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\wx\generic\printps.h">
@@ -1904,9 +1910,6 @@
       <Filter>MSW Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\wx\msw\palette.h">
-      <Filter>MSW Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\wx\msw\panel.h">
       <Filter>MSW Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\wx\msw\pen.h">

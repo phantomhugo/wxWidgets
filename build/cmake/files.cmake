@@ -442,7 +442,6 @@ set(BASE_CMN_SRC
     src/common/list.cpp
     src/common/log.cpp
     src/common/longlong.cpp
-    src/common/memory.cpp
     src/common/mimecmn.cpp
     src/common/module.cpp
     src/common/mstream.cpp
@@ -460,7 +459,6 @@ set(BASE_CMN_SRC
     src/common/strconv.cpp
     src/common/stream.cpp
     src/common/string.cpp
-    src/common/stringimpl.cpp
     src/common/stringops.cpp
     src/common/strvararg.cpp
     src/common/sysopt.cpp
@@ -611,7 +609,6 @@ set(BASE_CMN_HDR
     wx/strconv.h
     wx/stream.h
     wx/string.h
-    wx/stringimpl.h
     wx/stringops.h
     wx/strvararg.h
     wx/sysopt.h
@@ -985,7 +982,6 @@ set(GUI_CMN_HDR
     wx/generic/msgdlgg.h
     wx/generic/numdlgg.h
     wx/generic/notebook.h
-    wx/generic/panelg.h
     wx/generic/prntdlgg.h
     wx/generic/printps.h
     wx/generic/progdlgg.h
@@ -1222,6 +1218,7 @@ set(GUI_CMN_HDR
     wx/generic/animate.h
     wx/bmpbndl.h
     wx/filedlgcustomize.h
+    wx/compositebookctrl.h
 )
 
 set(UNIX_SRC
@@ -1643,6 +1640,7 @@ set(MSW_LOWLEVEL_SRC
     src/msw/evtloop.cpp
     src/msw/ole/access.cpp
     src/msw/bmpbndl.cpp
+    src/msw/overlay.cpp
 )
 
 set(MSW_LOWLEVEL_HDR
@@ -1739,6 +1737,7 @@ set(MSW_SRC
     src/msw/datetimectrl.cpp
     src/msw/hyperlink.cpp
     src/generic/activityindicator.cpp
+    src/msw/darkmode.cpp
 )
 
 set(MSW_HDR
@@ -1809,7 +1808,6 @@ set(MSW_HDR
     wx/msw/ownerdrw.h
     wx/msw/ownerdrawnbutton.h
     wx/msw/palette.h
-    wx/msw/panel.h
     wx/msw/pen.h
     wx/msw/printdlg.h
     wx/msw/printwin.h
@@ -2365,7 +2363,6 @@ set(UNIV_HDR
     wx/univ/menu.h
     wx/univ/menuitem.h
     wx/univ/notebook.h
-    wx/univ/panel.h
     wx/univ/radiobox.h
     wx/univ/radiobut.h
     wx/univ/renderer.h

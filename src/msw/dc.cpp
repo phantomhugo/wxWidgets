@@ -69,11 +69,9 @@
     //
     // We also load some GDI functions not present in MinGW libraries
     // dynamically.
-    #if wxUSE_DYNLIB_CLASS
-        #include "wx/dynlib.h"
+    #include "wx/dynlib.h"
 
-        #define USE_DYNAMIC_GDI_FUNCS
-    #endif
+    #define USE_DYNAMIC_GDI_FUNCS
 #endif // _MSC_VER/!_MSC_VER
 
 using namespace wxMSWImpl;
@@ -611,7 +609,11 @@ void wxMSWDCImpl::SelectOldObjects(WXHDC dc)
 void wxMSWDCImpl::UpdateClipBox()
 {
     RECT rect;
-    ::GetClipBox(GetHdc(), &rect);
+    if ( ::GetClipBox(GetHdc(), &rect) == ERROR )
+    {
+        wxLogLastError("GetClipBox");
+        return;
+    }
 
     // Don't shift by the device origin if the clipping box is empty.
     if ( rect.left == rect.right && rect.top == rect.bottom )

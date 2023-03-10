@@ -44,17 +44,6 @@
     #include <sstream>
 #endif
 
-#if !wxUSE_STL_BASED_WXSTRING
-// string handling functions used by wxString:
-#if wxUSE_UNICODE_UTF8
-    #define wxStringMemcmp   memcmp
-    #define wxStringStrlen   strlen
-#else
-    #define wxStringMemcmp   wxTmemcmp
-    #define wxStringStrlen   wxStrlen
-#endif
-#endif
-
 // define a function declared in wx/buffer.h here as we don't have buffer.cpp
 // and don't want to add it just because of this simple function
 namespace wxPrivate
@@ -79,6 +68,11 @@ UntypedBufferData *GetUntypedNullData()
 //According to STL _must_ be a -1 size_t
 const size_t wxString::npos = (size_t) -1;
 
+// FIXME-UTF8: get rid of this, have only one wxEmptyString
+#if wxUSE_UNICODE_UTF8
+const wxStringCharType WXDLLIMPEXP_BASE *wxEmptyStringImpl = "";
+#endif
+const wxChar WXDLLIMPEXP_BASE *wxEmptyString = wxT("");
 #if wxUSE_STRING_POS_CACHE
 
 wxTHREAD_SPECIFIC_DECL wxString::Cache wxString::ms_cache;
@@ -542,11 +536,6 @@ bool wxString::Shrink()
 
 wxString operator+(const wxString& str1, const wxString& str2)
 {
-#if !wxUSE_STL_BASED_WXSTRING
-    wxASSERT( str1.IsValid() );
-    wxASSERT( str2.IsValid() );
-#endif
-
     wxString s = str1;
     s += str2;
 
@@ -555,10 +544,6 @@ wxString operator+(const wxString& str1, const wxString& str2)
 
 wxString operator+(const wxString& str, wxUniChar ch)
 {
-#if !wxUSE_STL_BASED_WXSTRING
-    wxASSERT( str.IsValid() );
-#endif
-
     wxString s = str;
     s += ch;
 
@@ -567,10 +552,6 @@ wxString operator+(const wxString& str, wxUniChar ch)
 
 wxString operator+(wxUniChar ch, const wxString& str)
 {
-#if !wxUSE_STL_BASED_WXSTRING
-    wxASSERT( str.IsValid() );
-#endif
-
     wxString s = ch;
     s += str;
 
@@ -579,10 +560,6 @@ wxString operator+(wxUniChar ch, const wxString& str)
 
 wxString operator+(const wxString& str, const char *psz)
 {
-#if !wxUSE_STL_BASED_WXSTRING
-    wxASSERT( str.IsValid() );
-#endif
-
     wxString s;
     if ( !s.Alloc(strlen(psz) + str.length()) ) {
         wxFAIL_MSG( wxT("out of memory in wxString::operator+") );
@@ -595,10 +572,6 @@ wxString operator+(const wxString& str, const char *psz)
 
 wxString operator+(const wxString& str, const wchar_t *pwz)
 {
-#if !wxUSE_STL_BASED_WXSTRING
-    wxASSERT( str.IsValid() );
-#endif
-
     wxString s;
     if ( !s.Alloc(wxWcslen(pwz) + str.length()) ) {
         wxFAIL_MSG( wxT("out of memory in wxString::operator+") );
@@ -611,10 +584,6 @@ wxString operator+(const wxString& str, const wchar_t *pwz)
 
 wxString operator+(const char *psz, const wxString& str)
 {
-#if !wxUSE_STL_BASED_WXSTRING
-    wxASSERT( str.IsValid() );
-#endif
-
     wxString s;
     if ( !s.Alloc(strlen(psz) + str.length()) ) {
         wxFAIL_MSG( wxT("out of memory in wxString::operator+") );
@@ -627,10 +596,6 @@ wxString operator+(const char *psz, const wxString& str)
 
 wxString operator+(const wchar_t *pwz, const wxString& str)
 {
-#if !wxUSE_STL_BASED_WXSTRING
-    wxASSERT( str.IsValid() );
-#endif
-
     wxString s;
     if ( !s.Alloc(wxWcslen(pwz) + str.length()) ) {
         wxFAIL_MSG( wxT("out of memory in wxString::operator+") );
@@ -651,12 +616,10 @@ bool wxString::IsSameAs(wxUniChar c, bool compareWithCase) const
                                : wxToupper(GetChar(0u)) == wxToupper(c));
 }
 
-#if wxUSE_STL_BASED_WXSTRING
-
-// NB: Comparison code (both if wxUSE_STL_BASED_WXSTRING and if not) works with
-//     UTF-8 encoded strings too, thanks to UTF-8's design which allows us to
-//     sort strings in characters code point order by sorting the byte sequence
-//     in byte values order (i.e. what strcmp() and memcmp() do).
+// NB: Comparison code works with UTF-8 encoded strings too, thanks to UTF-8's
+//     design which allows us to sort strings in characters code point order by
+//     sorting the byte sequence in byte values order (i.e. what strcmp() and
+//     memcmp() do).
 
 int wxString::compare(const wxString& str) const
 {
@@ -716,123 +679,11 @@ int wxString::compare(size_t nStart, size_t nLen,
     return m_impl.compare(pos, len, str.data, str.len);
 }
 
-#else // !wxUSE_STL_BASED_WXSTRING
-
-static inline int wxDoCmp(const wxStringCharType* s1, size_t l1,
-                          const wxStringCharType* s2, size_t l2)
-{
-    if( l1 == l2 )
-        return wxStringMemcmp(s1, s2, l1);
-    else if( l1 < l2 )
-    {
-        int ret = wxStringMemcmp(s1, s2, l1);
-        return ret == 0 ? -1 : ret;
-    }
-    else
-    {
-        int ret = wxStringMemcmp(s1, s2, l2);
-        return ret == 0 ? +1 : ret;
-    }
-}
-
-int wxString::compare(const wxString& str) const
-{
-    return ::wxDoCmp(m_impl.data(), m_impl.length(),
-                     str.m_impl.data(), str.m_impl.length());
-}
-
-int wxString::compare(size_t nStart, size_t nLen,
-                      const wxString& str) const
-{
-    wxASSERT(nStart <= length());
-    size_type strLen = length() - nStart;
-    nLen = strLen < nLen ? strLen : nLen;
-
-    size_t pos, len;
-    PosLenToImpl(nStart, nLen, &pos, &len);
-
-    return ::wxDoCmp(m_impl.data() + pos,  len,
-                     str.m_impl.data(), str.m_impl.length());
-}
-
-int wxString::compare(size_t nStart, size_t nLen,
-                      const wxString& str,
-                      size_t nStart2, size_t nLen2) const
-{
-    wxASSERT(nStart <= length());
-    wxASSERT(nStart2 <= str.length());
-    size_type strLen  =     length() - nStart,
-              strLen2 = str.length() - nStart2;
-    nLen  = strLen  < nLen  ? strLen  : nLen;
-    nLen2 = strLen2 < nLen2 ? strLen2 : nLen2;
-
-    size_t pos, len;
-    PosLenToImpl(nStart, nLen, &pos, &len);
-    size_t pos2, len2;
-    str.PosLenToImpl(nStart2, nLen2, &pos2, &len2);
-
-    return ::wxDoCmp(m_impl.data() + pos, len,
-                     str.m_impl.data() + pos2, len2);
-}
-
-int wxString::compare(const char* sz) const
-{
-    SubstrBufFromMB str(ImplStr(sz, npos));
-    if ( str.len == npos )
-        str.len = wxStringStrlen(str.data);
-    return ::wxDoCmp(m_impl.data(), m_impl.length(), str.data, str.len);
-}
-
-int wxString::compare(const wchar_t* sz) const
-{
-    SubstrBufFromWC str(ImplStr(sz, npos));
-    if ( str.len == npos )
-        str.len = wxStringStrlen(str.data);
-    return ::wxDoCmp(m_impl.data(), m_impl.length(), str.data, str.len);
-}
-
-int wxString::compare(size_t nStart, size_t nLen,
-                      const char* sz, size_t nCount) const
-{
-    wxASSERT(nStart <= length());
-    size_type strLen = length() - nStart;
-    nLen = strLen < nLen ? strLen : nLen;
-
-    size_t pos, len;
-    PosLenToImpl(nStart, nLen, &pos, &len);
-
-    SubstrBufFromMB str(ImplStr(sz, nCount));
-    if ( str.len == npos )
-        str.len = wxStringStrlen(str.data);
-
-    return ::wxDoCmp(m_impl.data() + pos, len, str.data, str.len);
-}
-
-int wxString::compare(size_t nStart, size_t nLen,
-                      const wchar_t* sz, size_t nCount) const
-{
-    wxASSERT(nStart <= length());
-    size_type strLen = length() - nStart;
-    nLen = strLen < nLen ? strLen : nLen;
-
-    size_t pos, len;
-    PosLenToImpl(nStart, nLen, &pos, &len);
-
-    SubstrBufFromWC str(ImplStr(sz, nCount));
-    if ( str.len == npos )
-        str.len = wxStringStrlen(str.data);
-
-    return ::wxDoCmp(m_impl.data() + pos, len, str.data, str.len);
-}
-
-#endif // wxUSE_STL_BASED_WXSTRING/!wxUSE_STL_BASED_WXSTRING
-
-
 // ---------------------------------------------------------------------------
 // find_{first,last}_[not]_of functions
 // ---------------------------------------------------------------------------
 
-#if !wxUSE_STL_BASED_WXSTRING || wxUSE_UNICODE_UTF8
+#if wxUSE_UNICODE_UTF8
 
 // NB: All these functions are implemented with the argument always being
 //     wchar_t*, even in UTF-8 build in which the native string representation
@@ -998,7 +849,7 @@ size_t wxString::find_last_not_of(const char* sz, size_t nStart,
                                   size_t n) const
     { return find_last_not_of(wxConvLibc.cMB2WC(sz, n, nullptr), nStart, n); }
 
-#endif // !wxUSE_STL_BASED_WXSTRING || wxUSE_UNICODE_UTF8
+#endif // wxUSE_UNICODE_UTF8
 
 // ===========================================================================
 // other common string functions
@@ -1567,6 +1418,7 @@ wxString& wxString::Truncate(size_t uiLen)
     if ( uiLen < length() )
     {
         erase(begin() + uiLen, end());
+        wxSTRING_SET_CACHED_LENGTH(uiLen);
     }
     //else: nothing to do, string is already short enough
 
@@ -1589,131 +1441,179 @@ int wxString::Find(wxUniChar ch, bool bFromEnd) const
 // conversion to numbers
 // ----------------------------------------------------------------------------
 
-// The implementation of all the functions below is exactly the same so factor
-// it out. Note that number extraction works correctly on UTF-8 strings, so
-// we can use wxStringCharType and wx_str() for maximum efficiency.
+namespace
+{
 
-#define WX_STRING_TO_X_TYPE_START                                           \
-    wxCHECK_MSG( pVal, false, wxT("null output pointer") );                  \
-    errno = 0;                                                              \
-    const wxStringCharType *start = wx_str();                               \
+// Tiny helper to preserve errno: it's used in the functions below because it
+// would be unexpected if they changed errno, especially in the case of
+// wxString::Format() that might be used when reporting errors.
+class PreserveErrno
+{
+public:
+    PreserveErrno() : m_errnoOrig{errno} {}
+    ~PreserveErrno() { errno = m_errnoOrig; }
+
+private:
+    const int m_errnoOrig;
+
+    wxDECLARE_NO_COPY_CLASS(PreserveErrno);
+};
+
+// The implementation of all the functions below is exactly the same so factor
+// it out in this template helper taking the function to call to actually
+// perform the conversion to some larger type R and a function to check that
+// the conversion result is in the correct range for the type T.
+//
+// Note that number extraction works correctly on UTF-8 strings, so
+// we can use wxStringCharType and wx_str() for maximum efficiency.
+template <typename R, typename T>
+bool
+ToNumeric(T* pVal,
+          R (*convert)(const wxStringCharType*, wxStringCharType**, int),
+          const wxStringCharType* start,
+          int base,
+          bool (*rangeCheck)(R))
+{
+    wxASSERT_MSG(!base || (base > 1 && base <= 36), wxT("invalid base"));
+    wxCHECK_MSG( pVal, false, wxT("null output pointer") );
+
+    PreserveErrno preserveErrno;
+    errno = 0;
+
     wxStringCharType *end;
 
-// notice that we return false without modifying the output parameter at all if
-// nothing could be parsed but we do modify it and return false then if we did
-// parse something successfully but not the entire string
-#define WX_STRING_TO_X_TYPE_END                                             \
-    if ( end == start || errno == ERANGE )                                  \
-        return false;                                                       \
-    *pVal = val;                                                            \
+    const R res = convert(start, &end, base);
+    if ( rangeCheck && !rangeCheck(res) )
+        return false;
+
+    // notice that we return false without modifying the output parameter at all if
+    // nothing could be parsed but we do modify it and return false then if we did
+    // parse something successfully but not the entire string
+    if ( end == start || errno == ERANGE )
+        return false;
+
+    *pVal = static_cast<T>(res);
     return !*end;
+}
+
+// This is a simplified version which uses the conversion function returning
+// the desired type directly, and hence no range checking function at all.
+template <typename T>
+bool
+ToNumeric(T* pVal,
+          T (*convert)(const wxStringCharType*, wxStringCharType**, int),
+          const wxStringCharType* start,
+          int base = 0)
+{
+    return ToNumeric<T>(pVal, convert, start, base, nullptr);
+}
+
+} // anonymous namespace
 
 bool wxString::ToInt(int *pVal, int base) const
 {
-    wxASSERT_MSG(!base || (base > 1 && base <= 36), wxT("invalid base"));
-
-    WX_STRING_TO_X_TYPE_START
-    wxLongLong_t lval = wxStrtoll(start, &end, base);
-
-    if (lval < INT_MIN || lval > INT_MAX)
-        return false;
-    int val = (int)lval;
-
-    WX_STRING_TO_X_TYPE_END
+    return ToNumeric<wxLongLong_t>
+           (
+            pVal, wxStrtoll, wx_str(), base,
+            [](wxLongLong_t val) { return val >= INT_MIN && val <= INT_MAX; }
+           );
 }
 
 bool wxString::ToUInt(unsigned int *pVal, int base) const
 {
-    wxASSERT_MSG(!base || (base > 1 && base <= 36), wxT("invalid base"));
-
-    WX_STRING_TO_X_TYPE_START
-    wxULongLong_t lval = wxStrtoull(start, &end, base);
-    if (lval > UINT_MAX)
-        return false;
-    unsigned int val = (unsigned int)lval;
-    WX_STRING_TO_X_TYPE_END
+    return ToNumeric<wxULongLong_t>
+           (
+            pVal, wxStrtoull, wx_str(), base,
+            [](wxULongLong_t val) { return val <= UINT_MAX; }
+           );
 }
 
 bool wxString::ToLong(long *pVal, int base) const
 {
-    wxASSERT_MSG( !base || (base > 1 && base <= 36), wxT("invalid base") );
-
-    WX_STRING_TO_X_TYPE_START
-    long val = wxStrtol(start, &end, base);
-    WX_STRING_TO_X_TYPE_END
+    return ToNumeric(pVal, wxStrtol, wx_str(), base);
 }
 
 bool wxString::ToULong(unsigned long *pVal, int base) const
 {
-    wxASSERT_MSG( !base || (base > 1 && base <= 36), wxT("invalid base") );
-
-    WX_STRING_TO_X_TYPE_START
-    unsigned long val = wxStrtoul(start, &end, base);
-    WX_STRING_TO_X_TYPE_END
+    return ToNumeric(pVal, wxStrtoul, wx_str(), base);
 }
 
 bool wxString::ToLongLong(wxLongLong_t *pVal, int base) const
 {
-    wxASSERT_MSG( !base || (base > 1 && base <= 36), wxT("invalid base") );
-
-    WX_STRING_TO_X_TYPE_START
-    wxLongLong_t val = wxStrtoll(start, &end, base);
-    WX_STRING_TO_X_TYPE_END
+    return ToNumeric(pVal, wxStrtoll, wx_str(), base);
 }
 
 bool wxString::ToULongLong(wxULongLong_t *pVal, int base) const
 {
-    wxASSERT_MSG( !base || (base > 1 && base <= 36), wxT("invalid base") );
-
-    WX_STRING_TO_X_TYPE_START
-    wxULongLong_t val = wxStrtoull(start, &end, base);
-    WX_STRING_TO_X_TYPE_END
+    return ToNumeric(pVal, wxStrtoull, wx_str(), base);
 }
 
 bool wxString::ToDouble(double *pVal) const
 {
-    WX_STRING_TO_X_TYPE_START
-    double val = wxStrtod(start, &end);
-    WX_STRING_TO_X_TYPE_END
+    // Use a hack to allow calling wxStrtod() with an unused "base" parameter
+    // for consistency with the other functions.
+    return ToNumeric<double>
+           (
+            pVal,
+            [](const wxStringCharType* start, wxStringCharType** endptr, int)
+            {
+                return wxStrtod(start, endptr);
+            },
+            wx_str()
+           );
 }
 
 #if wxUSE_XLOCALE
 
 bool wxString::ToCLong(long *pVal, int base) const
 {
-    wxASSERT_MSG( !base || (base > 1 && base <= 36), wxT("invalid base") );
-
-    WX_STRING_TO_X_TYPE_START
+    return ToNumeric<long>
+           (
+            pVal,
+            [](const wxStringCharType* start, wxStringCharType** endptr, int base)
+            {
 #if wxUSE_UNICODE_UTF8 && defined(wxHAS_XLOCALE_SUPPORT)
-    long val = wxStrtol_lA(start, &end, base, wxCLocale);
+                return wxStrtol_lA(start, endptr, base, wxCLocale);
 #else
-    long val = wxStrtol_l(start, &end, base, wxCLocale);
+                return wxStrtol_l(start, endptr, base, wxCLocale);
 #endif
-    WX_STRING_TO_X_TYPE_END
+            },
+            wx_str(), base
+           );
 }
 
 bool wxString::ToCULong(unsigned long *pVal, int base) const
 {
-    wxASSERT_MSG( !base || (base > 1 && base <= 36), wxT("invalid base") );
-
-    WX_STRING_TO_X_TYPE_START
+    return ToNumeric<unsigned long>
+           (
+            pVal,
+            [](const wxStringCharType* start, wxStringCharType** endptr, int base)
+            {
 #if wxUSE_UNICODE_UTF8 && defined(wxHAS_XLOCALE_SUPPORT)
-    unsigned long val = wxStrtoul_lA(start, &end, base, wxCLocale);
+                return wxStrtoul_lA(start, endptr, base, wxCLocale);
 #else
-    unsigned long val = wxStrtoul_l(start, &end, base, wxCLocale);
+                return wxStrtoul_l(start, endptr, base, wxCLocale);
 #endif
-    WX_STRING_TO_X_TYPE_END
+            },
+            wx_str(), base
+           );
 }
 
 bool wxString::ToCDouble(double *pVal) const
 {
-    WX_STRING_TO_X_TYPE_START
+    return ToNumeric<double>
+           (
+            pVal,
+            [](const wxStringCharType* start, wxStringCharType** endptr, int)
+            {
 #if wxUSE_UNICODE_UTF8 && defined(wxHAS_XLOCALE_SUPPORT)
-    double val = wxStrtod_lA(start, &end, wxCLocale);
+                return wxStrtod_lA(start, endptr, wxCLocale);
 #else
-    double val = wxStrtod_l(start, &end, wxCLocale);
+                return wxStrtod_l(start, endptr, wxCLocale);
 #endif
-    WX_STRING_TO_X_TYPE_END
+            },
+            wx_str()
+           );
 }
 
 #else // wxUSE_XLOCALE
@@ -1828,42 +1728,6 @@ wxString wxString::FromCDouble(double val, int precision)
 // formatted output
 // ---------------------------------------------------------------------------
 
-#if !wxUSE_UTF8_LOCALE_ONLY
-/* static */
-#ifdef wxNEEDS_WXSTRING_PRINTF_MIXIN
-wxString wxStringPrintfMixinBase::DoFormatWchar(const wxChar *format, ...)
-#else
-wxString wxString::DoFormatWchar(const wxChar *format, ...)
-#endif
-{
-    va_list argptr;
-    va_start(argptr, format);
-
-    wxString s;
-    s.PrintfV(format, argptr);
-
-    va_end(argptr);
-
-    return s;
-}
-#endif // !wxUSE_UTF8_LOCALE_ONLY
-
-#if wxUSE_UNICODE_UTF8
-/* static */
-wxString wxString::DoFormatUtf8(const char *format, ...)
-{
-    va_list argptr;
-    va_start(argptr, format);
-
-    wxString s;
-    s.PrintfV(format, argptr);
-
-    va_end(argptr);
-
-    return s;
-}
-#endif // wxUSE_UNICODE_UTF8
-
 /* static */
 wxString wxString::FormatV(const wxString& format, va_list argptr)
 {
@@ -1873,25 +1737,12 @@ wxString wxString::FormatV(const wxString& format, va_list argptr)
 }
 
 #if !wxUSE_UTF8_LOCALE_ONLY
-#ifdef wxNEEDS_WXSTRING_PRINTF_MIXIN
-int wxStringPrintfMixinBase::DoPrintfWchar(const wxChar *format, ...)
-#else
 int wxString::DoPrintfWchar(const wxChar *format, ...)
-#endif
 {
     va_list argptr;
     va_start(argptr, format);
 
-#ifdef wxNEEDS_WXSTRING_PRINTF_MIXIN
-    // get a pointer to the wxString instance; we have to use dynamic_cast<>
-    // because it's the only cast that works safely for downcasting when
-    // multiple inheritance is used:
-    wxString *str = static_cast<wxString*>(this);
-#else
-    wxString *str = this;
-#endif
-
-    int iLen = str->PrintfV(format, argptr);
+    int iLen = PrintfV(format, argptr);
 
     va_end(argptr);
 
@@ -1957,6 +1808,7 @@ static int DoStringPrintfV(wxString& str,
                            const wxString& format, va_list argptr)
 {
     size_t size = 1024;
+    PreserveErrno preserveErrno;
 
     for ( ;; )
     {
@@ -2044,11 +1896,7 @@ static int DoStringPrintfV(wxString& str,
 int wxString::PrintfV(const wxString& format, va_list argptr)
 {
 #if wxUSE_UNICODE_UTF8
-    #if wxUSE_STL_BASED_WXSTRING
-        typedef wxStringTypeBuffer<char> Utf8Buffer;
-    #else
-        typedef wxStringInternalBuffer Utf8Buffer;
-    #endif
+    typedef wxStringTypeBuffer<char> Utf8Buffer;
 #endif
 
 #if wxUSE_UTF8_LOCALE_ONLY

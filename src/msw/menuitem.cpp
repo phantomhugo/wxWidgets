@@ -123,12 +123,6 @@ private:
     int m_modeOld;
 };
 
-inline bool IsGreaterThanStdSize(const wxBitmap& bmp, const wxWindow* win)
-{
-    return bmp.GetWidth() > wxGetSystemMetrics(SM_CXMENUCHECK, win) ||
-            bmp.GetHeight() > wxGetSystemMetrics(SM_CYMENUCHECK, win);
-}
-
 } // anonymous namespace
 
 // ============================================================================
@@ -740,6 +734,13 @@ void wxMenuItem::DoSetBitmap(const wxBitmapBundle& bmpNew, bool bChecked)
 
 void wxMenuItem::SetupBitmaps()
 {
+    // Owner-drawn items must not return valid bitmaps even if they have them,
+    // this somehow breaks the item measuring logic and the menu may not become
+    // wide enough to accommodate the items text, so just don't do anything at
+    // all for them here.
+    if ( IsOwnerDrawn() )
+        return;
+
     const int itemPos = MSGetMenuItemPos();
     if ( itemPos == -1 )
     {

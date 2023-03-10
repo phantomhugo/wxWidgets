@@ -579,7 +579,7 @@ public:
     - With CMake just enable @c wxUSE_WEBVIEW_EDGE
     - When not using CMake:
         - Download the <a href="https://aka.ms/webviewnuget">WebView2 SDK</a>
-        nuget package (Version 1.0.705.50 or newer)
+        nuget package (Version 1.0.864.35 or newer)
         - Extract the package (it's a zip archive) to @c wxWidgets/3rdparty/webview2
         (you should have @c 3rdparty/webview2/build/native/include/WebView2.h
         file after unpacking it)
@@ -998,8 +998,7 @@ public:
         If your first request should already use the custom user agent
         please use two step creation and call SetUserAgent() before Create().
 
-        @note This is not implemented for IE. For Edge SetUserAgent()
-            MUST be called before Create().
+        @note This is not implemented for IE.
 
         @since 3.1.5
     */
@@ -1212,7 +1211,7 @@ public:
     virtual void Paste();
 
     /**
-        @name Context Menu
+        @name Settings
     */
 
     /**
@@ -1233,10 +1232,6 @@ public:
     virtual bool IsContextMenuEnabled() const;
 
     /**
-        @name Dev Tools
-    */
-
-    /**
         Enable or disable access to dev tools for the user.
 
         Dev tools are disabled by default.
@@ -1253,6 +1248,30 @@ public:
         @since 3.1.4
     */
     virtual bool IsAccessToDevToolsEnabled() const;
+
+    /**
+        Enable or disable if browser accelerator keys are enabled.
+
+        Browser accelerator keys are enabled by default.
+
+        The webview might implement various accelerator keys. This includes
+        allowing accelerator key access to features such as printing and
+        navigation. In many cases this might not be desired and the default
+        keys can be disabled with this setting.
+
+        @note This is only implemented for the Edge backend.
+
+        @since 3.3.0
+    */
+    virtual void EnableBrowserAcceleratorKeys(bool enable = true);
+
+    /**
+        Returns @true if browser accelerator keys are enabled.
+
+        @since 3.3.0
+    */
+    virtual bool AreBrowserAcceleratorKeysEnabled() const;
+
 
     /**
         @name History
@@ -1649,6 +1668,16 @@ public:
         @since 3.1.6
     */
     bool IsError() const;
+
+    /**
+        Returns true if the navigation target is the main frame. Only valid
+        for events of type @c wxEVT_WEBVIEW_NAVIGATING
+
+        @note This is only available with the macOS and the Edge backend.
+
+        @since 3.3.0
+    */
+    bool IsTargetMainFrame() const;
 };
 
 

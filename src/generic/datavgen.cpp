@@ -265,6 +265,11 @@ void wxDataViewColumn::SetSortOrder(bool ascending)
     if ( !m_owner )
         return;
 
+    // If we only allow sorting by a single column, we need to reset any
+    // existing sort columns.
+    if ( !m_owner->IsMultiColumnSortAllowed() )
+        m_owner->ResetAllSortColumns();
+
     const int idx = m_owner->GetColumnIndex(this);
 
     // If this column isn't sorted already, mark it as sorted
@@ -394,11 +399,9 @@ private:
         }
         else // not using this column for sorting yet
         {
-            // We will sort by this column only now, so reset all the
-            // previously used ones.
-            owner->ResetAllSortColumns();
-
-            // Sort the column
+            // Sort by this column: note that it can add it to the existing
+            // sort columns if multi-column sort is allowed, but by default it
+            // will replace the existing sort column (if any).
             col->SetSortOrder(true);
         }
 
@@ -822,6 +825,11 @@ public:
 
     int GetCountPerPage() const;
     int GetEndOfLastCol() const;
+
+    // Returns the position where the given column starts.
+    // The column must be valid.
+    int GetColumnStart(int column) const;
+
     unsigned int GetFirstVisibleRow() const;
     wxDataViewItem GetTopItem() const;
 
@@ -3472,33 +3480,7 @@ void wxDataViewMainWindow::ScrollTo( int rows, int column )
     int sy = y ? GetLineStart( rows )/y : -1;
     int sx = -1;
     if( column != -1 && x )
-    {
-        wxRect rect = GetClientRect();
-        int colnum = 0;
-        int x_start, w = 0;
-        int xx, yy, xe;
-        m_owner->CalcUnscrolledPosition( rect.x, rect.y, &xx, &yy );
-        for (x_start = 0; colnum < column; colnum++)
-        {
-            wxDataViewColumn *col = GetOwner()->GetColumnAt(colnum);
-            if (col->IsHidden())
-                continue;      // skip it!
-
-            w = col->GetWidth();
-            x_start += w;
-        }
-
-        int x_end = x_start + w;
-        xe = xx + rect.width;
-        if( x_end > xe )
-        {
-            sx = ( xx + x_end - xe )/x;
-        }
-        if( x_start < xx )
-        {
-            sx = x_start/x;
-        }
-    }
+        sx = GetColumnStart(column) / x;
     m_owner->Scroll( sx, sy );
 }
 
@@ -3542,6 +3524,39 @@ int wxDataViewMainWindow::GetEndOfLastCol() const
             width += c->GetWidth();
     }
     return width;
+}
+
+int wxDataViewMainWindow::GetColumnStart(int column) const
+{
+    wxASSERT(column >= 0);
+    int sx = -1;
+
+    wxRect rect = GetClientRect();
+    int colnum = 0;
+    int x_start, w = 0;
+    int xx, yy, xe;
+    m_owner->CalcUnscrolledPosition(rect.x, rect.y, &xx, &yy);
+    for (x_start = 0; colnum < column; colnum++)
+    {
+        wxDataViewColumn* col = GetOwner()->GetColumnAt(colnum);
+        if (col->IsHidden())
+            continue;      // skip it!
+
+        w = col->GetWidth();
+        x_start += w;
+    }
+
+    int x_end = x_start + w;
+    xe = xx + rect.width;
+    if (x_end > xe)
+    {
+        sx = (xx + x_end - xe);
+    }
+    if (x_start < xx)
+    {
+        sx = x_start;
+    }
+    return sx;
 }
 
 unsigned int wxDataViewMainWindow::GetFirstVisibleRow() const
@@ -6445,12 +6460,33 @@ void wxDataViewCtrl::EnsureVisibleRowCol( int row, int column )
 
     int first = m_clientArea->GetFirstVisibleRow();
     int last = m_clientArea->GetLastFullyVisibleRow();
-    if( row < first )
+    if( row <= first )
+    {
         m_clientArea->ScrollTo( row, column );
+    }
     else if( row > last )
-        m_clientArea->ScrollTo( row - last + first, column );
-    else
-        m_clientArea->ScrollTo( first, column );
+    {
+        if ( !HasFlag(wxDV_VARIABLE_LINE_HEIGHT) )
+        {
+            // Simple case as we can directly find the item to scroll to.
+            m_clientArea->ScrollTo(row - last + first, column);
+        }
+        else
+        {
+            // calculate scroll position based on last visible item
+            const int itemStart = m_clientArea->GetLineStart(row);
+            const int itemHeight = m_clientArea->GetLineHeight(row);
+            const int clientHeight = m_clientArea->GetSize().y;
+            int scrollX, scrollY;
+            GetScrollPixelsPerUnit(&scrollX, &scrollY);
+            int scrollPosY =
+                (itemStart + itemHeight - clientHeight + scrollY - 1) / scrollY;
+            int scrollPosX = -1;
+            if (column != -1 && scrollX)
+                scrollPosX = m_clientArea->GetColumnStart(column) / scrollX;
+            Scroll(scrollPosX, scrollPosY);
+        }
+    }
 }
 
 void wxDataViewCtrl::EnsureVisible( const wxDataViewItem & item, const wxDataViewColumn * column )

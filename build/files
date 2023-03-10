@@ -647,7 +647,6 @@ BASE_CMN_SRC =
     src/common/log.cpp
     src/common/longlong.cpp
     src/common/lzmastream.cpp
-    src/common/memory.cpp
     src/common/mimecmn.cpp
     src/common/module.cpp
     src/common/mstream.cpp
@@ -665,7 +664,6 @@ BASE_CMN_SRC =
     src/common/strconv.cpp
     src/common/stream.cpp
     src/common/string.cpp
-    src/common/stringimpl.cpp
     src/common/stringops.cpp
     src/common/strvararg.cpp
     src/common/sysopt.cpp
@@ -814,7 +812,6 @@ BASE_CMN_HDR =
     wx/strconv.h
     wx/stream.h
     wx/string.h
-    wx/stringimpl.h
     wx/stringops.h
     wx/strvararg.h
     wx/sysopt.h
@@ -1172,6 +1169,7 @@ GUI_CMN_HDR =
     wx/combo.h
     wx/combobox.h
     wx/commandlinkbutton.h
+    wx/compositebookctrl.h
     wx/compositewin.h
     wx/control.h
     wx/creddlg.h
@@ -1258,7 +1256,6 @@ GUI_CMN_HDR =
     wx/generic/notebook.h
     wx/generic/notifmsg.h
     wx/generic/numdlgg.h
-    wx/generic/panelg.h
     wx/generic/printps.h
     wx/generic/prntdlgg.h
     wx/generic/progdlgg.h
@@ -1815,6 +1812,7 @@ MSW_LOWLEVEL_SRC =
     src/msw/ole/oleutils.cpp
     src/msw/ole/safearray.cpp
     src/msw/ole/uuid.cpp
+    src/msw/overlay.cpp
     src/msw/palette.cpp
     src/msw/pen.cpp
     src/msw/popupwin.cpp
@@ -1874,6 +1872,7 @@ MSW_SRC =
     src/msw/commandlinkbutton.cpp
     src/msw/control.cpp
     src/msw/customdraw.cpp
+    src/msw/darkmode.cpp
     src/msw/datecontrols.cpp
     src/msw/datectrl.cpp
     src/msw/datetimectrl.cpp
@@ -1994,7 +1993,6 @@ MSW_HDR =
     wx/msw/ownerdrawnbutton.h
     wx/msw/ownerdrw.h
     wx/msw/palette.h
-    wx/msw/panel.h
     wx/msw/pen.h
     wx/msw/printdlg.h
     wx/msw/printwin.h
@@ -2533,7 +2531,6 @@ UNIV_HDR =
     wx/univ/menu.h
     wx/univ/menuitem.h
     wx/univ/notebook.h
-    wx/univ/panel.h
     wx/univ/radiobox.h
     wx/univ/radiobut.h
     wx/univ/renderer.h

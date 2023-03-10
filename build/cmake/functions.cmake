@@ -212,6 +212,12 @@ function(wx_set_target_properties target_name)
     if(wxCOMPILER_PREFIX)
         wx_string_append(dll_suffix "_${wxCOMPILER_PREFIX}")
     endif()
+    # For compatibility with MSVS project files and makefile.vc, use arch
+    # suffix for non-x86 (including x86_64) DLLs.
+    if(MSVC AND wxARCH_SUFFIX)
+        # This one already includes the leading underscore, so don't add another one.
+        wx_string_append(dll_suffix "${wxARCH_SUFFIX}")
+    endif()
     if(wxBUILD_VENDOR)
         wx_string_append(dll_suffix "_${wxBUILD_VENDOR}")
     endif()

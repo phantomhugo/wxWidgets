@@ -118,11 +118,6 @@
 
 wxIMPLEMENT_ABSTRACT_CLASS(wxPGEditor, wxObject);
 
-
-wxPGEditor::~wxPGEditor()
-{
-}
-
 wxString wxPGEditor::GetName() const
 {
     return GetClassInfo()->GetClassName();
@@ -176,17 +171,13 @@ void wxPGEditor::SetControlAppearance( wxPropertyGrid* pg,
                                        bool unspecified ) const
 {
     // Get old editor appearance
-    wxTextCtrl* tc = nullptr;
+    wxTextCtrl* tc = wxDynamicCast(ctrl, wxTextCtrl);
     wxComboCtrl* cb = nullptr;
-    if ( wxDynamicCast(ctrl, wxTextCtrl) )
+    if ( !tc )
     {
-        tc = (wxTextCtrl*) ctrl;
-    }
-    else
-    {
-        if ( wxDynamicCast(ctrl, wxComboCtrl) )
+        cb = wxDynamicCast(ctrl, wxComboCtrl);
+        if ( cb )
         {
-            cb = (wxComboCtrl*) ctrl;
             tc = cb->GetTextCtrl();
         }
     }
@@ -293,7 +284,7 @@ wxPGWindowList wxPGTextCtrlEditor::CreateControls( wxPropertyGrid* propGrid,
     //
     // If has children, and limited editing is specified, then don't create.
     if ( property->HasFlag(wxPG_PROP_NOEDITOR) &&
-         property->GetChildCount() )
+         property->HasAnyChild() )
         return nullptr;
 
     int argFlags = 0;
@@ -725,8 +716,7 @@ void wxPropertyGrid::OnComboItemPaint( const wxPGComboBox* pCb,
         comValIndex = item - choiceCount;
         if ( !p->IsValueUnspecified() || !(flags & wxODCB_PAINTING_CONTROL) )
         {
-            const wxPGCommonValue* cv = GetCommonValue(comValIndex);
-            text = cv->GetLabel();
+            text = GetCommonValueLabel(comValIndex);
         }
     }
     else
@@ -1117,7 +1107,7 @@ bool wxPGChoiceEditor::OnEvent( wxPropertyGrid* propGrid, wxPGProperty* property
             if ( propGrid->GetUnspecifiedCommonValue() == cmnValIndex )
             {
                 if ( !property->IsValueUnspecified() )
-                    propGrid->SetInternalFlag(wxPG_FL_VALUE_CHANGE_IN_EVENT);
+                    propGrid->SetInternalFlag(wxPropertyGrid::wxPG_FL_VALUE_CHANGE_IN_EVENT);
                 property->SetValueToUnspecified();
                 if ( !cb->HasFlag(wxCB_READONLY) )
                 {
@@ -1378,31 +1368,61 @@ WX_PG_IMPLEMENT_INTERNAL_EDITOR_CLASS(CheckBox,
 
 
 // Check box state flags
-enum
+enum class wxSimpleCheckBoxStates : int
 {
-    wxSCB_STATE_UNCHECKED   = 0,
-    wxSCB_STATE_CHECKED     = 1,
-    wxSCB_STATE_BOLD        = 2,
-    wxSCB_STATE_UNSPECIFIED = 4
+    Unchecked   = 0,
+    Checked     = 1,
+    Bold        = 2,
+    Unspecified = 4
 };
+
+constexpr wxSimpleCheckBoxStates operator&(wxSimpleCheckBoxStates a, wxSimpleCheckBoxStates b)
+{
+    return static_cast<wxSimpleCheckBoxStates>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+constexpr wxSimpleCheckBoxStates operator|(wxSimpleCheckBoxStates a, wxSimpleCheckBoxStates b)
+{
+    return static_cast<wxSimpleCheckBoxStates>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline wxSimpleCheckBoxStates operator|=(wxSimpleCheckBoxStates& a, wxSimpleCheckBoxStates b)
+{
+    return a = a | b;
+}
+
+constexpr wxSimpleCheckBoxStates operator^(wxSimpleCheckBoxStates a, wxSimpleCheckBoxStates b)
+{
+    return static_cast<wxSimpleCheckBoxStates>(static_cast<int>(a) ^ static_cast<int>(b));
+}
+
+inline wxSimpleCheckBoxStates operator^=(wxSimpleCheckBoxStates& a, wxSimpleCheckBoxStates b)
+{
+    return a = a ^ b;
+}
+
+constexpr bool operator!(wxSimpleCheckBoxStates a)
+{
+    return static_cast<int>(a) == 0;
+}
 
 const int wxSCB_SETVALUE_CYCLE = 2;
 
-static void DrawSimpleCheckBox(wxWindow* win, wxDC& dc, const wxRect& rect, int state)
+static void DrawSimpleCheckBox(wxWindow* win, wxDC& dc, const wxRect& rect, wxSimpleCheckBoxStates state)
 {
 #if wxPG_USE_RENDERER_NATIVE
 
     int cbFlags = 0;
-    if ( state & wxSCB_STATE_UNSPECIFIED )
+    if ( !!(state & wxSimpleCheckBoxStates::Unspecified) )
     {
         cbFlags |= wxCONTROL_UNDETERMINED;
     }
-    else if ( state & wxSCB_STATE_CHECKED )
+    else if ( !!(state & wxSimpleCheckBoxStates::Checked) )
     {
         cbFlags |= wxCONTROL_CHECKED;
     }
 
-    if ( state & wxSCB_STATE_BOLD )
+    if ( !!(state & wxSimpleCheckBoxStates::Bold) )
     {
         // wxCONTROL_CHECKED and wxCONTROL_PRESSED flags
         // are equivalent for wxOSX so we have to use
@@ -1420,7 +1440,7 @@ static void DrawSimpleCheckBox(wxWindow* win, wxDC& dc, const wxRect& rect, int 
 
     wxColour useCol = dc.GetTextForeground();
 
-    if ( state & wxSCB_STATE_UNSPECIFIED )
+    if ( !!(state & wxSimpleCheckBoxStates::Unspecified) )
     {
         useCol = wxColour(220, 220, 220);
     }
@@ -1428,7 +1448,7 @@ static void DrawSimpleCheckBox(wxWindow* win, wxDC& dc, const wxRect& rect, int 
     wxRect r(rect);
     // Draw check mark first because it is likely to overdraw the
     // surrounding rectangle.
-    if ( state & wxSCB_STATE_CHECKED )
+    if ( !!(state & wxSimpleCheckBoxStates::Checked) )
     {
         wxRect r2(r.x+wxPG_CHECKMARK_XADJ,
                   r.y+wxPG_CHECKMARK_YADJ,
@@ -1444,7 +1464,7 @@ static void DrawSimpleCheckBox(wxWindow* win, wxDC& dc, const wxRect& rect, int 
         // dc.DrawLine(r.x,r.y+r.height-1,r.x+r.width-1,r.y);
     }
 
-    if ( !(state & wxSCB_STATE_BOLD) )
+    if ( !(state & wxSimpleCheckBoxStates::Bold) )
     {
         // Pen for thin rectangle.
         dc.SetPen(useCol);
@@ -1482,7 +1502,7 @@ public:
                       const wxPoint& pos = wxDefaultPosition,
                       const wxSize& size = wxDefaultSize )
         : wxControl(parent,id,pos,size,wxBORDER_NONE|wxWANTS_CHARS)
-        , m_state(0)
+        , m_state(wxSimpleCheckBoxStates::Unchecked)
     {
         // Due to SetOwnFont stuff necessary for GTK+ 1.2, we need to have this
         wxControl::SetFont( parent->GetFont() );
@@ -1491,8 +1511,7 @@ public:
         wxControl::SetBackgroundStyle( wxBG_STYLE_PAINT );
     }
 
-    virtual ~wxSimpleCheckBox();
-
+    virtual ~wxSimpleCheckBox() = default;
 
     void SetBoxHeight(int height)
     {
@@ -1509,7 +1528,7 @@ public:
         return wxRect(r.x + wxPG_XBEFORETEXT, r.y + ((r.height - box_h) / 2), box_h, box_h);
     }
 
-    int m_state;
+    wxSimpleCheckBoxStates m_state;
 
 private:
     void OnPaint( wxPaintEvent& event );
@@ -1541,10 +1560,6 @@ wxBEGIN_EVENT_TABLE(wxSimpleCheckBox, wxControl)
     EVT_COMMAND(wxID_ANY, wxEVT_CB_LEFT_CLICK_ACTIVATE, wxSimpleCheckBox::OnLeftClickActivate)
 wxEND_EVENT_TABLE()
 
-wxSimpleCheckBox::~wxSimpleCheckBox()
-{
-}
-
 void wxSimpleCheckBox::OnPaint( wxPaintEvent& WXUNUSED(event) )
 {
     wxAutoBufferedPaintDC dc(this);
@@ -1557,10 +1572,10 @@ void wxSimpleCheckBox::OnPaint( wxPaintEvent& WXUNUSED(event) )
 
     dc.SetTextForeground(GetForegroundColour());
 
-    int state = m_state;
-    if ( !(state & wxSCB_STATE_UNSPECIFIED) &&
+    wxSimpleCheckBoxStates state = m_state;
+    if ( !(state & wxSimpleCheckBoxStates::Unspecified) &&
          GetFont().GetWeight() == wxFONTWEIGHT_BOLD )
-        state |= wxSCB_STATE_BOLD;
+        state |= wxSimpleCheckBoxStates::Bold;
 
     DrawSimpleCheckBox(this, dc, m_boxRect, state);
 }
@@ -1585,11 +1600,11 @@ void wxSimpleCheckBox::SetValue( int value )
 {
     if ( value == wxSCB_SETVALUE_CYCLE )
     {
-        m_state ^= wxSCB_STATE_CHECKED;
+        m_state ^= wxSimpleCheckBoxStates::Checked;
     }
     else
     {
-        m_state = value;
+        m_state = value == 0 ? wxSimpleCheckBoxStates::Unchecked : wxSimpleCheckBoxStates::Checked;
     }
     Refresh();
 
@@ -1631,7 +1646,7 @@ wxPGWindowList wxPGCheckBoxEditor::CreateControls( wxPropertyGrid* propGrid,
 
     if ( !property->IsValueUnspecified() )
     {
-        if ( propGrid->HasInternalFlag(wxPG_FL_ACTIVATION_BY_CLICK) )
+        if ( propGrid->HasInternalFlag(wxPropertyGrid::wxPG_FL_ACTIVATION_BY_CLICK) )
         {
             // Send the event to toggle the value (if mouse cursor is on the item)
             wxPoint point = cb->ScreenToClient(::wxGetMousePosition());
@@ -1643,7 +1658,7 @@ wxPGWindowList wxPGCheckBoxEditor::CreateControls( wxPropertyGrid* propGrid,
         }
     }
 
-    propGrid->SetInternalFlag( wxPG_FL_FIXED_WIDTH_EDITOR );
+    propGrid->SetInternalFlag(wxPropertyGrid::wxPG_FL_FIXED_WIDTH_EDITOR);
 
     return cb;
 }
@@ -1652,17 +1667,17 @@ void wxPGCheckBoxEditor::DrawValue( wxDC& dc, const wxRect& rect,
                                     wxPGProperty* property,
                                     const wxString& WXUNUSED(text) ) const
 {
-    int state = wxSCB_STATE_UNCHECKED;
+    wxSimpleCheckBoxStates state = wxSimpleCheckBoxStates::Unchecked;
 
     if ( !property->IsValueUnspecified() )
     {
-        state = property->GetChoiceSelection();
+        state = property->GetChoiceSelection() == 0 ? wxSimpleCheckBoxStates::Unchecked : wxSimpleCheckBoxStates::Checked;
         if ( dc.GetFont().GetWeight() == wxFONTWEIGHT_BOLD )
-            state |= wxSCB_STATE_BOLD;
+            state |= wxSimpleCheckBoxStates::Bold;
     }
     else
     {
-        state |= wxSCB_STATE_UNSPECIFIED;
+        state |= wxSimpleCheckBoxStates::Unspecified;
     }
 
     // Box rectangle
@@ -1677,9 +1692,10 @@ void wxPGCheckBoxEditor::UpdateControl( wxPGProperty* property,
     wxCHECK_RET(cb, "Only wxSimpleCheckBox editor can be updated");
 
     if ( !property->IsValueUnspecified() )
-        cb->m_state = property->GetChoiceSelection();
+        cb->m_state = property->GetChoiceSelection() == 0
+                        ? wxSimpleCheckBoxStates::Unchecked : wxSimpleCheckBoxStates::Checked;
     else
-        cb->m_state = wxSCB_STATE_UNSPECIFIED;
+        cb->m_state = wxSimpleCheckBoxStates::Unspecified;
 
     wxPropertyGrid* propGrid = property->GetGrid();
     cb->SetBoxHeight(propGrid->GetFontHeight());
@@ -1702,7 +1718,7 @@ bool wxPGCheckBoxEditor::GetValueFromControl( wxVariant& variant, wxPGProperty* 
 {
     wxSimpleCheckBox* cb = (wxSimpleCheckBox*)ctrl;
 
-    int index = cb->m_state;
+    int index = !!(cb->m_state & wxSimpleCheckBoxStates::Checked) ? 1 : 0;
 
     if ( index != property->GetChoiceSelection() ||
          // Changing unspecified always causes event (returning
@@ -1718,15 +1734,14 @@ bool wxPGCheckBoxEditor::GetValueFromControl( wxVariant& variant, wxPGProperty* 
 
 void wxPGCheckBoxEditor::SetControlIntValue( wxPGProperty* WXUNUSED(property), wxWindow* ctrl, int value ) const
 {
-    if ( value != 0 ) value = 1;
-    ((wxSimpleCheckBox*)ctrl)->m_state = value;
+    ((wxSimpleCheckBox*)ctrl)->m_state = value == 0 ? wxSimpleCheckBoxStates::Unchecked : wxSimpleCheckBoxStates::Checked;
     ctrl->Refresh();
 }
 
 
 void wxPGCheckBoxEditor::SetValueToUnspecified( wxPGProperty* WXUNUSED(property), wxWindow* ctrl ) const
 {
-    ((wxSimpleCheckBox*)ctrl)->m_state = wxSCB_STATE_UNSPECIFIED;
+    ((wxSimpleCheckBox*)ctrl)->m_state = wxSimpleCheckBoxStates::Unspecified;
     ctrl->Refresh();
 }
 
@@ -1983,7 +1998,7 @@ wxWindow* wxPropertyGrid::GenerateEditorButton( const wxPoint& pos, const wxSize
     wxPGProperty* selected = GetSelection();
     wxASSERT(selected);
 
-    const wxString label = wxString::FromUTF8("\xe2\x80\xa6"); // "Horizontal ellipsis" character
+    const wxString label(L"\u2026"); // "Horizontal ellipsis" character
 
     int dim = sz.y + 2*wxPG_BUTTON_BORDER_WIDTH;
 
@@ -2037,7 +2052,7 @@ wxWindow* wxPropertyGrid::GenerateEditorTextCtrlAndButton( const wxPoint& pos,
     if ( !property->IsValueUnspecified() )
         text = property->GetValueAsString(property->HasFlag(wxPG_PROP_READONLY)?0:wxPG_EDITABLE_VALUE);
 
-    return GenerateEditorTextCtrl(pos,sz,text,but,property->GetMaxLength());
+    return GenerateEditorTextCtrl(pos, sz, text, but, 0, property->GetMaxLength());
 }
 
 // -----------------------------------------------------------------------
@@ -2088,12 +2103,8 @@ wxTextCtrl* wxPropertyGrid::GetEditorTextCtrl() const
 
 wxPGEditor* wxPropertyGridInterface::GetEditorByName( const wxString& editorName )
 {
-    wxPGHashMapS2P::const_iterator it;
-
-    it = wxPGGlobalVars->m_mapEditorClasses.find(editorName);
-    if ( it == wxPGGlobalVars->m_mapEditorClasses.end() )
-        return nullptr;
-    return (wxPGEditor*) it->second;
+    auto it = wxPGGlobalVars->m_mapEditorClasses.find(editorName);
+    return it == wxPGGlobalVars->m_mapEditorClasses.end() ? nullptr : it->second;
 }
 
 // -----------------------------------------------------------------------
@@ -2175,7 +2186,7 @@ public:
 #endif
     }
 
-    virtual ~wxPGEditorBitmapButton() { }
+    virtual ~wxPGEditorBitmapButton() = default;
 
 private:
 #ifndef __WXGTK3__

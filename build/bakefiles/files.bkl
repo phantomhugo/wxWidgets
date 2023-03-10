@@ -729,7 +729,6 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     src/common/list.cpp
     src/common/log.cpp
     src/common/longlong.cpp
-    src/common/memory.cpp
     src/common/mimecmn.cpp
     src/common/module.cpp
     src/common/mstream.cpp
@@ -746,7 +745,6 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     src/common/strconv.cpp
     src/common/stream.cpp
     src/common/string.cpp
-    src/common/stringimpl.cpp
     src/common/stringops.cpp
     src/common/strvararg.cpp
     src/common/sysopt.cpp
@@ -895,7 +893,6 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     wx/strconv.h
     wx/stream.h
     wx/string.h
-    wx/stringimpl.h
     wx/stringops.h
     wx/strvararg.h
     wx/sysopt.h
@@ -1281,7 +1278,6 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     wx/generic/msgdlgg.h
     wx/generic/numdlgg.h
     wx/generic/notebook.h
-    wx/generic/panelg.h
     wx/generic/prntdlgg.h
     wx/generic/printps.h
     wx/generic/progdlgg.h
@@ -1520,6 +1516,7 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     wx/creddlg.h
     wx/bmpbndl.h
     wx/filedlgcustomize.h
+    wx/compositebookctrl.h
 </set>
 
 <!-- ====================================================================== -->
@@ -1966,6 +1963,7 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     src/msw/evtloop.cpp
     src/msw/ole/access.cpp
     src/msw/bmpbndl.cpp
+    src/msw/overlay.cpp
 </set>
 <set var="MSW_LOWLEVEL_HDR" hints="files">
     wx/msw/nonownedwnd.h
@@ -2049,6 +2047,7 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     src/msw/timectrl.cpp
     src/msw/datecontrols.cpp
     src/generic/activityindicator.cpp
+    src/msw/darkmode.cpp
 </set>
 <set var="MSW_HDR" hints="files">
     wx/generic/clrpickerg.h
@@ -2118,7 +2117,6 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     wx/msw/ownerdrw.h
     wx/msw/ownerdrawnbutton.h
     wx/msw/palette.h
-    wx/msw/panel.h
     wx/msw/pen.h
     wx/msw/printdlg.h
     wx/msw/printwin.h
@@ -2697,7 +2695,6 @@ IMPORTANT: please read docs/tech/tn0016.txt before modifying this file!
     wx/univ/menu.h
     wx/univ/menuitem.h
     wx/univ/notebook.h
-    wx/univ/panel.h
     wx/univ/radiobox.h
     wx/univ/radiobut.h
     wx/univ/renderer.h

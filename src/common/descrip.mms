@@ -143,7 +143,6 @@ OBJECTS1=fs_inet.obj,\
 		list.obj,\
 		log.obj,\
 		longlong.obj,\
-		memory.obj,\
 		menucmn.obj,\
 		mimecmn.obj,\
 		module.obj,\
@@ -175,7 +174,6 @@ OBJECTS1=fs_inet.obj,\
 		strconv.obj,\
 		stream.obj,\
 		string.obj,\
-		stringimpl.obj,\
 		stringops.obj,\
 		strvararg.obj,\
 		sysopt.obj
@@ -337,7 +335,6 @@ SOURCES = \
 		listctrlcmn.cpp,\
 		log.cpp,\
 		longlong.cpp,\
-		memory.cpp,\
 		menucmn.cpp,\
 		mimecmn.cpp,\
 		module.cpp,\
@@ -376,7 +373,6 @@ SOURCES = \
 		strvararg.cpp,\
 		sysopt.cpp,\
 		string.cpp,\
-		stringimpl.cpp,\
 		stringops.cpp,\
 		tbarbase.cpp,\
 		textbuf.cpp,\
@@ -578,7 +574,6 @@ lboxcmn.obj : lboxcmn.cpp
 list.obj : list.cpp
 log.obj : log.cpp
 longlong.obj : longlong.cpp
-memory.obj : memory.cpp
 menucmn.obj : menucmn.cpp
 mimecmn.obj : mimecmn.cpp
 module.obj : module.cpp
@@ -615,7 +610,6 @@ stream.obj : stream.cpp
 strvararg.obj : strvararg.cpp
 sysopt.obj : sysopt.cpp
 string.obj : string.cpp
-stringimpl.obj : stringimpl.cpp
 stringops.obj : stringops.cpp
 tbarbase.obj : tbarbase.cpp
 textbuf.obj : textbuf.cpp

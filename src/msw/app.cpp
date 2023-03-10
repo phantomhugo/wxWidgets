@@ -45,14 +45,18 @@
 #include "wx/filename.h"
 #include "wx/dynlib.h"
 #include "wx/evtloop.h"
+#include "wx/msgdlg.h"
 #include "wx/thread.h"
+#include "wx/platinfo.h"
 #include "wx/scopeguard.h"
+#include "wx/sysopt.h"
 #include "wx/vector.h"
 #include "wx/weakref.h"
 
 #include "wx/msw/private.h"
 #include "wx/msw/dc.h"
 #include "wx/msw/ole/oleutils.h"
+#include "wx/msw/private/darkmode.h"
 #include "wx/msw/private/timer.h"
 
 #if wxUSE_TOOLTIPS
@@ -313,10 +317,6 @@ wxEventLoopBase* wxGUIAppTraits::CreateEventLoop()
 // ---------------------------------------------------------------------------
 // Stuff for using console from the GUI applications
 // ---------------------------------------------------------------------------
-
-#if wxUSE_DYNLIB_CLASS
-
-#include <wx/dynlib.h>
 
 namespace
 {
@@ -583,20 +583,6 @@ bool wxGUIAppTraits::WriteToStderr(const wxString& text)
     return s_consoleStderr.IsOkToUse() && s_consoleStderr.Write(text);
 }
 
-#else // !wxUSE_DYNLIB_CLASS
-
-bool wxGUIAppTraits::CanUseStderr()
-{
-    return false;
-}
-
-bool wxGUIAppTraits::WriteToStderr(const wxString& WXUNUSED(text))
-{
-    return false;
-}
-
-#endif // wxUSE_DYNLIB_CLASS/!wxUSE_DYNLIB_CLASS
-
 WXHWND wxGUIAppTraits::GetMainHWND() const
 {
     const wxWindow* const w = wxApp::GetMainTopWindow();
@@ -648,6 +634,14 @@ bool wxApp::Initialize(int& argc_, wxChar **argv_)
 
     wxSetKeyboardHook(true);
 
+    // this is useful to allow users to enable dark mode for the applications
+    // not enabling it themselves by setting the corresponding environment
+    // variable
+    if ( const int darkMode = wxSystemOptions::GetOptionInt("msw.dark-mode") )
+    {
+        MSWEnableDarkMode(darkMode > 1 ? DarkMode_Always : DarkMode_Auto);
+    }
+
     callBaseCleanup.Dismiss();
 
     return true;
@@ -671,6 +665,15 @@ const wxChar *wxApp::GetRegisteredClassName(const wxChar *name,
             return gs_regClassesInfo[n].GetRequestedName(flags);
     }
 
+    // In dark mode, use the dark background brush instead of specified colour
+    // which would result in light background.
+    HBRUSH hbrBackground;
+    if ( wxMSWDarkMode::IsActive() )
+        hbrBackground = wxMSWDarkMode::GetBackgroundBrush();
+    else
+        hbrBackground = (HBRUSH)wxUIntToPtr(bgBrushCol + 1);
+
+
     // we need to register this class
     WNDCLASS wndclass;
     wxZeroMemory(wndclass);
@@ -678,7 +681,7 @@ const wxChar *wxApp::GetRegisteredClassName(const wxChar *name,
     wndclass.lpfnWndProc   = (WNDPROC)wxWndProc;
     wndclass.hInstance     = wxGetInstance();
     wndclass.hCursor       = ::LoadCursor(nullptr, IDC_ARROW);
-    wndclass.hbrBackground = (HBRUSH)wxUIntToPtr(bgBrushCol + 1);
+    wndclass.hbrBackground = hbrBackground;
     wndclass.style         = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS | extraStyles;
 
 
@@ -775,6 +778,45 @@ void wxApp::CleanUp()
 wxApp::wxApp()
 {
     m_printMode = wxPRINT_WINDOWS;
+
+    if ( !wxSystemOptions::GetOptionInt("msw.no-manifest-check") )
+    {
+        if ( GetComCtl32Version() < 610 )
+        {
+            // Check if we have wx resources in this program: this is not
+            // mandatory, but recommended and could be the simplest way to
+            // resolve the problem when not using MSVC.
+            wxString maybeNoResources;
+            if ( !::LoadIcon(wxGetInstance(), wxT("wxICON_AAA")) )
+            {
+                maybeNoResources = " (unless you don't include wx/msw/wx.rc "
+                    "from your resource file intentionally, you should do it "
+                    "and use the manifest defined in it)";
+            }
+
+            wxMessageBox
+            (
+                wxString::Format(R"(WARNING!
+
+This application doesn't use a correct manifest specifying
+the use of Common Controls Library v6%s.
+
+This is deprecated and won't be supported in the future
+wxWidgets versions, however for now you can still set
+"msw.no-manifest-check" system option to 1 (see
+https://docs.wxwidgets.org/latest/classwx_system_options.html
+for how to do it) to skip this check.
+
+Please use the appropriate manifest when building the
+application as described at
+https://docs.wxwidgets.org/latest/plat_msw_install.html#msw_manifest
+or contact us by posting to wx-dev@googlegroups.com
+if you believe not using the manifest should remain supported.
+)", maybeNoResources),
+                "wxWidgets Warning"
+            );
+        }
+    }
 }
 
 wxApp::~wxApp()
@@ -868,8 +910,6 @@ void wxApp::OnQueryEndSession(wxCloseEvent& event)
 // system DLL versions
 // ----------------------------------------------------------------------------
 
-#if wxUSE_DYNLIB_CLASS
-
 namespace
 {
 
@@ -906,6 +946,21 @@ int wxApp::GetComCtl32Version()
     // NB: this is MT-ok as in the worst case we'd compute s_verComCtl32 twice,
     //     but as its value should be the same both times it doesn't matter
     static int s_verComCtl32 = -1;
+
+    if ( s_verComCtl32 == -1 )
+    {
+        // Test for Wine first because its comctl32.dll always returns 581 from
+        // its DllGetVersion() even though it supports the functionality of
+        // much later versions too.
+        wxVersionInfo verWine;
+        if ( wxIsRunningUnderWine(&verWine) )
+        {
+            // Not sure which version of Wine implements comctl32.dll v6
+            // functionality, but 5 seems to have it already.
+            if ( verWine.GetMajor() >= 5 )
+                s_verComCtl32 = 610;
+        }
+    }
 
     if ( s_verComCtl32 == -1 )
     {
@@ -958,16 +1013,6 @@ int wxApp::GetComCtl32Version()
 
     return s_verComCtl32;
 }
-
-#else // !wxUSE_DYNLIB_CLASS
-
-/* static */
-int wxApp::GetComCtl32Version()
-{
-    return 0;
-}
-
-#endif // wxUSE_DYNLIB_CLASS/!wxUSE_DYNLIB_CLASS
 
 #if wxUSE_EXCEPTIONS
 

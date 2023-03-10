@@ -62,10 +62,10 @@
         Note that this won't disable the theme on the actual notebook background
         (noticeable only if there are no pages).
     @flag{msw.staticbox.optimized-paint}
-        This obsolete option doesn't do anything any more, wxMSW now always
-        behaves as if it were set to 0. Note that programs painting over the
-        static box may still not work correctly when double buffering is
-        enabled (which is the case by default) and could need to disable it.
+        If set to 0, switches off optimized wxStaticBox painting.
+        Setting this to 0 causes more flicker, but allows applications to paint
+        graphics on the parent of a static box (the optimized refresh causes any
+        such drawing to disappear).
     @flag{msw.font.no-proof-quality}
         If set to 1, use default fonts quality instead of proof quality when
         creating fonts. With proof quality the fonts have slightly better
@@ -76,6 +76,11 @@
         If set to 1, disables the use of composited, i.e. double-buffered,
         windows by default in wxMSW. This is not recommended, but can be useful
         for debugging or working around redraw problems in the existing code.
+    @flag{msw.dark-mode}
+        If set to 1, enable experimental support of dark mode if the system is
+        using it, i.e. this has the same effect as calling
+        wxApp::MSWEnableDarkMode(). If set to 2, use dark mode unconditionally,
+        as if this function were called with wxApp::DarkMode_Always argument.
     @endFlagTable
 
 

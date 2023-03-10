@@ -21,6 +21,7 @@ set(TEST_GUI_SRC
     graphics/measuring.cpp
     graphics/affinematrix.cpp
     graphics/boundingbox.cpp
+    graphics/clipper.cpp
     graphics/clippingbox.cpp
     graphics/coords.cpp
     graphics/graphbitmap.cpp
@@ -58,6 +59,7 @@ set(TEST_GUI_SRC
     controls/ownerdrawncomboboxtest.cpp
     controls/pickerbasetest.cpp
     controls/pickertest.cpp
+    controls/propgridtest.cpp
     controls/radioboxtest.cpp
     controls/radiobuttontest.cpp
     controls/rearrangelisttest.cpp
@@ -227,4 +229,7 @@ if(wxUSE_SOCKETS)
 endif()
 if(wxUSE_WEBVIEW)
     wx_exe_link_libraries(test_gui wxwebview)
+endif()
+if(wxUSE_PROPGRID)
+    wx_exe_link_libraries(test_gui wxpropgrid)
 endif()

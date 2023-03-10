@@ -250,8 +250,9 @@ public:
         (https://github.com/memononen/nanosvg) for parsing and rasterizing SVG
         images which imposes the following limitations:
 
-        - Text elements are not supported at all.
+        - Text elements are not supported at all (see note for workaround).
         - SVG 1.1 filters are not supported.
+        - Embedded images are not supported (see note for workaround).
 
         These limitations will be relaxed in the future wxWidgets versions.
 
@@ -273,6 +274,16 @@ public:
         @param sizeDef The default size to return from GetDefaultSize() for
             this bundle. As SVG images usually don't have any natural
             default size, it should be provided when creating the bundle.
+
+        @note Converting text objects to path objects will allow them to be
+            rasterized as expected. This can be done in an SVG editor such as
+            Inkscape. (In Inkscape, select a text object and choose
+            "Object to Path" from the "Path" menu.)\n
+            Converting embedded images to paths from an SVG editor will
+            allow them to be rasterized. For example, selecting "Trace Bitmap"
+            from the "Path" menu in Inkscape can perform this. This is only
+            recommended for simple images, however, as more complex images
+            may not rasterize well.
      */
     static wxBitmapBundle FromSVG(char* data, const wxSize& sizeDef);
 

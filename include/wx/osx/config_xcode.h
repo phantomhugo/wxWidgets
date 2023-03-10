@@ -27,7 +27,6 @@
 #endif
 #define HAVE_VISIBILITY 1
 #define wxHAVE_PTHREAD_CLEANUP 1
-#define CONST_COMPATIBILITY 0
 #define WX_TIMEZONE timezone
 #define WX_SOCKLEN_T socklen_t
 #define SOCKOPTLEN_T socklen_t
@@ -39,7 +38,6 @@
 #define HAVE_CXA_DEMANGLE 1
 #define HAVE_GETTIMEOFDAY 1
 #define HAVE_FSYNC 1
-#define HAVE_ROUND 1
 #define HAVE_SCHED_YIELD 1
 #define HAVE_PTHREAD_MUTEXATTR_T 1
 #define HAVE_PTHREAD_MUTEXATTR_SETTYPE_DECL 1
@@ -111,12 +109,6 @@
 #define HAVE_LOCALE_T 1
 #define HAVE_XLOCALE_H 1
 #define wxHAS_KQUEUE 1
-
-#define PACKAGE_BUGREPORT "wx-dev@googlegroups.com"
-#define PACKAGE_NAME "wxWidgets"
-#define PACKAGE_STRING "wxWidgets 3.3.0"
-#define PACKAGE_TARNAME "wxwidgets"
-#define PACKAGE_VERSION "3.3.0"
 
 // for jpeg
 

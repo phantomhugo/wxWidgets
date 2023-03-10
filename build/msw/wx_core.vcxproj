@@ -613,6 +613,7 @@
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)msw_%(Filename).obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='DLL Release|x64'">$(IntDir)msw_%(Filename).obj</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="..\..\src\msw\darkmode.cpp" />
     <ClCompile Include="..\..\src\msw\graphicsd2d.cpp" />
     <ClCompile Include="..\..\src\msw\ole\access.cpp" />
     <ClCompile Include="..\..\src\msw\ole\activex.cpp" />
@@ -1078,6 +1079,7 @@
     <ClCompile Include="..\..\src\common\bmpcboxcmn.cpp" />
     <ClCompile Include="..\..\src\generic\rowheightcache.cpp" />
     <ClCompile Include="..\..\src\generic\creddlgg.cpp" />
+    <ClCompile Include="..\..\src\msw\overlay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\src\msw\version.rc">
@@ -1181,7 +1183,6 @@
     <ClInclude Include="..\..\include\wx\msw\ownerdrw.h" />
     <ClInclude Include="..\..\include\wx\msw\ownerdrawnbutton.h" />
     <ClInclude Include="..\..\include\wx\msw\palette.h" />
-    <ClInclude Include="..\..\include\wx\msw\panel.h" />
     <ClInclude Include="..\..\include\wx\msw\pen.h" />
     <ClInclude Include="..\..\include\wx\msw\popupwin.h" />
     <ClInclude Include="..\..\include\wx\msw\printdlg.h" />
@@ -1232,7 +1233,6 @@
     <ClInclude Include="..\..\include\wx\generic\msgdlgg.h" />
     <ClInclude Include="..\..\include\wx\generic\notebook.h" />
     <ClInclude Include="..\..\include\wx\generic\numdlgg.h" />
-    <ClInclude Include="..\..\include\wx\generic\panelg.h" />
     <ClInclude Include="..\..\include\wx\generic\printps.h" />
     <ClInclude Include="..\..\include\wx\generic\prntdlgg.h" />
     <ClInclude Include="..\..\include\wx\generic\progdlgg.h" />
@@ -1517,6 +1517,7 @@
     <ClInclude Include="..\..\include\wx\creddlg.h" />
     <ClInclude Include="..\..\include\wx\generic\creddlgg.h" />
     <ClInclude Include="..\..\include\wx\filedlgcustomize.h" />
+    <ClInclude Include="..\..\include\wx\compositebookctrl.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -209,8 +209,8 @@ enum wxWindowVariant
     @style{wxBORDER_DOUBLE}
            This style is obsolete and should not be used.
     @style{wxTRANSPARENT_WINDOW}
-           The window is transparent, that is, it will not receive paint
-           events. Windows only.
+           This style is obsolete and doesn't do anything. See
+           wxWindow::SetTransparent().
     @style{wxTAB_TRAVERSAL}
            This style is used by wxWidgets for the windows supporting TAB
            navigation among their children, such as wxDialog and wxPanel. It
@@ -591,6 +591,30 @@ public:
             Child window to add.
     */
     virtual void AddChild(wxWindow* child);
+
+    /**
+        Invoke the given functor for all children of the given window
+        recursively.
+
+        This function calls @a functor for the window itself and then for all
+        of its children, recursively.
+
+        Example of using it for implementing a not very smart translation
+        function:
+        @code
+        void MyFrame::OnTranslate(wxCommandEvent&) {
+            CallForEachChild([](wxWindow* win) {
+                wxString rest;
+                if ( win->GetLabel().StartsWith("Hello ", &rest) )
+                    win->SetLabel("Bonjour " + rest);
+            });
+        }
+        @endcode
+
+        @since 3.3.0
+     */
+    template <typename T>
+    void CallForEachChild(const T& functor);
 
     /**
         Destroys all children of a window. Called automatically by the destructor.

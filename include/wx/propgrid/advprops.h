@@ -40,12 +40,11 @@ WX_PG_DECLARE_EDITOR_WITH_DECL(DatePickerCtrl,WXDLLIMPEXP_PROPGRID)
 
 
 // Web colour is currently unsupported
-#define wxPG_COLOUR_WEB_BASE        0x10000
+constexpr wxUint32 wxPG_COLOUR_WEB_BASE = 0x10000;
 //#define wxPG_TO_WEB_COLOUR(A)   ((wxUint32)(A+wxPG_COLOUR_WEB_BASE))
 
-
-#define wxPG_COLOUR_CUSTOM      0xFFFFFF
-#define wxPG_COLOUR_UNSPECIFIED (wxPG_COLOUR_CUSTOM+1)
+constexpr wxUint32 wxPG_COLOUR_CUSTOM = 0xFFFFFF;
+constexpr wxUint32 wxPG_COLOUR_UNSPECIFIED = wxPG_COLOUR_CUSTOM + 1;
 
 // Because text, background and other colours tend to differ between
 // platforms, wxSystemColourProperty must be able to select between system
@@ -75,9 +74,7 @@ public:
     {
     }
 
-    virtual ~wxColourPropertyValue()
-    {
-    }
+    virtual ~wxColourPropertyValue() = default;
 
     wxColourPropertyValue( const wxColourPropertyValue& v )
         : wxObject()
@@ -138,7 +135,7 @@ public:
     wxFontProperty(const wxString& label = wxPG_LABEL,
                    const wxString& name = wxPG_LABEL,
                    const wxFont& value = wxFont());
-    virtual ~wxFontProperty();
+    virtual ~wxFontProperty() = default;
     virtual void OnSetValue() override;
     virtual wxString ValueToString( wxVariant& value, int argFlags = 0 ) const override;
     virtual wxVariant ChildChanged( wxVariant& thisValue,
@@ -154,7 +151,7 @@ protected:
 
 
 // If set, then match from list is searched for a custom colour.
-#define wxPG_PROP_TRANSLATE_CUSTOM      wxPG_PROP_CLASS_SPECIFIC_1
+constexpr wxPGPropertyFlags wxPG_PROP_TRANSLATE_CUSTOM = wxPG_PROP_CLASS_SPECIFIC_1;
 
 
 // Has dropdown list of wxWidgets system colours. Value used is
@@ -168,7 +165,7 @@ public:
                             const wxString& name = wxPG_LABEL,
                             const wxColourPropertyValue&
                                 value = wxColourPropertyValue() );
-    virtual ~wxSystemColourProperty();
+    virtual ~wxSystemColourProperty() = default;
 
     virtual void OnSetValue() override;
     virtual bool IntToValue(wxVariant& variant,
@@ -241,7 +238,7 @@ public:
     wxColourProperty( const wxString& label = wxPG_LABEL,
                       const wxString& name = wxPG_LABEL,
                       const wxColour& value = *wxWHITE );
-    virtual ~wxColourProperty();
+    virtual ~wxColourProperty() = default;
 
     virtual wxString ValueToString( wxVariant& value, int argFlags = 0 ) const override;
     virtual wxColour GetColour( int index ) const override;
@@ -263,7 +260,7 @@ class WXDLLIMPEXP_PROPGRID wxCursorProperty : public wxEnumProperty
     wxCursorProperty( const wxString& label= wxPG_LABEL,
                       const wxString& name= wxPG_LABEL,
                       int value = 0 );
-    virtual ~wxCursorProperty();
+    virtual ~wxCursorProperty() = default;
 
     virtual wxString ValueToString(wxVariant& value, int argFlags = 0) const override;
     virtual wxSize OnMeasureImage( int item ) const override;
@@ -288,7 +285,7 @@ public:
     wxImageFileProperty( const wxString& label= wxPG_LABEL,
                          const wxString& name = wxPG_LABEL,
                          const wxString& value = wxString());
-    virtual ~wxImageFileProperty();
+    virtual ~wxImageFileProperty() = default;
 
     virtual void OnSetValue() override;
 
@@ -332,7 +329,7 @@ public:
                            const wxString& name = wxPG_LABEL,
                            const wxArrayString& value = wxArrayString() );
 
-    virtual ~wxMultiChoiceProperty();
+    virtual ~wxMultiChoiceProperty() = default;
 
     virtual void OnSetValue() override;
     virtual wxString ValueToString( wxVariant& value, int argFlags = 0 ) const override;
@@ -382,7 +379,7 @@ public:
     wxDateProperty( const wxString& label = wxPG_LABEL,
                     const wxString& name = wxPG_LABEL,
                     const wxDateTime& value = wxDateTime() );
-    virtual ~wxDateProperty();
+    virtual ~wxDateProperty() = default;
 
     virtual void OnSetValue() override;
     virtual wxString ValueToString( wxVariant& value, int argFlags = 0 ) const override;

@@ -143,8 +143,6 @@ SAMPLES_RPATH_FLAG=
 DYLIB_RPATH_INSTALL=
 DYLIB_RPATH_POSTLINK=
 
-DEFAULT_STD_FLAG=yes
-
 dnl to support a new system, you need to add its canonical name (as determined
 dnl by config.sub or specified by the configure command line) to this "case"
 dnl and also define the shared library flags below - search for
@@ -163,20 +161,10 @@ case "${host}" in
   *-*-linux* )
     USE_LINUX=1
     AC_DEFINE(__LINUX__)
-    TMP=`uname -m`
-    if test "x$TMP" = "xalpha"; then
-      USE_ALPHA=1
-      AC_DEFINE(__ALPHA__)
-    fi
     DEFAULT_DEFAULT_wxUSE_GTK=1
   ;;
   *-*-gnu* | *-*-k*bsd*-gnu )
     USE_GNU=1
-    TMP=`uname -m`
-    if test "x$TMP" = "xalpha"; then
-      USE_ALPHA=1
-      AC_DEFINE(__ALPHA__)
-    fi
     DEFAULT_DEFAULT_wxUSE_GTK=1
   ;;
   *-*-irix5* | *-*-irix6* )
@@ -237,17 +225,13 @@ case "${host}" in
     CPPFLAGS="-D_NETBSD_SOURCE -D_LIBC $CPPFLAGS"
   ;;
   *-*-osf* )
-    USE_ALPHA=1
     USE_OSF=1
-    AC_DEFINE(__ALPHA__)
     AC_DEFINE(__OSF__)
     DEFAULT_DEFAULT_wxUSE_GTK=1
     NEEDS_D_REENTRANT_FOR_R_FUNCS=1
   ;;
   *-*-dgux5* )
-    USE_ALPHA=1
     USE_SVR4=1
-    AC_DEFINE(__ALPHA__)
     AC_DEFINE(__SVR4__)
     DEFAULT_DEFAULT_wxUSE_GTK=1
   ;;
@@ -337,9 +321,6 @@ dnl default)
 DEFAULT_wxUSE_ALL_FEATURES=yes
 
 DEFAULT_wxUSE_STD_CONTAINERS=no
-DEFAULT_wxUSE_STD_CONTAINERS_COMPATIBLY=$DEFAULT_STD_FLAG
-DEFAULT_wxUSE_STD_IOSTREAM=$DEFAULT_STD_FLAG
-DEFAULT_wxUSE_STD_STRING=$DEFAULT_STD_FLAG
 
 dnl libraries disabled by default or requiring some special handling
 DEFAULT_wxUSE_DMALLOC=no
@@ -663,8 +644,6 @@ dnl
 dnl in any case, only set the default value and allow overriding it with an
 
 WX_ARG_ENABLE(debug_gdb,     [  --enable-debug_gdb      create code with extra GDB debugging information], wxUSE_DEBUG_GDB)
-WX_ARG_ENABLE(debug_cntxt,   [  --enable-debug_cntxt    obsolete, don't use: use wxDebugContext], wxUSE_DEBUG_CONTEXT)
-WX_ARG_ENABLE(mem_tracing,   [  --enable-mem_tracing    obsolete, don't use: create code with memory tracing], wxUSE_MEM_TRACING)
 
 dnl ---------------------------------------------------------------------------
 dnl global compile options
@@ -676,14 +655,9 @@ AC_ARG_WITH(cxx,           [  --with-cxx=11|14|17|20  use the given C++ dialect]
 WX_ARG_ENABLE(stl,         [  --enable-stl            use standard C++ classes for everything], wxUSE_STL)
 if test "$wxUSE_STL" = "yes"; then
     DEFAULT_wxUSE_STD_CONTAINERS=yes
-    DEFAULT_wxUSE_STD_CONTAINERS_COMPATIBLY=yes
-    DEFAULT_wxUSE_STD_IOSTREAM=yes
-    DEFAULT_wxUSE_STD_STRING=yes
 fi
 WX_ARG_ENABLE(std_containers,[  --enable-std_containers use standard C++ container classes], wxUSE_STD_CONTAINERS)
-WX_ARG_ENABLE(std_containers_compat, [  --enable-std_containers_compat     use standard C++ container classes when it can be done compatible], wxUSE_STD_CONTAINERS_COMPATIBLY)
-WX_ARG_ENABLE(std_iostreams, [  --enable-std_iostreams  use standard C++ stream classes], wxUSE_STD_IOSTREAM)
-WX_ARG_ENABLE(std_string,    [  --enable-std_string     use standard C++ string classes], wxUSE_STD_STRING)
+WX_ARG_DISABLE(std_iostreams,[  --disable-std_iostreams  disable use of standard C++ stream classes], wxUSE_STD_IOSTREAM)
 WX_ARG_ENABLE(std_string_conv_in_wxstring, [ --enable-std_string_conv_in_wxstring     provide implicit conversion to std::string in wxString], wxUSE_STD_STRING_CONV_IN_WXSTRING)
 WX_ARG_DISABLE(unsafe_conv_in_wxstring,     [ --disable-unsafe_conv_in_wxstring        disable unsafe implicit conversions in wxString], wxUSE_UNSAFE_WXSTRING_CONV)
 WX_ARG_ENABLE_PARAM(utf8,    [  --enable-utf8           use UTF-8 representation for strings (Unix only)], wxUSE_UNICODE_UTF8)
@@ -749,8 +723,8 @@ WX_ARG_FEATURE(cmdline,       [  --enable-cmdline        use wxCmdLineParser cla
 WX_ARG_FEATURE(datetime,      [  --enable-datetime       use wxDateTime class], wxUSE_DATETIME)
 WX_ARG_FEATURE(debugreport,   [  --enable-debugreport    use wxDebugReport class], wxUSE_DEBUGREPORT)
 WX_ARG_FEATURE(dialupman,     [  --enable-dialupman      use dialup network classes], wxUSE_DIALUP_MANAGER)
-WX_ARG_FEATURE(dynlib,        [  --enable-dynlib         use wxLibrary class for DLL loading], wxUSE_DYNLIB_CLASS)
-WX_ARG_FEATURE(dynamicloader, [  --enable-dynamicloader  use (new) wxDynamicLibrary class], wxUSE_DYNAMIC_LOADER)
+WX_ARG_FEATURE(dynlib,        [  --enable-dynlib         use wxDynamicLibrary class for DLL loading], wxUSE_DYNLIB_CLASS)
+WX_ARG_FEATURE(dynamicloader, [  --enable-dynamicloader  use wxPluginLibrary and wxPluginManager classes], wxUSE_DYNAMIC_LOADER)
 WX_ARG_FEATURE(exceptions,    [  --enable-exceptions     build exception-safe library], wxUSE_EXCEPTIONS)
 WX_ARG_FEATURE(ffile,         [  --enable-ffile          use wxFFile class], wxUSE_FFILE)
 WX_ARG_FEATURE(file,          [  --enable-file           use wxFile class], wxUSE_FILE)
@@ -1449,21 +1423,6 @@ if test "x$USE_AIX" = "x1"; then
     CPPFLAGS="-D_LINUX_SOURCE_COMPAT $CPPFLAGS"
 fi
 
-dnl This case is for PowerPC OS X vs. everything else
-case "${host}" in
-  powerpc-*-darwin* )
-    AC_MSG_CHECKING([if __POWERPC__ is already defined])
-    AC_TRY_COMPILE([],[#ifndef __POWERPC__
-        choke me for lack of PowerPC
-#endif
-],
-        [AC_MSG_RESULT([yes])],
-        [AC_MSG_RESULT([no])
-        AC_DEFINE(__POWERPC__)
-    ])
-  ;;
-esac
-
 dnl This case is for OS X vs. everything else
 case "${host}" in
   *-*-darwin* )
@@ -2113,6 +2072,44 @@ fi
 
 dnl Find pkg-config outside of any conditional.  Done before any PKG_* call.
 PKG_PROG_PKG_CONFIG
+
+dnl When cross-compiling for another system from Linux, don't use .pc files on
+dnl the build system, they are at best useless and can be harmful (e.g. they
+dnl may define options inappropriate for the cross-build, resulting in the
+dnl failure of all the subsequent tests).
+if test "$build" != "$host"; then
+    dnl Assume that using pkg-config does work when cross-compiling to another
+    dnl Linux system, e.g. when targeting ARM Linux from x86_64 system.
+    case "${host}" in
+        *-linux-*)
+            ;;
+
+        * )
+            dnl But otherwise only do it if a host-specific pkg-config is
+            dnl available as using the build system one is not going to work.
+            case "$PKG_CONFIG" in
+                */$host-pkg-config )
+                    ;;
+
+                * )
+                    AC_MSG_WARN([Not using native pkg-config when cross-compiling.])
+
+                    dnl pkg.m4 forbids the use of PKG_XXX, so undo it here to avoid autoconf
+                    dnl errors.
+                    m4_pattern_allow([PKG_CONFIG_LIBDIR])
+
+                    dnl If pkg-config libdir is already defined, we suppose that they know what
+                    dnl they're doing and leave it alone, but if not, set it to a path in which
+                    dnl no .pc files will be found.
+                    if test -z "$PKG_CONFIG_LIBDIR"; then
+                        PKG_CONFIG_LIBDIR=/dev/null
+                        export PKG_CONFIG_LIBDIR
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+fi
 
 dnl ---------------------------------------------------------------------------
 dnl Optional libraries
@@ -3898,20 +3895,6 @@ if test "$wxUSE_FILE" = "yes"; then
     WX_CHECK_FUNCS(fsync)
 fi
 
-dnl at least under IRIX with mipsPro the C99 round() function is available when
-dnl building using the C compiler but not when using C++ one
-AC_CACHE_CHECK([for round], wx_cv_func_round, [
-AC_LANG_PUSH(C++)
-AC_TRY_LINK(
-    [#include <math.h>],
-    [return int(round(0.0))],
-    wx_cv_func_round=yes, wx_cv_func_round=no)
-AC_LANG_POP()
-])
-if test "$wx_cv_func_round" = yes; then
-    AC_DEFINE(HAVE_ROUND)
-fi
-
 dnl the following tests are for Unix(like) systems only
 if test "$TOOLKIT" != "MSW"; then
 
@@ -4805,19 +4788,8 @@ if test "$wxUSE_DEBUG_FLAG" = "no" ; then
     WXCONFIG_CPPFLAGS="$WXCONFIG_CPPFLAGS -DwxDEBUG_LEVEL=0"
 
     if test "$wxUSE_GTK" = 1 ; then
-        if test "$WXGTK2" = 1 ; then
-            CPPFLAGS="$CPPFLAGS -DG_DISABLE_CAST_CHECKS"
-        else
-            CPPFLAGS="-DGTK_NO_CHECK_CASTS $CPPFLAGS"
-        fi
+        CPPFLAGS="$CPPFLAGS -DG_DISABLE_CAST_CHECKS"
     fi
-fi
-
-if test "$wxUSE_MEM_TRACING" = "yes" ; then
-    AC_DEFINE(wxUSE_MEMORY_TRACING)
-    AC_DEFINE(wxUSE_GLOBAL_MEMORY_OPERATORS)
-    AC_DEFINE(wxUSE_DEBUG_NEW_ALWAYS)
-    SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS memcheck"
 fi
 
 if test "$wxUSE_DMALLOC" = "yes" ; then
@@ -4939,9 +4911,14 @@ dnl ------------------------------------------------------------------------
 dnl DLL support
 dnl ------------------------------------------------------------------------
 
-dnl under MSW we always have LoadLibrary/GetProcAddress
-if test "$TOOLKIT" != "MSW"; then
-
+dnl under MSW we always have LoadLibrary/GetProcAddress and always use
+dnl wxDynamicLibrary
+if test "$TOOLKIT" = "MSW"; then
+    if test "$wxUSE_DYNLIB_CLASS" != "yes" ; then
+        AC_MSG_WARN([Not disabling wxDynamicLibrary support required by wxMSW])
+        wxUSE_DYNLIB_CLASS=yes
+    fi
+else
     HAVE_DL_FUNCS=0
     HAVE_SHL_FUNCS=0
     if test "$wxUSE_DYNAMIC_LOADER" = "yes" -o "$wxUSE_DYNLIB_CLASS" = "yes" ; then
@@ -4993,7 +4970,7 @@ if test "$TOOLKIT" != "MSW"; then
                   wxUSE_DYNAMIC_LOADER=no
                   wxUSE_DYNLIB_CLASS=no
               else
-                  AC_MSG_WARN([Assuming wxLibrary class works on this platform])
+                  AC_MSG_WARN([Assuming wxDynamicLibrary class works on this platform])
               fi
             fi
         fi
@@ -5242,7 +5219,7 @@ if test "$wxUSE_SOUND" = "yes"; then
   SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS sound"
 fi
 
-if test "$WXGTK2" = 1; then
+if test "$wxUSE_GTK" = 1; then
     if test "$wxUSE_PRINTING_ARCHITECTURE" = "yes" ; then
 
         if test "$wxUSE_GTKPRINT" = "yes" ; then
@@ -5447,16 +5424,8 @@ if test "$wxUSE_STD_CONTAINERS" = "yes"; then
   AC_DEFINE(wxUSE_STD_CONTAINERS)
 fi
 
-if test "$wxUSE_STD_CONTAINERS_COMPATIBLY" = "yes"; then
-  AC_DEFINE(wxUSE_STD_CONTAINERS_COMPATIBLY)
-fi
-
 if test "$wxUSE_STD_IOSTREAM" = "yes"; then
   AC_DEFINE(wxUSE_STD_IOSTREAM)
-fi
-
-if test "$wxUSE_STD_STRING" = "yes"; then
-  AC_DEFINE(wxUSE_STD_STRING)
 fi
 
 if test "$wxUSE_STD_STRING_CONV_IN_WXSTRING" = "yes"; then
@@ -6825,6 +6794,24 @@ fi
 
 USE_STC=0
 if test "$wxUSE_STC" = "yes"; then
+   if ! test -f "$srcdir/src/stc/scintilla/include/Scintilla.h" ; then
+       AC_MSG_ERROR([
+   The required Scintilla header not found. You probably need to run
+
+       git submodule update --init src/stc/scintilla
+
+   to fix this.])
+   fi
+
+   if ! test -f "$srcdir/src/stc/lexilla/include/Lexilla.h" ; then
+       AC_MSG_ERROR([
+   The required Lexilla header not found. You probably need to run
+
+       git submodule update --init src/stc/lexilla
+
+   to fix this.])
+   fi
+
    AC_DEFINE(wxUSE_STC)
    USE_STC=1
    SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS stc"
@@ -7177,22 +7164,9 @@ if test "$wx_needs_cairo_for_gc" = 1 -a "$wxUSE_GRAPHICS_CONTEXT" = "yes"; then
 fi
 
 if test "$wxUSE_CAIRO" = "yes" -o "$wx_needs_cairo" = 1; then
-    PKG_CHECK_MODULES(CAIRO, cairo,
-        [wx_has_cairo=1],
-        [AC_MSG_RESULT(no)]
-    )
-    if test "$wx_has_cairo" = 1; then
-        dnl Check that Cairo library is new enough: wxGraphicsContext
-        dnl won't compile without cairo_push_group() and
-        dnl cairo_pop_group_to_source() which are new in 1.2.
-        save_LIBS="$LIBS"
-        LIBS="$LIBS $CAIRO_LIBS"
-        AC_CHECK_FUNCS([cairo_push_group])
-        LIBS="$save_LIBS"
-        if test "$ac_cv_func_cairo_push_group" = "no"; then
-            wx_has_cairo=0
-            AC_MSG_WARN([Cairo library is too old and misses cairo_push_group()])
-        else
+    PKG_CHECK_MODULES(CAIRO, [cairo >= 1.2],
+        [
+            wx_has_cairo=1
             AC_DEFINE(wxUSE_CAIRO)
 
             dnl We don't need to do this for wxGTK as we already get Cairo
@@ -7201,8 +7175,9 @@ if test "$wxUSE_CAIRO" = "yes" -o "$wx_needs_cairo" = 1; then
                 CXXFLAGS="$CXXFLAGS $CAIRO_CFLAGS"
                 GUI_TK_LIBRARY="$GUI_TK_LIBRARY $CAIRO_LIBS"
             fi
-        fi
-    fi
+        ],
+        [AC_MSG_RESULT(no)]
+    )
 fi
 
 if test "$wxUSE_GRAPHICS_CONTEXT" = "yes"; then
@@ -7798,12 +7773,8 @@ AC_SUBST(USE_DPI_AWARE_MANIFEST)
 case "$TOOLKIT" in
     GTK)
         TOOLKIT_DESC="GTK+"
-        if test "$WXGTK2" = 1; then
-            if test "$WXGTK3" = 1; then
-                TOOLKIT_DESC="$TOOLKIT_DESC ${TOOLKIT_VERSION}"
-            else
-                TOOLKIT_DESC="$TOOLKIT_DESC 2"
-            fi
+        if test "$wxUSE_GTK" = 1; then
+            TOOLKIT_DESC="$TOOLKIT_DESC ${TOOLKIT_VERSION}"
             if test "$wxUSE_GTKPRINT" = "yes" ; then
                 TOOLKIT_EXTRA="$TOOLKIT_EXTRA GTK+ printing";
             fi

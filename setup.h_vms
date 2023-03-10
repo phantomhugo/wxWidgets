@@ -123,19 +123,9 @@ typedef pid_t GPid;
 #define __VMS__
 
 #undef __IA64__
-#define __ALPHA__
 
 /* NanoX (with wxX11) */
 #define wxUSE_NANOX 0
-
-/* PowerPC Darwin & Mac OS X */
-#undef __POWERPC__
-
-/* Hack to make IOGraphicsTypes.h not define Point conflicting with MacTypes */
-#undef __Point__
-
-/* MS-DOS with DJGPP */
-#undef __DOS__
 
 /* Stupid hack; __WINDOWS__ clashes with wx/defs.h */
 #ifndef __WINDOWS__
@@ -169,15 +159,7 @@ typedef pid_t GPid;
 
 #define wxDIALOG_UNIT_COMPATIBILITY   1
 
-#define wxUSE_DEBUG_CONTEXT 1
-
 #define wxUSE_DEBUGREPORT 1
-
-#define wxUSE_MEMORY_TRACING 0
-
-#define wxUSE_GLOBAL_MEMORY_OPERATORS 0
-
-#define wxUSE_DEBUG_NEW_ALWAYS 1
 
 #define wxUSE_ON_FATAL_EXCEPTION 1
 
@@ -186,15 +168,6 @@ typedef pid_t GPid;
 #define wxUSE_UNSAFE_WXSTRING_CONV 1
 
 #define wxUSE_REPRODUCIBLE_BUILD 1
-
-#ifndef wxUSE_UNICODE
-#if defined( __WXX11__ )
-    #define wxUSE_UNICODE 0
-#else
-    #define wxUSE_UNICODE 1
-#endif
-#endif
-
 
 #define wxUSE_EXCEPTIONS 1
 
@@ -218,20 +191,7 @@ typedef pid_t GPid;
 
 #define wxUSE_STL 0
 
-#if defined(__DMC__) \
-        || (defined(_MSC_VER) && _MSC_VER < 1200)
-    #define wxUSE_STD_DEFAULT  0
-#else
-    #define wxUSE_STD_DEFAULT  1
-#endif
-
-#define wxUSE_STD_CONTAINERS_COMPATIBLY wxUSE_STD_DEFAULT
-
-#define wxUSE_STD_CONTAINERS wxUSE_STD_DEFAULT
-
-#define wxUSE_STD_IOSTREAM  wxUSE_STD_DEFAULT
-
-#define wxUSE_STD_STRING  wxUSE_STD_DEFAULT
+#define wxUSE_STD_CONTAINERS wxUSE_STL
 
 #define wxUSE_STD_STRING_CONV_IN_WXSTRING wxUSE_STL
 
@@ -812,11 +772,6 @@ typedef pid_t GPid;
 #undef HAVE_BROKEN_LIBSTDCXX_VISIBILITY
 
 /*
- * On GNU systems use re_search instead of regexec, since the latter does a
- * strlen on the search text affecting the performance of some operations.
- */
-#undef HAVE_RE_SEARCH
-/*
  * Use SDL for audio (Unix)
  */
 #define wxUSE_LIBSDL 0
@@ -892,17 +847,6 @@ typedef pid_t GPid;
  * wxWebKitCtrl
  */
 #define wxUSE_WEBKIT 1
-
-/*
- * The const keyword is being introduced more in wxWindows.
- * You can use this setting to maintain backward compatibility.
- * If 0: will use const wherever possible.
- * If 1: will use const only where necessary
- *       for precompiled headers to work.
- * If 2: will be totally backward compatible, but precompiled
- *       headers may not work and program size will be larger.
- */
-#define CONST_COMPATIBILITY 0
 
 /*
  * use the session manager to detect KDE/GNOME
@@ -1298,9 +1242,6 @@ typedef pid_t GPid;
 #ifdef __WIN32__
 
 #define wxUSE_POSTSCRIPT_ARCHITECTURE_IN_MSW 1
-
-/* Define if the header pbt.h is missing.  */
-#undef NEED_PBT_H
 
 #endif /* __WIN32__ */
 

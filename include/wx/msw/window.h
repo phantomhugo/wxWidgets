@@ -211,6 +211,13 @@ public:
 
     void OnPaint(wxPaintEvent& event);
 
+    // Override this to return true to automatically invert the window colours
+    // in dark mode.
+    //
+    // This doesn't result in visually great results, but may still be better
+    // than using light background.
+    virtual bool MSWShouldUseAutoDarkMode() const { return false; }
+
 public:
     // Windows subclassing
     void SubclassWin(WXHWND hWnd);
@@ -475,21 +482,6 @@ public:
     // querying the parent windows via MSWGetBgBrushForChild() recursively
     WXHBRUSH MSWGetBgBrush(WXHDC hDC);
 
-    enum MSWThemeColour
-    {
-        ThemeColourText = 0,
-        ThemeColourBackground,
-        ThemeColourBorder
-    };
-
-    // returns a specific theme colour, or if that is not possible then
-    // wxSystemSettings::GetColour(fallback)
-    wxColour MSWGetThemeColour(const wchar_t *themeName,
-                               int themePart,
-                               int themeState,
-                               MSWThemeColour themeColour,
-                               wxSystemColour fallback) const;
-
     // gives the parent the possibility to draw its children background, e.g.
     // this is used by wxNotebook to do it using DrawThemeBackground()
     //
@@ -561,12 +553,12 @@ public:
     // incompatible with this style.
     void MSWDisableComposited();
 
+    // This function is called for all child windows when compositing is
+    // disabled for their parent.
+    virtual void MSWOnDisabledComposited() { }
+
     // synthesize a wxEVT_LEAVE_WINDOW event and set m_mouseInWindow to false
     void GenerateMouseLeave();
-
-    // virtual function for implementing internal idle
-    // behaviour
-    virtual void OnInternalIdle() override;
 
 #if wxUSE_MENUS && !defined(__WXUNIVERSAL__)
     virtual bool HandleMenuSelect(WXWORD nItem, WXWORD nFlags, WXHMENU hMenu);

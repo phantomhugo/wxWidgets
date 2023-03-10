@@ -13,36 +13,6 @@
 
 // -----------------------------------------------------------------------
 
-class wxAdvImageFileProperty : public wxFileProperty
-{
-    WX_PG_DECLARE_PROPERTY_CLASS(wxAdvImageFileProperty)
-public:
-
-    wxAdvImageFileProperty( const wxString& label = wxPG_LABEL,
-                            const wxString& name = wxPG_LABEL,
-                            const wxString& value = wxEmptyString );
-    virtual ~wxAdvImageFileProperty ();
-
-    virtual void OnSetValue() override;  // Override to allow image loading.
-
-    virtual bool IntToValue( wxVariant& variant, int number, int argFlags = 0 ) const override;
-    virtual bool OnEvent( wxPropertyGrid* propgrid, wxWindow* primary, wxEvent& event ) override;
-    virtual wxSize OnMeasureImage( int item ) const override;
-    virtual void OnCustomPaint( wxDC& dc,
-                                const wxRect& rect, wxPGPaintData& paintdata ) override;
-
-    void LoadThumbnails( size_t n );
-
-protected:
-    wxImage*    m_pImage; // Temporary thumbnail data.
-
-    static wxPGChoices ms_choices;
-
-    int m_index; // Index required for choice behaviour.
-};
-
-// -----------------------------------------------------------------------
-
 class wxVector3f
 {
 public:
@@ -73,7 +43,7 @@ public:
     wxVectorProperty( const wxString& label = wxPG_LABEL,
                     const wxString& name = wxPG_LABEL,
                     const wxVector3f& value = wxVector3f() );
-    virtual ~wxVectorProperty();
+    virtual ~wxVectorProperty() = default;
 
     virtual wxVariant ChildChanged( wxVariant& thisValue,
                                     int childIndex,
@@ -106,7 +76,7 @@ public:
     wxTriangleProperty( const wxString& label = wxPG_LABEL,
                         const wxString& name = wxPG_LABEL,
                         const wxTriangle& value = wxTriangle() );
-    virtual ~wxTriangleProperty();
+    virtual ~wxTriangleProperty() = default;
 
     virtual wxVariant ChildChanged( wxVariant& thisValue,
                                     int childIndex,
@@ -128,7 +98,7 @@ enum
 class FormMain : public wxFrame
 {
 public:
-    FormMain(const wxString& title, const wxPoint& pos, const wxSize& size );
+    FormMain(const wxString& title);
     ~FormMain();
 
     wxPropertyGridManager*  m_pPropGridManager;
@@ -262,8 +232,6 @@ public:
     void OnShowPopup( wxCommandEvent& event );
 
     void AddTestProperties( wxPropertyGridPage* pg );
-
-    bool RunTests( bool fullTest, bool interactive = false );
 
 private:
     wxDECLARE_EVENT_TABLE();

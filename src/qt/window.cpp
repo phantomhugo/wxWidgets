@@ -180,7 +180,7 @@ void wxQtInternalScrollBar::sliderReleased()
 }
 
 #if wxUSE_ACCEL || defined( Q_MOC_RUN )
-class wxQtShortcutHandler : public QObject, public wxQtSignalHandler< wxWindowQt >
+class wxQtShortcutHandler : public QObject, public wxQtSignalHandler
 {
 
 public:
@@ -191,7 +191,7 @@ public:
 };
 
 wxQtShortcutHandler::wxQtShortcutHandler( wxWindowQt *window )
-    : wxQtSignalHandler< wxWindowQt >( window )
+    : wxQtSignalHandler( window )
 {
 }
 
@@ -199,7 +199,7 @@ void wxQtShortcutHandler::activated()
 {
     int command = sender()->property("wxQt_Command").toInt();
 
-    GetHandler()->QtHandleShortcut( command );
+    static_cast<wxWindowQt*>(GetHandler())->QtHandleShortcut( command );
 }
 #endif // wxUSE_ACCEL
 
@@ -837,7 +837,7 @@ void wxWindowQt::SetWindowStyleFlag( long style )
 
 //    wxMISSING_IMPLEMENTATION( "wxWANTS_CHARS, wxTAB_TRAVERSAL" );
 //    // wxFULL_REPAINT_ON_RESIZE: Qt::WResizeNoErase (marked obsolete)
-//    // wxTRANSPARENT_WINDOW, wxCLIP_CHILDREN: Used in window for
+//    // wxCLIP_CHILDREN: Used in window for
 //    //   performance, apparently not needed.
 //
 //    // wxWANTS_CHARS: Need to reimplement event()

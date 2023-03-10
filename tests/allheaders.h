@@ -220,7 +220,6 @@
 #include <wx/mdi.h>
 #include <wx/mediactrl.h>
 #include <wx/memconf.h>
-#include <wx/memory.h>
 #include <wx/memtext.h>
 #include <wx/menu.h>
 #include <wx/menuitem.h>
@@ -325,7 +324,6 @@
 #include <wx/strconv.h>
 #include <wx/stream.h>
 #include <wx/string.h>
-#include <wx/stringimpl.h>
 #include <wx/stringops.h>
 #include <wx/strvararg.h>
 #include <wx/sysopt.h>

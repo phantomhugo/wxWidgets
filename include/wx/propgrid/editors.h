@@ -17,6 +17,8 @@
 
 #include "wx/window.h"
 
+#include <vector>
+
 class WXDLLIMPEXP_FWD_CORE wxBitmapBundle;
 class WXDLLIMPEXP_FWD_PROPGRID wxPGCell;
 class WXDLLIMPEXP_FWD_PROPGRID wxPGProperty;
@@ -73,7 +75,7 @@ public:
     }
 
     // Destructor.
-    virtual ~wxPGEditor();
+    virtual ~wxPGEditor() = default;
 
     // Returns pointer to the name of the editor. For example,
     // wxPGEditor_TextCtrl has name "TextCtrl". If you don't need to access
@@ -204,7 +206,7 @@ class WXDLLIMPEXP_PROPGRID wxPGTextCtrlEditor : public wxPGEditor
 {
     wxDECLARE_DYNAMIC_CLASS(wxPGTextCtrlEditor);
 public:
-    wxPGTextCtrlEditor() {}
+    wxPGTextCtrlEditor() = default;
     virtual ~wxPGTextCtrlEditor();
 
     virtual wxPGWindowList CreateControls(wxPropertyGrid* propgrid,
@@ -247,7 +249,7 @@ class WXDLLIMPEXP_PROPGRID wxPGChoiceEditor : public wxPGEditor
 {
     wxDECLARE_DYNAMIC_CLASS(wxPGChoiceEditor);
 public:
-    wxPGChoiceEditor() {}
+    wxPGChoiceEditor() = default;
     virtual ~wxPGChoiceEditor();
 
     virtual wxPGWindowList CreateControls(wxPropertyGrid* propgrid,
@@ -296,7 +298,7 @@ class WXDLLIMPEXP_PROPGRID wxPGComboBoxEditor : public wxPGChoiceEditor
 {
     wxDECLARE_DYNAMIC_CLASS(wxPGComboBoxEditor);
 public:
-    wxPGComboBoxEditor() {}
+    wxPGComboBoxEditor() = default;
     virtual ~wxPGComboBoxEditor();
 
     virtual wxPGWindowList CreateControls(wxPropertyGrid* propgrid,
@@ -323,7 +325,7 @@ public:
 class WXDLLIMPEXP_PROPGRID wxPGChoiceAndButtonEditor : public wxPGChoiceEditor
 {
 public:
-    wxPGChoiceAndButtonEditor() {}
+    wxPGChoiceAndButtonEditor() = default;
     virtual ~wxPGChoiceAndButtonEditor();
     virtual wxString GetName() const override;
 
@@ -339,7 +341,7 @@ class WXDLLIMPEXP_PROPGRID
 wxPGTextCtrlAndButtonEditor : public wxPGTextCtrlEditor
 {
 public:
-    wxPGTextCtrlAndButtonEditor() {}
+    wxPGTextCtrlAndButtonEditor() = default;
     virtual ~wxPGTextCtrlAndButtonEditor();
     virtual wxString GetName() const override;
 
@@ -362,7 +364,7 @@ class WXDLLIMPEXP_PROPGRID wxPGCheckBoxEditor : public wxPGEditor
 {
     wxDECLARE_DYNAMIC_CLASS(wxPGCheckBoxEditor);
 public:
-    wxPGCheckBoxEditor() {}
+    wxPGCheckBoxEditor() = default;
     virtual ~wxPGCheckBoxEditor();
 
     virtual wxString GetName() const override;
@@ -423,7 +425,7 @@ public:
     {
     }
 
-    virtual ~wxPGEditorDialogAdapter() { }
+    virtual ~wxPGEditorDialogAdapter() = default;
 
     bool ShowDialog( wxPropertyGrid* propGrid, wxPGProperty* property );
 
@@ -458,7 +460,7 @@ class WXDLLIMPEXP_PROPGRID wxPGMultiButton : public wxWindow
 {
 public:
     wxPGMultiButton( wxPropertyGrid* pg, const wxSize& sz );
-    virtual ~wxPGMultiButton() {}
+    virtual ~wxPGMultiButton() = default;
 
     wxWindow* GetButton( unsigned int i ) { return m_buttons[i]; }
     const wxWindow* GetButton( unsigned int i ) const
@@ -488,7 +490,7 @@ protected:
 
     int GenId( int id ) const;
 
-    wxVector<wxWindow*> m_buttons;
+    std::vector<wxWindow*> m_buttons;
     wxSize          m_fullEditorSize;
     int             m_buttonsWidth;
 };

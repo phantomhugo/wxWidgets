@@ -77,8 +77,6 @@ wxFontDataProperty::wxFontDataProperty( const wxString& label, const wxString& n
                                           fontData.GetColour() ) );
 }
 
-wxFontDataProperty::~wxFontDataProperty () { }
-
 void wxFontDataProperty::OnSetValue()
 {
     if ( !m_value.IsType("wxFontData") )
@@ -203,11 +201,9 @@ wxSizeProperty::wxSizeProperty( const wxString& label, const wxString& name,
     AddPrivateChild( new wxIntProperty("Height",wxPG_LABEL,value.y) );
 }
 
-wxSizeProperty::~wxSizeProperty() { }
-
 void wxSizeProperty::RefreshChildren()
 {
-    if ( !GetChildCount() ) return;
+    if ( !HasAnyChild() ) return;
     const wxSize& size = wxSizeRefFromVariant(m_value);
     Item(0)->SetValue( (long)size.x );
     Item(1)->SetValue( (long)size.y );
@@ -243,11 +239,9 @@ wxPointProperty::wxPointProperty( const wxString& label, const wxString& name,
     AddPrivateChild( new wxIntProperty("Y",wxPG_LABEL,value.y) );
 }
 
-wxPointProperty::~wxPointProperty() { }
-
 void wxPointProperty::RefreshChildren()
 {
-    if ( !GetChildCount() ) return;
+    if ( !HasAnyChild() ) return;
     const wxPoint& point = wxPointRefFromVariant(m_value);
     Item(0)->SetValue( (long)point.x );
     Item(1)->SetValue( (long)point.y );
@@ -505,8 +499,6 @@ wxArrayDoubleProperty::wxArrayDoubleProperty (const wxString& label,
     SetValue( WXVARIANT(array) );
 }
 
-wxArrayDoubleProperty::~wxArrayDoubleProperty () { }
-
 void wxArrayDoubleProperty::OnSetValue()
 {
     // Generate cached display string, to optimize grid drawing
@@ -663,4 +655,68 @@ bool wxArrayDoubleProperty::ValidateValue(wxVariant& value,
     }
 
     return true;
+}
+
+// -----------------------------------------------------------------------
+// MyColourProperty
+// -----------------------------------------------------------------------
+
+// Test customizing wxColourProperty via subclassing
+// * Includes custom colour entry.
+// * Includes extra custom entry.
+MyColourProperty::MyColourProperty(const wxString& label,
+                                   const wxString& name,
+                                   const wxColour& value)
+    : wxColourProperty(label, name, value)
+{
+    wxPGChoices colours;
+    colours.Add("White");
+    colours.Add("Black");
+    colours.Add("Red");
+    colours.Add("Green");
+    colours.Add("Blue");
+    colours.Add("Custom");
+    colours.Add("None");
+    m_choices = colours;
+    SetIndex(0);
+    wxVariant variant;
+    variant << value;
+    SetValue(variant);
+}
+
+wxColour MyColourProperty::GetColour(int index) const
+{
+    switch ( index )
+    {
+    case 0: return *wxWHITE;
+    case 1: return *wxBLACK;
+    case 2: return *wxRED;
+    case 3: return *wxGREEN;
+    case 4: return *wxBLUE;
+    case 5:
+        // Return current colour for the custom entry
+        wxColour col;
+        if ( GetIndex() == GetCustomColourIndex() )
+        {
+            if ( m_value.IsNull() )
+                return col;
+            col << m_value;
+            return col;
+        }
+        return *wxWHITE;
+    }
+    return wxColour();
+}
+
+wxString MyColourProperty::ColourToString(const wxColour& col, int index, int argFlags) const
+{
+    if ( index == (int)(m_choices.GetCount() - 1) )
+        return wxEmptyString;
+
+    return wxColourProperty::ColourToString(col, index, argFlags);
+}
+
+int MyColourProperty::GetCustomColourIndex() const
+{
+    return m_choices.GetCount() - 2;
 }

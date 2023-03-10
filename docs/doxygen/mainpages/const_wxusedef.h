@@ -29,11 +29,6 @@ library:
 @beginDefList
 @itemdef{wxUSE_STL, Container classes and wxString are implemented using
     standard classes and provide the same standard API.}
-@itemdef{wxUSE_STD_STRING, wxString is implemented using std::[w]string and can
-    be constructed from it (but provides wxWidgets-compatible API, in
-    particular is implicitly convertible to @c char* and not std::[w]string).}
-@itemdef{wxUSE_STD_IOSTREAM, Standard C++ classes are used instead of or in
-    addition to wx stream classes.}
 @itemdef{wxUSE_UNICODE, Always defined as 1 in wxWidgets 3.3 and later, only
     exists for compatibility.}
 @itemdef{wxUSE_UNICODE_WCHAR, wxString uses wchar_t buffer for internal storage
@@ -96,8 +91,6 @@ library:
 @itemdef{wxUSE_DATETIME, Use wxDateTime and related classes.}
 @itemdef{wxUSE_DBGHELP, Predefine as 0 to avoid using wxDbgHelpDLL and related classes.}
 @itemdef{wxUSE_DC_TRANSFORM_MATRIX, Use wxDC::SetTransformMatrix() and related methods.}
-@itemdef{wxUSE_DEBUG_CONTEXT, Use wxDebugContext class.}
-@itemdef{wxUSE_DEBUG_NEW_ALWAYS, See @ref overview_debugging}
 @itemdef{wxUSE_DEBUGREPORT, Use wxDebugReport class.}
 @itemdef{wxUSE_DIALUP_MANAGER, Use wxDialUpManager and related classes.}
 @itemdef{wxUSE_DIRDLG, Use wxDirDialog class.}
@@ -135,7 +128,6 @@ library:
 @itemdef{wxUSE_GEOMETRY, Use common geometry classes}
 @itemdef{wxUSE_GIF, Use GIF wxImageHandler}
 @itemdef{wxUSE_GLCANVAS, Enables OpenGL support.}
-@itemdef{wxUSE_GLOBAL_MEMORY_OPERATORS, Override global operators @c new and @c delete to use wxWidgets memory leak detection}
 @itemdef{wxUSE_GRAPHICS_CONTEXT, Use wxGraphicsContext and related classes.}
 @itemdef{wxUSE_GRID, Use wxGrid and related classes.}
 @itemdef{wxUSE_HELP, Use wxHelpController and related classes.}
@@ -168,7 +160,6 @@ library:
 @itemdef{wxUSE_MDI, Use wxMDIParentFrame, and wxMDIChildFrame}
 @itemdef{wxUSE_MDI_ARCHITECTURE, Use MDI-based document-view classes.}
 @itemdef{wxUSE_MEDIACTRL, Use wxMediaCtrl.}
-@itemdef{wxUSE_MEMORY_TRACING, Use wxWidgets memory leak detection, not recommended if using another memory debugging tool.}
 @itemdef{wxUSE_MENUS, Use wxMenu and wxMenuItem.}
 @itemdef{wxUSE_MENUBAR, Use wxMenubar.}
 @itemdef{wxUSE_METAFILE, Use wxMetaFile and related classes.}

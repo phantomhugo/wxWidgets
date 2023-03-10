@@ -171,6 +171,7 @@ public:
     void OnFindOptions(wxCommandEvent& evt);
     void OnEnableContextMenu(wxCommandEvent& evt);
     void OnEnableDevTools(wxCommandEvent& evt);
+    void OnEnableBrowserAcceleratorKeys(wxCommandEvent& evt);
 
 private:
     wxTextCtrl* m_url;
@@ -237,6 +238,7 @@ private:
     wxMenuItem* m_find;
     wxMenuItem* m_context_menu;
     wxMenuItem* m_dev_tools;
+    wxMenuItem* m_browser_accelerator_keys;
 
     wxInfoBar *m_info;
     wxStaticText* m_info_text;
@@ -537,6 +539,7 @@ WebFrame::WebFrame(const wxString& url) :
 
     m_context_menu = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Context Menu"));
     m_dev_tools = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Dev Tools"));
+    m_browser_accelerator_keys = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Browser Accelerator Keys"));
 
     //By default we want to handle navigation and new windows
     m_tools_handle_navigation->Check();
@@ -635,6 +638,7 @@ WebFrame::WebFrame(const wxString& url) :
     Bind(wxEVT_MENU, &WebFrame::OnFind, this, m_find->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnEnableContextMenu, this, m_context_menu->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnEnableDevTools, this, m_dev_tools->GetId());
+    Bind(wxEVT_MENU, &WebFrame::OnEnableBrowserAcceleratorKeys, this, m_browser_accelerator_keys->GetId());
 
     //Connect the idle events
     Bind(wxEVT_IDLE, &WebFrame::OnIdle, this);
@@ -810,6 +814,11 @@ void WebFrame::OnEnableDevTools(wxCommandEvent& evt)
     m_browser->EnableAccessToDevTools(evt.IsChecked());
 }
 
+void WebFrame::OnEnableBrowserAcceleratorKeys(wxCommandEvent& evt)
+{
+    m_browser->EnableBrowserAcceleratorKeys(evt.IsChecked());
+}
+
 void WebFrame::OnFind(wxCommandEvent& WXUNUSED(evt))
 {
     wxString value = m_browser->GetSelectedText();
@@ -888,7 +897,7 @@ void WebFrame::OnNavigationRequest(wxWebViewEvent& evt)
     }
 
     wxLogMessage("%s", "Navigation request to '" + evt.GetURL() + "' (target='" +
-    evt.GetTarget() + "')");
+    evt.GetTarget() + "')" + ((evt.IsTargetMainFrame()) ? " mainFrame" : ""));
 
     //If we don't want to handle navigation then veto the event and navigation
     //will not take place, we also need to stop the loading animation
@@ -1035,6 +1044,7 @@ void WebFrame::OnToolsClicked(wxCommandEvent& WXUNUSED(evt))
 
     m_context_menu->Check(m_browser->IsContextMenuEnabled());
     m_dev_tools->Check(m_browser->IsAccessToDevToolsEnabled());
+    m_browser_accelerator_keys->Check(m_browser->AreBrowserAcceleratorKeysEnabled());
 
     //Firstly we clear the existing menu items, then we add the current ones
     wxMenuHistoryMap::const_iterator it;

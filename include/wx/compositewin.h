@@ -132,9 +132,20 @@ protected:
     }
 
 private:
+    // It may happen that we the base class W already is a wxCompositeWindow
+    // and so already has GetCompositeWindowParts(). This actually works fine,
+    // as it just gets overridden by the most derived class, but triggers a
+    // warning, so disable this warning explicitly as we can't do anything else
+    // about it here (as actually using "override" here would result in an
+    // error for the first class in the hierarchy using wxCompositeWindow).
+    wxWARNING_SUPPRESS_MISSING_OVERRIDE()
+
     // Must be implemented by the derived class to return all children to which
     // the public methods we override should forward to.
     virtual wxWindowList GetCompositeWindowParts() const = 0;
+
+    wxWARNING_RESTORE_MISSING_OVERRIDE()
+
 
     template <class T, class TArg, class R>
     void SetForAllParts(R (wxWindowBase::*func)(TArg), T arg)

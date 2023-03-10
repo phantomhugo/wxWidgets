@@ -240,14 +240,14 @@ public :
     virtual NSMenu* MacCreateOrFindWindowMenu()
     {
         NSString* nsWindowMenuTitle = wxNSStringWithWxString(wxStripMenuCodes(wxApp::s_macWindowMenuTitleName, wxStrip_Menu));
-        NSString* nsAlternateWindowMenuTitle = wxNSStringWithWxString(wxStripMenuCodes(_("&Window"), wxStrip_Menu));
+        NSString* nsTranslatedWindowMenuTitle = wxNSStringWithWxString(wxGETTEXT_IN_CONTEXT("macOS menu name", "Window"));
 
         NSMenu* windowMenu = nil;
 
         for (NSMenuItem* topmenu in [m_osxMenu itemArray])
         {
             if ([[topmenu title] isEqualToString:nsWindowMenuTitle] ||
-                [[topmenu title] isEqualToString:nsAlternateWindowMenuTitle])
+                [[topmenu title] isEqualToString:nsTranslatedWindowMenuTitle])
             {
                 windowMenu = [topmenu submenu];
                 break;
@@ -257,7 +257,7 @@ public :
         if ( windowMenu == nil )
         {
             NSString* nsHelpMenuTitle = wxNSStringWithWxString(wxStripMenuCodes(wxApp::s_macHelpMenuTitleName, wxStrip_Menu));
-            NSString* nsAlternateHelpTitle = wxNSStringWithWxString(wxStripMenuCodes(_("&Help"), wxStrip_Menu));
+            NSString* nsTranslatedHelpTitle = wxNSStringWithWxString(wxGETTEXT_IN_CONTEXT("macOS menu name", "Help"));
 
             NSMenuItem* helpMenu = nil;
             NSInteger numberOfMenus = [m_osxMenu numberOfItems];
@@ -265,13 +265,13 @@ public :
             {
                 NSMenuItem* lastMenu = [m_osxMenu itemAtIndex:numberOfMenus-1];
                 if ([[lastMenu title] isEqualToString:nsHelpMenuTitle] ||
-                    [[lastMenu title] isEqualToString:nsAlternateHelpTitle])
+                    [[lastMenu title] isEqualToString:nsTranslatedHelpTitle])
                 {
                     helpMenu = lastMenu;
                 }
             }
 
-            windowMenu = [[NSMenu alloc] initWithTitle:nsWindowMenuTitle];
+            windowMenu = [[NSMenu alloc] initWithTitle:nsTranslatedWindowMenuTitle];
             NSMenuItem* windowMenuItem = [[NSMenuItem alloc] initWithTitle:nsWindowMenuTitle action:nil keyEquivalent:@""];
             [windowMenuItem setSubmenu:windowMenu];
             [windowMenu release];
@@ -296,18 +296,18 @@ public :
             // already exists or not
             [windowMenu removeAllItems];
 
-            item = [[NSMenuItem alloc] initWithTitle:wxNSStringWithWxString(_("Minimize")) action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+            item = [[NSMenuItem alloc] initWithTitle:wxNSStringWithWxString(wxGETTEXT_IN_CONTEXT("macOS menu item", "Minimize")) action:@selector(performMiniaturize:) keyEquivalent:@"m"];
             [windowMenu insertItem:item atIndex:0];
             [item setEnabled:YES];
             [item release];
 
-            item = [[NSMenuItem alloc] initWithTitle:wxNSStringWithWxString(_("Zoom")) action:@selector(performZoom:) keyEquivalent:@""];
+            item = [[NSMenuItem alloc] initWithTitle:wxNSStringWithWxString(wxGETTEXT_IN_CONTEXT("macOS menu item", "Zoom")) action:@selector(performZoom:) keyEquivalent:@""];
             [windowMenu insertItem:item atIndex:1];
             [item release];
 
             [windowMenu insertItem:[NSMenuItem separatorItem] atIndex:2];
 
-            item = [[NSMenuItem alloc] initWithTitle:wxNSStringWithWxString(_("Bring All to Front")) action:@selector(arrangeInFront:) keyEquivalent:@""];
+            item = [[NSMenuItem alloc] initWithTitle:wxNSStringWithWxString(wxGETTEXT_IN_CONTEXT("macOS menu item", "Bring All to Front")) action:@selector(arrangeInFront:) keyEquivalent:@""];
             [windowMenu insertItem:item atIndex:3];
             [item release];
 

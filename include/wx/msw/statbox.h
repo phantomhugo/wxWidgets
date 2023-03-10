@@ -65,12 +65,12 @@ public:
     virtual bool SetForegroundColour(const wxColour& colour) override;
     virtual bool SetFont(const wxFont& font) override;
 
-    virtual void SetLabel(const wxString& label) override;
-
     virtual WXDWORD MSWGetStyle(long style, WXDWORD *exstyle) const override;
 
     // returns true if the platform should explicitly apply a theme border
     virtual bool CanApplyThemeBorder() const override { return false; }
+
+    virtual void MSWOnDisabledComposited() override;
 
 protected:
     virtual wxSize DoGetBestSize() const override;
@@ -81,8 +81,27 @@ public:
 protected:
     virtual wxWindowList GetCompositeWindowParts() const override;
 
+    virtual bool MSWGetDarkModeSupport(MSWDarkModeSupport& support) const override;
+
+    // return the region with all the windows inside this static box excluded
+    WXHRGN MSWGetRegionWithoutChildren();
+
+    // remove the parts which are painted by static box itself from the given
+    // region which is embedded in a rectangle (0, 0)-(w, h)
+    void MSWGetRegionWithoutSelf(WXHRGN hrgn, int w, int h);
+
+    // paint the given rectangle with our background brush/colour
+    virtual void PaintBackground(wxDC& dc, const struct tagRECT& rc);
+    // paint the foreground of the static box
+    virtual void PaintForeground(wxDC& dc, const struct tagRECT& rc);
+
+    void OnPaint(wxPaintEvent& event);
+
 private:
     void PositionLabelWindow();
+
+    bool ShouldUseCustomPaint() const;
+    void UseCustomPaint();
 
     using base_type = wxCompositeWindowSettersOnly<wxStaticBoxBase>;
 

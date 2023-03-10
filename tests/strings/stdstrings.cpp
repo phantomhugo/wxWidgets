@@ -43,6 +43,11 @@ TEST_CASE("StdString::Constructors", "[stdstring]")
 
     const wchar_t *pw = s2.c_str();
     CHECK( wxString(pw, pw + 1) == "a" );
+
+    wxString s9(std::move(s1));
+    CHECK( s9 == wxT("abcdefgh"));
+    wxString s10(std::move(s3), 8);
+    CHECK( s10 == wxT("abcdefgh"));
 }
 
 TEST_CASE("StdString::Iterators", "[stdstring]")
@@ -118,9 +123,9 @@ TEST_CASE("StdString::Append", "[stdstring]")
 
 TEST_CASE("StdString::Assign", "[stdstring]")
 {
-    wxString s1, s2, s3, s4, s5, s6, s7, s8;
+    wxString s1, s2, s3, s4, s5, s6, s7, s8, s9;
 
-    s1 = s2 = s3 = s4 = s5 = s6 = s7 = s8 = wxT("abc");
+    s1 = s2 = s3 = s4 = s5 = s6 = s7 = s8 = s9 = wxT("abc");
     s1.assign(wxT("def"));
     s2.assign(wxT("defgh"), 3);
     s3.assign(wxString(wxT("abcdef")), 3, 6);
@@ -145,6 +150,76 @@ TEST_CASE("StdString::Assign", "[stdstring]")
 
     s1.assign(s1, 1, 1);
     CHECK( s1 == "e" );
+
+    s9.assign(std::move(s2));
+    CHECK(s9 == wxT("def"));
+    s2 = wxT("qwerty");
+    CHECK(s2 == wxT("qwerty"));
+
+    // Self-assignment
+    wxString& s9ref = s9;
+    s9ref.assign(s9);
+    CHECK(s9 == wxT("def"));
+    // Self-move may change the value, but shouldn't crash
+    // and reassignment should work
+    s9ref.assign(std::move(s9));
+    s9 = "qwerty";
+    CHECK(s9 == wxT("qwerty"));
+}
+
+TEST_CASE("StdString::AssignOp", "[stdstring]")
+{
+    wxString s1, s2, s3, s4, s5, s6, s7, s8;
+    s1 = s2 = s3 = s4 = s5 = s6 = s7 = s8 = wxT("abc");
+
+    // operator=
+    s1 = wxT("def");
+    CHECK(s1 == wxT("def"));
+
+    s2 = s1;
+    CHECK(s2 == wxT("def"));
+
+    const char* pc = s1.c_str();
+    s3 = pc;
+    CHECK(s3 == wxT("def"));
+
+    const wchar_t* pw = s1.c_str();
+    s4 = pw;
+    CHECK(s4 == wxT("def"));
+
+    s5 = std::move(s1);
+    CHECK(s5 == wxT("def"));
+    s1 = wxT("qwerty");
+    CHECK(s1 == wxT("qwerty"));
+
+    // swap
+    s6 = wxT("def");
+    std::swap(s6, s7);
+    CHECK(s6 == wxT("abc"));
+    CHECK(s7 == wxT("def"));
+    swap(s6, s7);
+    CHECK(s6 == wxT("def"));
+    CHECK(s7 == wxT("abc"));
+    s6.swap(s7);
+    CHECK(s6 == wxT("abc"));
+    CHECK(s7 == wxT("def"));
+
+    // Self-assignment
+    wxString& s8ref = s8;
+    s8ref = s8;
+    CHECK(s8 == wxT("abc"));
+    // Self-move may change the value, but shouldn't crash
+    // and reassignment should work
+    s8ref = std::move(s8);
+    s8 = "qwerty";
+    CHECK(s8 == wxT("qwerty"));
+    // Self-swap
+    std::swap(s8, s8ref);
+    CHECK(s8 == wxT("qwerty"));
+    swap(s8, s8ref);
+    CHECK(s8 == wxT("qwerty"));
+    s8.swap(s8ref);
+    CHECK(s8 == wxT("qwerty"));
 }
 
 TEST_CASE("StdString::Compare", "[stdstring]")
@@ -520,7 +595,6 @@ TEST_CASE("StdString::Substr", "[stdstring]")
     CHECK( s1.substr( 17, 30 ) == wxT("") );
 }
 
-#if wxUSE_STD_STRING
 TEST_CASE("StdString::Conversion", "[stdstring]")
 {
     std::string strStd("std::string value");
@@ -575,7 +649,6 @@ TEST_CASE("StdString::Conversion", "[stdstring]")
 
     CHECK( wxString("bye").utf8_string() == std::string("bye") );
 }
-#endif // wxUSE_STD_STRING
 
 TEST_CASE("StdString::Algo", "[stdstring]")
 {

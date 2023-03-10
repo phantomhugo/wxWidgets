@@ -39,6 +39,7 @@
 #endif // WX_PRECOMP
 
 #include "wx/msw/private.h"
+#include "wx/msw/private/darkmode.h"
 
 #include "wx/generic/statusbr.h"
 
@@ -134,7 +135,6 @@ bool wxFrame::Create(wxWindow *parent,
 
         // In case the application is run elevated, allow the
         // TaskbarButtonCreated and WM_COMMAND messages through.
-#if wxUSE_DYNLIB_CLASS
         typedef BOOL (WINAPI *ChangeWindowMessageFilter_t)(UINT message,
                                                            DWORD dwFlag);
         wxDynamicLibrary dllUser32(wxT("user32.dll"));
@@ -147,10 +147,6 @@ bool wxFrame::Create(wxWindow *parent,
                                            wxMSGFLT_ADD);
             pfnChangeWindowMessageFilter(WM_COMMAND, wxMSGFLT_ADD);
         }
-#else
-        ChangeWindowMessageFilter(wxMsgTaskbarButtonCreated, wxMSGFLT_ADD);
-        ChangeWindowMessageFilter(WM_COMMAND, wxMSGFLT_ADD);
-#endif // wxUSE_DYNLIB_CLASS
     }
 #endif // wxUSE_TASKBARBUTTON
 
@@ -841,6 +837,12 @@ WXLRESULT wxFrame::MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lPara
 {
     WXLRESULT rc = 0;
     bool processed = false;
+
+    if ( GetMenuBar() &&
+          wxMSWDarkMode::HandleMenuMessage(&rc, this, message, wParam, lParam) )
+    {
+        return rc;
+    }
 
     switch ( message )
     {

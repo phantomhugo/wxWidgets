@@ -181,9 +181,10 @@ wxPG_ITERATE_DEFAULT = wxPG_ITERATE_NORMAL
 */
 class wxPropertyGridIteratorBase
 {
-public:
+protected:
     wxPropertyGridIteratorBase();
 
+public:
     void Assign( const wxPropertyGridIteratorBase& it );
 
     bool AtEnd() const;
@@ -232,7 +233,8 @@ public:
     wxPropertyGridIterator( wxPropertyGridPageState* state,
                             int flags, int startPos, int dir = 0 );
     wxPropertyGridIterator( const wxPropertyGridIterator& it );
-    ~wxPropertyGridIterator();};
+    ~wxPropertyGridIterator();
+};
 
 /**
     Const version of wxPropertyGridIterator.
@@ -347,9 +349,9 @@ public:
         This needs to be overridden in grid used the manager so that splitter
         changes can be propagated to other pages.
     */
-    virtual void DoSetSplitterPosition( int pos,
-                                        int splitterColumn = 0,
-                                        int flags = 0 );
+    virtual void DoSetSplitter( int pos,
+                                int splitterColumn = 0,
+                                wxPGSplitterPositionFlags flags = 0 );
 
     bool EnableCategories( bool enable );
 

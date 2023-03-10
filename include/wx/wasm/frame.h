@@ -12,9 +12,6 @@
 
 #include "wx/frame.h"
 
-class QMainWindow;
-class QScrollArea;
-
 class WXDLLIMPEXP_CORE wxFrame : public wxFrameBase
 {
 public:

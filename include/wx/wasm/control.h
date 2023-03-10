@@ -33,7 +33,7 @@ typedef wxString wxControlAction;
 class WXDLLIMPEXP_CORE wxControl : public wxControlBase
 {
 public:
-    wxControl() { Init(); }
+    wxControl();
 
     wxControl(wxWindow *parent,
               wxWindowID id,

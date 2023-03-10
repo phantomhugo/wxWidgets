@@ -480,6 +480,8 @@ private:
     #include "wx/msw/ctrlsub.h"
 #elif defined(__WXQT__)
     #include "wx/qt/ctrlsub.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/ctrlsub.h"
 #else
     class WXDLLIMPEXP_CORE wxControlWithItems : public wxControlWithItemsBase
     {

@@ -10,16 +10,13 @@
 #ifndef _WX_WASM_MENU_H_
 #define _WX_WASM_MENU_H_
 
-class QMenu;
-class QMenuBar;
-
 class WXDLLIMPEXP_CORE wxMenu : public wxMenuBase
 {
 public:
     wxMenu(long style = 0);
     wxMenu(const wxString& title, long style = 0);
 
-    virtual QMenu *GetHandle() const;
+    virtual void *GetHandle() const;
 
 protected:
     virtual wxMenuItem *DoAppend(wxMenuItem *item) override;
@@ -27,7 +24,6 @@ protected:
     virtual wxMenuItem *DoRemove(wxMenuItem *item) override;
 
 private:
-    QMenu *m_qtMenu;
 
     wxDECLARE_DYNAMIC_CLASS(wxMenu);
 };
@@ -51,14 +47,12 @@ public:
     virtual void SetMenuLabel(size_t pos, const wxString& label) override;
     virtual wxString GetMenuLabel(size_t pos) const override;
 
-    QMenuBar *GetQMenuBar() const { return m_qtMenuBar; }
     virtual WXWidget GetHandle() const override;
 
     virtual void Attach(wxFrame *frame) override;
     virtual void Detach() override;
 
 private:
-    QMenuBar *m_qtMenuBar;
 
     wxDECLARE_DYNAMIC_CLASS(wxMenuBar);
 };

@@ -41,7 +41,7 @@ public:
     virtual ~wxColour();
 
     bool operator==(const wxColour& col) const;
-    bool operator!=(const wxColour& col) const { return !(*this == col); }
+    bool operator!=(const wxColour& col) const;
 
     unsigned char Red() const;
     unsigned char Green() const;

@@ -27,7 +27,7 @@ class WXDLLIMPEXP_FWD_CORE wxBitmap;
 class WXDLLIMPEXP_CORE wxBrush : public wxBrushBase
 {
 public:
-    wxBrush() { }
+    wxBrush();
 
     wxBrush( const wxColour &colour, wxBrushStyle style = wxBRUSHSTYLE_SOLID );
     wxBrush( const wxBitmap &stippleBitmap );

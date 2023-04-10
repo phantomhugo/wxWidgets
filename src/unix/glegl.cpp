@@ -26,8 +26,6 @@
     #include "wx/log.h"
 #endif //WX_PRECOMP
 
-#include "wx/scopedptr.h"
-
 #include "wx/gtk/private/wrapgtk.h"
 #include "wx/gtk/private/backend.h"
 #ifdef GDK_WINDOWING_WAYLAND
@@ -40,6 +38,8 @@
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+
+#include <memory>
 
 // ----------------------------------------------------------------------------
 // wxGLContextAttrs: OpenGL rendering context attributes
@@ -458,6 +458,12 @@ bool wxGLCanvasEGL::CreateSurface()
         return false;
     }
 
+    if ( m_surface != EGL_NO_SURFACE )
+    {
+        eglDestroySurface(m_surface, m_display);
+        m_surface = EGL_NO_SURFACE;
+    }
+
     GdkWindow *window = GTKGetDrawingWindow();
 #ifdef GDK_WINDOWING_X11
     if (wxGTKImpl::IsX11(window))
@@ -583,7 +589,7 @@ EGLConfig *wxGLCanvasEGL::InitConfig(const wxGLAttributes& dispAttrs)
 /* static */
 bool wxGLCanvasBase::IsDisplaySupported(const wxGLAttributes& dispAttrs)
 {
-    wxScopedPtr<EGLConfig> config(wxGLCanvasEGL::InitConfig(dispAttrs));
+    std::unique_ptr<EGLConfig> config(wxGLCanvasEGL::InitConfig(dispAttrs));
     return config != nullptr;
 }
 

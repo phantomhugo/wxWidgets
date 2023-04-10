@@ -122,6 +122,11 @@
 #define wxUSE_REPRODUCIBLE_BUILD 0
 
 
+#define wxUSE_UNICODE_UTF8 0
+
+#define wxUSE_UTF8_LOCALE_ONLY 0
+
+
 
 #define wxUSE_ON_FATAL_EXCEPTION 0
 
@@ -593,9 +598,6 @@
  */
 #define wxUSE_SELECT_DISPATCHER 0
 #define wxUSE_EPOLL_DISPATCHER 0
-
-#define wxUSE_UNICODE_UTF8 0
-#define wxUSE_UTF8_LOCALE_ONLY 0
 
 /*
    Use GStreamer for Unix.
@@ -1106,6 +1108,9 @@
 
 /* Define if setpriority() is available. */
 #undef HAVE_SETPRIORITY
+
+/* Define if xkbcommon is available */
+#undef HAVE_XKBCOMMON
 
 /* Define if xlocale.h header file exists. */
 #undef HAVE_XLOCALE_H

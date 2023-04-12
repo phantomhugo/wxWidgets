@@ -40,12 +40,7 @@ public:
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize, long style = 0,
               const wxValidator& validator = wxDefaultValidator,
-              const wxString& name = wxASCII_STR(wxControlNameStr))
-    {
-        Init();
-
-        Create(parent, id, pos, size, style, validator, name);
-    }
+              const wxString& name = wxASCII_STR(wxControlNameStr));
 
     bool Create(wxWindow *parent,
                 wxWindowID id,

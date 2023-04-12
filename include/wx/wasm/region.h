@@ -19,35 +19,20 @@
 class WXDLLIMPEXP_CORE wxRegion : public wxRegionBase
 {
 public:
-    wxRegion() { }
+    wxRegion();
 
-    wxRegion( wxCoord x, wxCoord y, wxCoord w, wxCoord h )
-    {
-        InitRect(x, y, w, h);
-    }
+    wxRegion( wxCoord x, wxCoord y, wxCoord w, wxCoord h );
 
-    wxRegion( const wxPoint& topLeft, const wxPoint& bottomRight )
-    {
-        InitRect(topLeft.x, topLeft.y,
-                 bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
-    }
+    wxRegion( const wxPoint& topLeft, const wxPoint& bottomRight );
 
-    wxRegion( const wxRect& rect )
-    {
-        InitRect(rect.x, rect.y, rect.width, rect.height);
-    }
+    wxRegion( const wxRect& rect );
 
     wxRegion( size_t n, const wxPoint *points, wxPolygonFillMode fillStyle = wxODDEVEN_RULE );
 
-    wxRegion( const wxBitmap& bmp)
-    {
-        Union(bmp);
-    }
+    wxRegion( const wxBitmap& bmp);
+
     wxRegion( const wxBitmap& bmp,
-              const wxColour& transColour, int tolerance = 0)
-    {
-        Union(bmp, transColour, tolerance);
-    }
+              const wxColour& transColour, int tolerance = 0);
 
     virtual ~wxRegion();
 
@@ -56,7 +41,6 @@ public:
     virtual bool IsEmpty() const;
 
 public:
-    WXRegion *GetX11Region() const;
 
 protected:
     virtual wxGDIRefData *CreateGDIRefData() const;
@@ -92,7 +76,7 @@ public:
     wxRegionIterator();
     wxRegionIterator(const wxRegion& region);
 
-    void Reset() { m_current = 0u; }
+    void Reset();
     void Reset(const wxRegion& region);
 
     operator bool () const;
@@ -104,9 +88,9 @@ public:
     wxCoord GetX() const;
     wxCoord GetY() const;
     wxCoord GetW() const;
-    wxCoord GetWidth() const { return GetW(); }
+    wxCoord GetWidth() const;
     wxCoord GetH() const;
-    wxCoord GetHeight() const { return GetH(); }
+    wxCoord GetHeight() const;
     wxRect GetRect() const;
 
 private:

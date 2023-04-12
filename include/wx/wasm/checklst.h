@@ -24,7 +24,7 @@ class WXDLLIMPEXP_CORE wxCheckListBox : public wxCheckListBoxBase
 {
 public:
     // ctors
-    wxCheckListBox() { Init(); }
+    wxCheckListBox();
 
     wxCheckListBox(wxWindow *parent,
                    wxWindowID id,
@@ -34,12 +34,8 @@ public:
                    const wxString choices[] = NULL,
                    long style = 0,
                    const wxValidator& validator = wxDefaultValidator,
-                   const wxString& name = wxASCII_STR(wxListBoxNameStr))
-    {
-        Init();
+                   const wxString& name = wxASCII_STR(wxListBoxNameStr));
 
-        Create(parent, id, pos, size, nStrings, choices, style, validator, name);
-    }
     wxCheckListBox(wxWindow *parent,
                    wxWindowID id,
                    const wxPoint& pos,

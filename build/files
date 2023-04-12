@@ -574,7 +574,6 @@ WASM_SRC=
     src/wasm/pen.cpp
     src/wasm/popupwin.cpp
     src/wasm/printdlg.cpp
-    src/wasm/printqt.cpp
     src/wasm/radiobox.cpp
     src/wasm/radiobut.cpp
     src/wasm/region.cpp

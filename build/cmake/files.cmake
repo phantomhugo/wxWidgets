@@ -2966,7 +2966,6 @@ set(WASM_HDR
     wx/wasm/pen.h
     wx/wasm/popupwin.h
     wx/wasm/printdlg.h
-    wx/wasm/printqt.h
     wx/wasm/radiobox.h
     wx/wasm/radiobut.h
     wx/wasm/region.h
@@ -3058,7 +3057,6 @@ set(WASM_SRC
     src/wasm/pen.cpp
     src/wasm/popupwin.cpp
     src/wasm/printdlg.cpp
-    src/wasm/printqt.cpp
     src/wasm/radiobox.cpp
     src/wasm/radiobut.cpp
     src/wasm/region.cpp

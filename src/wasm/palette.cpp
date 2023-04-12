@@ -16,11 +16,11 @@ wxPalette::wxPalette()
 {
 }
 
-wxPalette::wxPalette(int WXUNUSED(n), unsigned char *WXUNUSED(red), unsigned char *WXUNUSED(green), unsigned char *WXUNUSED(blue))
+wxPalette::wxPalette(int n, const unsigned char *red, const unsigned char *green, const unsigned char *blue)
 {
 }
 
-bool wxPalette::Create(int WXUNUSED(n), unsigned char *WXUNUSED(red), unsigned char *WXUNUSED(green), unsigned char *WXUNUSED(blue))
+bool wxPalette::Create(int WXUNUSED(n), const unsigned char *WXUNUSED(red), const unsigned char *WXUNUSED(green), const unsigned char *WXUNUSED(blue))
 {
     return false;
 }

@@ -8,115 +8,11 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-
-#include <QtGui/QFont>
-#include <QtGui/QFontInfo>
-
 #include "wx/font.h"
 #include "wx/fontutil.h"
-#include "wx/qt/private/utils.h"
-#include "wx/qt/private/converter.h"
 
 // Older versions of QT don't define all the QFont::Weight enum values, so just
 // do it ourselves here for all case instead.
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 5, 0))
-#define wxQFontEnumOrInt(a, b) a
-#else
-#define wxQFontEnumOrInt(a, b) b
-#endif
-
-enum
-{
-    wxQFont_Thin        = wxQFontEnumOrInt( QFont::Thin, 0 ),
-    wxQFont_ExtraLight  = wxQFontEnumOrInt( QFont::ExtraLight, 12 ),
-    wxQFont_Light       = QFont::Light,
-    wxQFont_Normal      = QFont::Normal,
-    wxQFont_Medium      = wxQFontEnumOrInt( QFont::Medium, 57 ),
-    wxQFont_DemiBold    = QFont::DemiBold,
-    wxQFont_Bold        = QFont::Bold,
-    wxQFont_ExtraBold   = wxQFontEnumOrInt( QFont::ExtraBold, 81 ),
-    wxQFont_Black       = QFont::Black
-};
-
-static QFont::StyleHint ConvertFontFamily(wxFontFamily family)
-{
-    switch (family)
-    {
-        case wxFONTFAMILY_DEFAULT:
-            return QFont::AnyStyle;
-
-        case wxFONTFAMILY_DECORATIVE:
-            return QFont::Decorative;
-
-        case wxFONTFAMILY_ROMAN:
-            return QFont::Serif;
-
-        case wxFONTFAMILY_SCRIPT:
-            return QFont::Decorative;
-
-        case wxFONTFAMILY_SWISS:
-            return QFont::SansSerif;
-
-        case wxFONTFAMILY_MODERN:
-            return QFont::TypeWriter;
-
-        case wxFONTFAMILY_TELETYPE:
-            return QFont::TypeWriter;
-
-        case wxFONTFAMILY_MAX:
-            wxFAIL_MSG( "Invalid font family value" );
-            break;
-    }
-    return QFont::AnyStyle;
-}
-
-// Helper of ConvertFontWeight() and GetNumericWeight(): if a value lies in
-// ]fromMin, fromMax] interval, then map it to [toMin, toMax] interval linearly
-// and return true, otherwise return false and don't modify it.
-static bool TryToMap(int& x, int fromMin, int fromMax, int toMin, int toMax)
-{
-    if ( x > fromMin && x <= fromMax )
-    {
-        x = (toMin*(fromMax - x) + toMax*(x - fromMin))/(fromMax - fromMin);
-
-        return true;
-    }
-
-    return false;
-}
-
-static int ConvertFontWeight(int w)
-{
-    // Note that wxQFont_Thin is 0, so we can't have anything lighter than it.
-    if ( TryToMap(w, wxFONTWEIGHT_INVALID, wxFONTWEIGHT_THIN,
-                     wxQFont_Thin, wxQFont_Thin) ||
-         TryToMap(w, wxFONTWEIGHT_THIN, wxFONTWEIGHT_EXTRALIGHT,
-                     wxQFont_Thin, wxQFont_ExtraLight) ||
-         TryToMap(w, wxFONTWEIGHT_EXTRALIGHT, wxFONTWEIGHT_LIGHT,
-                     wxQFont_ExtraLight, wxQFont_Light) ||
-         TryToMap(w, wxFONTWEIGHT_LIGHT, wxFONTWEIGHT_NORMAL,
-                     wxQFont_Light, wxQFont_Normal) ||
-         TryToMap(w, wxFONTWEIGHT_NORMAL, wxFONTWEIGHT_MEDIUM,
-                     wxQFont_Normal, wxQFont_Medium) ||
-         TryToMap(w, wxFONTWEIGHT_MEDIUM, wxFONTWEIGHT_SEMIBOLD,
-                     wxQFont_Medium, wxQFont_DemiBold) ||
-         TryToMap(w, wxFONTWEIGHT_SEMIBOLD, wxFONTWEIGHT_BOLD,
-                     wxQFont_DemiBold, wxQFont_Bold) ||
-         TryToMap(w, wxFONTWEIGHT_BOLD, wxFONTWEIGHT_EXTRABOLD,
-                     wxQFont_Bold, wxQFont_ExtraBold) ||
-         TryToMap(w, wxFONTWEIGHT_EXTRABOLD, wxFONTWEIGHT_HEAVY,
-                     wxQFont_ExtraBold, wxQFont_Black) ||
-         TryToMap(w, wxFONTWEIGHT_HEAVY, wxFONTWEIGHT_EXTRAHEAVY,
-                     wxQFont_Black, 99) )
-    {
-        return w;
-    }
-
-    wxFAIL_MSG("invalid wxFont weight");
-
-    return wxQFont_Normal;
-}
-
 class wxFontRefData: public wxGDIRefData
 {
 public:

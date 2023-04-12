@@ -23,7 +23,7 @@
 #define VERT_SCROLLBAR_POSITION 0, 1
 #define HORZ_SCROLLBAR_POSITION 1, 0
 
-
+#if wxUSE_ACCEL
 #endif // wxUSE_ACCEL
 
 //##############################################################################
@@ -35,26 +35,18 @@
 
 void wxWindowWasm::Init()
 {
-    m_horzScrollBar = nullptr;
-    m_vertScrollBar = nullptr;
-
-    m_qtPicture = nullptr;
-    m_qtPainter.reset(new QPainter());
-
     m_mouseInside = false;
 
 #if wxUSE_ACCEL
-    m_qtShortcutHandler.reset(new wxQtShortcutHandler(this));
+
     m_processingShortcut = false;
 #endif
-    m_qtWindow = nullptr;
-    m_qtContainer = nullptr;
+
 }
 
 wxWindowWasm::wxWindowWasm()
 {
     Init();
-
 }
 
 
@@ -69,62 +61,17 @@ wxWindowWasm::wxWindowWasm(wxWindowWasm *parent, wxWindowID id, const wxPoint& p
 
 wxWindowWasm::~wxWindowWasm()
 {
-    if ( !m_qtWindow )
-    {
-        wxLogTrace(TRACE_QT_WINDOW, wxT("wxWindow::~wxWindow %s m_qtWindow is null"), GetName());
-        return;
-    }
-
-    // Delete only if the qt widget was created or assigned to this base class
-    wxLogTrace(TRACE_QT_WINDOW, wxT("wxWindow::~wxWindow %s m_qtWindow=%p"), GetName(), m_qtWindow);
-
-    if ( !IsBeingDeleted() )
-    {
-        SendDestroyEvent();
-    }
-
-
-    // Block signals because the handlers access members of a derived class.
-    m_qtWindow->blockSignals(true);
-
-    if ( s_capturedWindow == this )
-        s_capturedWindow = nullptr;
-
-    DestroyChildren(); // This also destroys scrollbars
-
-    if (m_qtWindow)
-        QtStoreWindowPointer( GetHandle(), nullptr );
-
 #if wxUSE_DRAG_AND_DROP
     SetDropTarget(nullptr);
 #endif
 
-    delete m_qtWindow;
 }
 
 
 bool wxWindowWasm::Create( wxWindowWasm * parent, wxWindowID id, const wxPoint & pos,
         const wxSize & size, long style, const wxString &name )
 {
-    // If the underlying control hasn't been created then this most probably means
-    // that a generic control, like wxPanel, is being created, so we need a very
-    // simple control as a base:
 
-    if ( GetHandle() == nullptr )
-    {
-        if ( style & (wxHSCROLL | wxVSCROLL) )
-        {
-            m_qtContainer = new wxQtScrollArea( parent, this );
-            m_qtWindow = m_qtContainer;
-            // Create the scroll bars if needed:
-            if ( style & wxHSCROLL )
-                QtSetScrollBar( wxHORIZONTAL );
-            if ( style & wxVSCROLL )
-                QtSetScrollBar( wxVERTICAL );
-        }
-        else
-            m_qtWindow = new wxQtWidget( parent, this );
-    }
 
     if ( !wxWindowBase::CreateBase( parent, id, pos, size, style, wxDefaultValidator, name ))
         return false;
@@ -144,48 +91,6 @@ bool wxWindowWasm::Create( wxWindowWasm * parent, wxWindowID id, const wxPoint &
 
 void wxWindowWasm::PostCreation(bool generic)
 {
-    if ( m_qtWindow == nullptr )
-    {
-        // store pointer to the QWidget subclass (to be used in the destructor)
-        m_qtWindow = GetHandle();
-    }
-    wxLogTrace(TRACE_QT_WINDOW, wxT("wxWindow::Create %s m_qtWindow=%p"), GetName(), m_qtWindow);
-
-    // set the background style after creation (not before like in wxGTK)
-    // (only for generic controls, to use qt defaults elsewere)
-    if (generic)
-        QtSetBackgroundStyle();
-    else
-        SetBackgroundStyle(wxBG_STYLE_SYSTEM);
-
-//    // Use custom Qt window flags (allow to turn on or off
-//    // the minimize/maximize/close buttons and title bar)
-//    Qt::WindowFlags qtFlags = GetHandle()->windowFlags();
-//
-//    qtFlags |= Qt::CustomizeWindowHint;
-//    qtFlags |= Qt::WindowTitleHint;
-//    qtFlags |= Qt::WindowSystemMenuHint;
-//    qtFlags |= Qt::WindowMinMaxButtonsHint;
-//    qtFlags |= Qt::WindowCloseButtonHint;
-//
-//    GetHandle()->setWindowFlags( qtFlags );
-//
-//    SetWindowStyleFlag( style );
-//
-
-    // Set the default color so Paint Event default handler clears the DC:
-    wxWindowBase::SetBackgroundColour(wxColour(GetHandle()->palette().window().color()));
-    wxWindowBase::SetForegroundColour(wxColour(GetHandle()->palette().windowText().color()));
-
-    GetHandle()->setFont( wxWindowBase::GetFont().GetHandle() );
-
-    if ( !IsThisEnabled() )
-        DoEnable(false);
-
-    // The window might have been hidden before Create() and it needs to remain
-    // hidden in this case, so do it (unfortunately there doesn't seem to be
-    // any way to create the window initially hidden with Qt).
-    GetHandle()->setVisible(m_isShown);
 
     wxWindowCreateEvent event(this);
     HandleWindowEvent(event);
@@ -194,9 +99,6 @@ void wxWindowWasm::PostCreation(bool generic)
 void wxWindowWasm::AddChild( wxWindowBase *child )
 {
     // Make sure all children are children of the inner scroll area widget (if any):
-
-    if ( QtGetScrollBarsContainer() )
-        QtReparent( child->GetHandle(), QtGetScrollBarsContainer()->viewport() );
 
     wxWindowBase::AddChild( child );
 }
@@ -208,14 +110,6 @@ bool wxWindowWasm::Show( bool show )
 
     // Show can be called before the underlying window is created:
 
-    QWidget *qtWidget = GetHandle();
-    if ( qtWidget == nullptr )
-    {
-        return false;
-    }
-
-    qtWidget->setVisible( show );
-
     wxSizeEvent event(GetSize(), GetId());
     event.SetEventObject(this);
     HandleWindowEvent(event);
@@ -226,41 +120,20 @@ bool wxWindowWasm::Show( bool show )
 
 void wxWindowWasm::SetLabel(const wxString& label)
 {
-    GetHandle()->setWindowTitle( wxQtConvertString( label ));
+
 }
 
 
 wxString wxWindowWasm::GetLabel() const
 {
-    return ( wxQtConvertString( GetHandle()->windowTitle() ));
 }
 
 void wxWindowWasm::DoEnable(bool enable)
 {
-    if ( GetHandle() )
-        GetHandle()->setEnabled(enable);
 }
 
 void wxWindowWasm::SetFocus()
 {
-    GetHandle()->setFocus();
-}
-
-/* static */ void wxWindowWasm::QtReparent( QWidget *child, QWidget *parent )
-{
-    // Backup the attributes which will be changed during the reparenting:
-
-//    QPoint position = child->pos();
-//    bool isVisible = child->isVisible();
-    Qt::WindowFlags windowFlags = child->windowFlags();
-
-    child->setParent( parent );
-
-    // Restore the attributes:
-
-    child->setWindowFlags( windowFlags );
-//    child->move( position );
-//    child->setVisible( isVisible );
 }
 
 bool wxWindowWasm::Reparent( wxWindowBase *parent )
@@ -268,94 +141,33 @@ bool wxWindowWasm::Reparent( wxWindowBase *parent )
     if ( !wxWindowBase::Reparent( parent ))
         return false;
 
-    QtReparent( GetHandle(), static_cast<wxWindow*>(parent)->QtGetParentWidget() );
-
     return true;
 }
 
 
 void wxWindowWasm::Raise()
 {
-    GetHandle()->raise();
 }
 
 void wxWindowWasm::Lower()
 {
-    GetHandle()->lower();
 }
-
 
 void wxWindowWasm::WarpPointer(int x, int y)
 {
     // QCursor::setPos takes global screen coordinates, so translate it:
 
     ClientToScreen( &x, &y );
-    QCursor::setPos( x, y );
 }
 
 void wxWindowWasm::Update()
 {
-    wxLogTrace(TRACE_QT_WINDOW, wxT("wxWindow::Update %s"), GetName());
-    // send the paint event to the inner widget in scroll areas:
-    if ( QtGetScrollBarsContainer() )
-    {
-        QtGetScrollBarsContainer()->viewport()->update();
-    } else {
-        GetHandle()->update();
-    }
+
 }
 
 void wxWindowWasm::Refresh( bool WXUNUSED( eraseBackground ), const wxRect *rect )
 {
-    QWidget *widget;
 
-    // get the inner widget in scroll areas:
-    if ( QtGetScrollBarsContainer() )
-    {
-        widget = QtGetScrollBarsContainer()->viewport();
-    } else {
-        widget = GetHandle();
-    }
-
-    if ( widget != nullptr )
-    {
-        if ( rect != nullptr )
-        {
-            wxLogTrace(TRACE_QT_WINDOW, wxT("wxWindow::Refresh %s rect %d %d %d %d"),
-                       GetName(),
-                       rect->x, rect->y, rect->width, rect->height);
-            widget->update( wxQtConvertRect( *rect ));
-
-            wxWindowList& children = GetChildren();
-            if ( !children.empty() )
-            {
-                wxRect parentRect = *rect;
-                ClientToScreen(&parentRect.x, &parentRect.y);
-
-                for ( auto childWin : children )
-                {
-                    wxRect childRect = childWin->GetScreenRect();
-                    childRect.Intersect(parentRect);
-                    if ( !childRect.IsEmpty() )
-                    {
-                        childWin->ScreenToClient(&childRect.x, &childRect.y);
-                        childWin->RefreshRect(childRect);
-                    }
-                }
-            }
-        }
-        else
-        {
-            wxLogTrace(TRACE_QT_WINDOW, wxT("wxWindow::Refresh %s"), GetName());
-            widget->update();
-
-            wxWindowList& children = GetChildren();
-            for ( auto childWin : children )
-            {
-                childWin->Refresh();
-            }
-        }
-    }
 }
 
 bool wxWindowWasm::SetCursor( const wxCursor &cursor )

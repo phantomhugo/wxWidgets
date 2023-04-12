@@ -22,7 +22,7 @@ class WXDLLIMPEXP_CORE wxWindowWasm : public wxWindowBase
     friend class WXDLLIMPEXP_FWD_CORE wxWindowDC;
 
 public:
-    wxWindowWasm() { Init(); }
+    wxWindowWasm();
 
     wxWindowWasm(wxWindowWasm *parent,
         wxWindowID id,

@@ -61,19 +61,6 @@ bool wxNotebook::SetPageImage(size_t n, int imageId)
 {
     wxCHECK_MSG(n < GetPageCount(), false, "invalid notebook index");
 
-    if (imageId >= 0)
-    {
-        wxCHECK_MSG(HasImageList(), false, "invalid notebook imagelist");
-        const wxBitmap bitmap = GetImageList()->GetBitmap(imageId);
-        // set the new image:
-        m_qtTabWidget->setTabIcon( n, QIcon( *bitmap.GetHandle() ));
-    }
-    else
-    {
-        // remove the image using and empty qt icon:
-        m_qtTabWidget->setTabIcon( n, QIcon() );
-    }
-    m_images[n] = imageId;
     return true;
 }
 
@@ -87,8 +74,7 @@ bool wxNotebook::InsertPage(size_t n, wxWindow *page, const wxString& text,
 
 wxSize wxNotebook::CalcSizeFromPage(const wxSize& sizePage) const
 {
-    return wxSize(sizePage.GetWidth(),
-        sizePage.GetHeight() + tabBarSize.height());
+
 }
 
 bool wxNotebook::DeleteAllPages()
@@ -118,8 +104,4 @@ wxWindow *wxNotebook::DoRemovePage(size_t page)
 {
     wxNotebookBase::DoRemovePage(page);
     m_images.erase( m_images.begin() + page );
-}
-
-WXWidget *wxNotebook::GetHandle() const
-{
 }

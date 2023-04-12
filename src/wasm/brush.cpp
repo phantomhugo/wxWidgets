@@ -106,8 +106,7 @@ wxBrushStyle wxBrush::GetStyle() const
 
 wxBitmap *wxBrush::GetStipple() const
 {
-    if (p.isNull())
-        return new wxBitmap();
+    return new wxBitmap();
 }
 
 wxGDIRefData *wxBrush::CreateGDIRefData() const

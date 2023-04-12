@@ -11,18 +11,11 @@
 
 #if wxUSE_TOOLBAR
 
-#include <QtWidgets/QActionGroup>
-#include <QtWidgets/QToolButton>
-#include <QtWidgets/QToolBar>
-
 #ifndef WX_PRECOMP
     #include "wx/menu.h"
 #endif // WX_PRECOMP
 
 #include "wx/toolbar.h"
-#include "wx/qt/private/winevent.h"
-#include "wx/qt/private/converter.h"
-
 
 class wxQtToolButton;
 class wxToolBarTool : public wxToolBarToolBase

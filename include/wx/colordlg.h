@@ -25,6 +25,8 @@
     #include "wx/gtk/colordlg.h"
 #elif defined(__WXQT__)
     #include "wx/qt/colordlg.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/colordlg.h"
 #else
     #include "wx/generic/colrdlgg.h"
 

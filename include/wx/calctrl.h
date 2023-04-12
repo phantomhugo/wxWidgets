@@ -354,6 +354,9 @@ protected:
     #elif defined(__WXQT__)
         #define wxHAS_NATIVE_CALENDARCTRL
         #include "wx/qt/calctrl.h"
+    #elif defined(__WXWASM__)
+        #define wxHAS_NATIVE_CALENDARCTRL
+        #include "wx/wasm/calctrl.h"
     #endif
 #endif // !__WXUNIVERSAL__
 

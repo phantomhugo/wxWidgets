@@ -16,19 +16,16 @@
 
 #include "wx/bitmap.h"
 
-wxAnyButton::wxAnyButton() :
-    m_qtPushButton(nullptr)
+wxAnyButton::wxAnyButton()
 {
 }
 
 void wxAnyButton::SetLabel( const wxString &label )
 {
-    m_qtPushButton->setText( wxQtConvertString( label ));
 }
 
 wxString wxAnyButton::GetLabel() const
 {
-    return wxQtConvertString( m_qtPushButton->text() );
 }
 
 void *wxAnyButton::GetHandle() const
@@ -46,22 +43,7 @@ void wxAnyButton::DoSetBitmap(const wxBitmapBundle& bitmap, State which)
     wxCHECK_RET(which < State_Max, "Invalid state");
 
     // Cache the bitmap.
-    m_bitmaps[which] = bitmap
-}
-
-wxAnyButton::State wxAnyButton::QtGetCurrentState() const
-{
-    wxCHECK_MSG(m_qtPushButton, State_Normal, "Invalid button.");
-
-    return State_Normal;
-}
-
-void wxAnyButton::QtUpdateState()
-{
-    State state = QtGetCurrentState();
-
-    // Update the bitmap
-    const wxBitmapBundle& bmp = m_bitmaps[state];
+    m_bitmaps[which] = bitmap;
 }
 
 #endif // wxHAS_ANY_BUTTON

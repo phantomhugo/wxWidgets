@@ -92,11 +92,6 @@ bool wxComboBox::IsReadOnly() const
     return HasFlag( wxCB_READONLY );
 }
 
-void wxComboBox::SetEditable(bool editable)
-{
-
-}
-
 void wxComboBox::SetValue(const wxString& value)
 {
     SetActualValue( value );

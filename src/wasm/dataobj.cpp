@@ -58,52 +58,25 @@ wxDataFormat::wxDataFormat(const wxString &id)
     SetId(id);
 }
 
-const wxString& wxDataFormat::GetMimeType() const
-{
-    return m_mimeType;
-}
-
-void wxDataFormat::SetMimeType(const wxString& mimeType)
-{
-    m_mimeType = mimeType;
-    m_formatId = wxDF_INVALID;
-}
-
 void wxDataFormat::SetId(const wxString& id)
 {
     SetMimeType(id);
 }
 
-const wxString& wxDataFormat::GetId() const
+wxString wxDataFormat::GetId() const
 {
-    return m_mimeType;
 }
 
 wxDataFormatId wxDataFormat::GetType() const
 {
-    return m_formatId;
 }
 
 void wxDataFormat::SetType(wxDataFormatId formatId)
 {
-    m_mimeType = DataFormatIdToMimeType(formatId);
-    m_formatId = formatId;
 }
 
 bool wxDataFormat::operator==(wxDataFormatId format) const
 {
-    return m_mimeType == DataFormatIdToMimeType(format)
-        && m_formatId == format;
-}
-
-bool wxDataFormat::operator!=(wxDataFormatId format) const
-{
-    return !operator==(format);
-}
-
-bool wxDataFormat::operator!=(const wxDataFormat& format) const
-{
-    return !operator==(format);
 }
 
 //############################################################################

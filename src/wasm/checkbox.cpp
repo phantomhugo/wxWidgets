@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/checkbox.cpp
-// Author:      Peter Most, Mariano Reingart
-// Copyright:   (c) 2009 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2023 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -10,8 +10,7 @@
 
 #include "wx/checkbox.h"
 
-wxCheckBox::wxCheckBox() :
-    m_qtCheckBox(nullptr)
+wxCheckBox::wxCheckBox()
 {
 }
 
@@ -57,37 +56,12 @@ bool wxCheckBox::GetValue() const
 
 void wxCheckBox::DoSet3StateValue(wxCheckBoxState state)
 {
-    switch (state)
-    {
-    case wxCHK_UNCHECKED:
-        m_qtCheckBox->setCheckState(Qt::Unchecked);
-        break;
 
-    case wxCHK_CHECKED:
-        m_qtCheckBox->setCheckState(Qt::Checked);
-        break;
-
-    case wxCHK_UNDETERMINED:
-        m_qtCheckBox->setCheckState(Qt::PartiallyChecked);
-        break;
-    }
 }
 
 wxCheckBoxState wxCheckBox::DoGet3StateValue() const
 {
-    switch (m_qtCheckBox->checkState())
-    {
-    case Qt::Unchecked:
-        return wxCHK_UNCHECKED;
 
-    case Qt::Checked:
-        return wxCHK_CHECKED;
-
-    case Qt::PartiallyChecked:
-        return wxCHK_UNDETERMINED;
-    }
-
-    wxFAIL_MSG( "unknown QCheckBox state" );
     return wxCHK_UNDETERMINED;
 }
 

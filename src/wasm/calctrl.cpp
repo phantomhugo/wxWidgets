@@ -10,7 +10,6 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-
 #if wxUSE_CALENDARCTRL
 
 #include "wx/calctrl.h"
@@ -134,61 +133,11 @@ wxCalendarDateAttr *wxCalendarCtrl::GetAttr(size_t day) const
 
 void wxCalendarCtrl::SetAttr(size_t day, wxCalendarDateAttr *attr)
 {
-    wxCHECK_RET( day > 0 && day < 32, wxT("invalid day") );
 
-    delete m_attrs[day - 1];
-    m_attrs[day - 1] = attr;
-
-    QDate date = m_qtCalendar->selectedDate();
-    date.setDate(date.year(), date.month(), day);
-
-    QTextCharFormat format = m_qtCalendar->dateTextFormat(date);
-    if ( attr->HasTextColour() )
-        format.setForeground(attr->GetTextColour().GetQColor());
-    if ( attr->HasBackgroundColour() )
-        format.setBackground(attr->GetBackgroundColour().GetQColor());
-
-    wxMISSING_IMPLEMENTATION( "Setting font" );
-
-    // wxFont is not implemented yet
-    //if ( attr->HasFont() )
-    //    format.setFont(attr->GetFont().GetQFont());
-
-    m_qtCalendar->setDateTextFormat(date, format);
-}
-
-QWidget *wxCalendarCtrl::GetHandle() const
-{
-    return m_qtCalendar;
 }
 
 //=============================================================================
 
-wxQtCalendarWidget::wxQtCalendarWidget( wxWindow *parent, wxCalendarCtrl *handler )
-    : wxQtEventSignalHandler< QCalendarWidget, wxCalendarCtrl >( parent, handler )
-    , m_date(selectedDate())
-{
-    connect(this, &QCalendarWidget::selectionChanged, this, &wxQtCalendarWidget::selectionChanged);
-    connect(this, &QCalendarWidget::activated, this, &wxQtCalendarWidget::activated);
-}
 
-void wxQtCalendarWidget::selectionChanged()
-{
-    wxCalendarCtrl *win = GetHandler();
-    if ( win )
-    {
-        GetHandler()->GenerateAllChangeEvents(wxQtConvertDate(m_date));
-        m_date = selectedDate();
-    }
-}
-
-void wxQtCalendarWidget::activated(const QDate &WXUNUSED(date))
-{
-    wxCalendarCtrl *handler = GetHandler();
-    if ( handler )
-    {
-        handler->GenerateEvent(wxEVT_CALENDAR_DOUBLECLICKED);
-    }
-}
 
 #endif // wxUSE_CALENDARCTRL

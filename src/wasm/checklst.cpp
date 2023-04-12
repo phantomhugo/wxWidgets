@@ -37,11 +37,6 @@ wxCheckListBox::wxCheckListBox(wxWindow *parent, wxWindowID id,
     Create( parent, id, pos, size, choices, style, validator, name );
 }
 
-wxCheckListBox::~wxCheckListBox()
-{
-    Clear();
-}
-
 bool wxCheckListBox::Create(wxWindow *parent, wxWindowID id,
               const wxPoint& pos,
               const wxSize& size,
@@ -66,23 +61,16 @@ bool wxCheckListBox::Create(wxWindow *parent, wxWindowID id,
 
 void wxCheckListBox::Init()
 {
-    m_hasCheckBoxes = true;
+
 }
 
 bool wxCheckListBox::IsChecked(unsigned int n) const
 {
-    QListWidgetItem* item = m_qtListWidget->item(n);
-    wxCHECK_MSG(item != nullptr, false, wxT("wrong listbox index") );
-    return item->checkState() == Qt::Checked;
+
 }
 
 void wxCheckListBox::Check(unsigned int n, bool check )
 {
-    // Prevent the emission of wxEVT_CHECKLISTBOX event by temporarily blocking all
-    // signals on m_qtListWidget object.
-    wxQtEnsureSignalsBlocked blocker(m_qtListWidget);
-    QListWidgetItem* item = m_qtListWidget->item(n);
-    wxCHECK_RET(item != nullptr, wxT("wrong listbox index") );
-    item->setCheckState(check ? Qt::Checked : Qt::Unchecked);
+
 }
 

@@ -60,43 +60,28 @@ wxBrush::wxBrush(const wxColour& col, int style)
 
 wxBrush::wxBrush(const wxBitmap& stipple)
 {
-    m_refData = new wxBrushRefData();
-    M_BRUSHDATA.setTexture(*stipple.GetHandle());
-    if (stipple.GetMask() != nullptr)
-        M_STYLEDATA = wxBRUSHSTYLE_STIPPLE_MASK_OPAQUE;
-    else
-        M_STYLEDATA = wxBRUSHSTYLE_STIPPLE;
+
 }
 
 
 void wxBrush::SetColour(const wxColour& col)
 {
     AllocExclusive();
-    M_BRUSHDATA.setColor(col.GetQColor());
 }
 
 void wxBrush::SetColour(unsigned char r, unsigned char g, unsigned char b)
 {
     AllocExclusive();
-    M_BRUSHDATA.setColor(QColor(r, g, b));
 }
 
 void wxBrush::SetStyle(wxBrushStyle style)
 {
     AllocExclusive();
-    M_BRUSHDATA.setStyle(ConvertBrushStyle((wxBrushStyle)style));
-    M_STYLEDATA = style;
 }
 
 void wxBrush::SetStipple(const wxBitmap& stipple)
 {
     AllocExclusive();
-    M_BRUSHDATA.setTexture(*stipple.GetHandle());
-
-    if (stipple.GetMask() != nullptr)
-        M_STYLEDATA = wxBRUSHSTYLE_STIPPLE_MASK_OPAQUE;
-    else
-        M_STYLEDATA = wxBRUSHSTYLE_STIPPLE;
 }
 
 
@@ -112,27 +97,17 @@ bool wxBrush::operator==(const wxBrush& brush) const
 
 wxColour wxBrush::GetColour() const
 {
-    return wxColour(M_BRUSHDATA.color());
+
 }
 
 wxBrushStyle wxBrush::GetStyle() const
 {
-    return M_STYLEDATA;
 }
 
 wxBitmap *wxBrush::GetStipple() const
 {
-    QPixmap p = M_BRUSHDATA.texture();
-
     if (p.isNull())
         return new wxBitmap();
-    else
-        return new wxBitmap(p);
-}
-
-QBrush wxBrush::GetHandle() const
-{
-    return M_BRUSHDATA;
 }
 
 wxGDIRefData *wxBrush::CreateGDIRefData() const

@@ -11,31 +11,6 @@
 #if wxUSE_MDI
 
 #include "wx/mdi.h"
-#include "wx/qt/private/utils.h"
-#include "wx/qt/private/converter.h"
-#include "wx/qt/private/winevent.h"
-
-#include <QtWidgets/QMdiArea>
-#include <QtWidgets/QMainWindow>
-
-// Main MDI window helper
-
-class wxQtMDIParentFrame : public wxQtEventSignalHandler< QMainWindow, wxMDIParentFrame >
-{
-public:
-    wxQtMDIParentFrame( wxWindow *parent, wxMDIParentFrame *handler );
-
-private:
-};
-
-// Central widget helper (container to show scroll bars and receive events):
-
-class wxQtMdiArea : public wxQtEventSignalHandler< QMdiArea, wxMDIClientWindow >
-{
-    public:
-        wxQtMdiArea( wxWindow *parent, wxMDIClientWindow *handler );
-};
-
 wxIMPLEMENT_DYNAMIC_CLASS(wxMDIParentFrame, wxFrame);
 
 wxMDIParentFrame::wxMDIParentFrame()

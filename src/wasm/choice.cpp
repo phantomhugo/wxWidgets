@@ -148,21 +148,15 @@ void *wxChoice::DoGetItemClientData(unsigned int n) const
 
 void wxChoice::DoClear()
 {
-    m_qtComboBox->clear();
+
 }
 
 void wxChoice::DoDeleteOneItem(unsigned int pos)
 {
-    const int selection = GetSelection();
 
-    if ( selection >= 0 && static_cast<unsigned int>(selection) == pos )
-    {
-        SetSelection( wxNOT_FOUND );
-    }
-    m_qtComboBox->removeItem(pos);
 }
 
-QWidget *wxChoice::GetHandle() const
+void *wxChoice::GetHandle() const
 {
-    return m_qtComboBox;
+    return nullptr;
 }

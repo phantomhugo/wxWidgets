@@ -68,18 +68,6 @@ wxAcceleratorTable::wxAcceleratorTable(int n, const wxAcceleratorEntry entries[]
     }
 }
 
-wxVector<QShortcut*> wxAcceleratorTable::ConvertShortcutTable( QWidget *parent ) const
-{
-    wxVector<QShortcut*> shortcuts;
-
-    for ( wxAccelList::compatibility_iterator node = M_ACCELDATA->m_accels.GetFirst();
-          node; node = node->GetNext() )
-    {
-        shortcuts.push_back(ConvertAccelerator(node->GetData(), parent));
-    }
-
-    return shortcuts;
-}
 
 wxObjectRefData *wxAcceleratorTable::CreateRefData() const
 {

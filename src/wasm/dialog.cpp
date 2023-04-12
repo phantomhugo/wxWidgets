@@ -10,23 +10,6 @@
 
 #include "wx/modalhook.h"
 #include "wx/dialog.h"
-#include "wx/qt/private/utils.h"
-#include "wx/qt/private/winevent.h"
-
-#include <QtWidgets/QDialog>
-
-class wxQtDialog : public wxQtEventSignalHandler< QDialog, wxDialog >
-{
-
-    public:
-        wxQtDialog( wxWindow *parent, wxDialog *handler );
-};
-
-
-wxQtDialog::wxQtDialog( wxWindow *parent, wxDialog *handler )
-    : wxQtEventSignalHandler< QDialog, wxDialog >( parent, handler )
-{
-}
 
 wxDialog::wxDialog()
 {
@@ -59,47 +42,18 @@ bool wxDialog::Create( wxWindow *parent, wxWindowID id,
     // all dialogs should have tab traversal enabled
     style |= wxTAB_TRAVERSAL;
 
-    m_qtWindow = new wxQtDialog(parent, this);
-
-    // Qt adds the context help button by default and we need to explicitly
-    // remove it to avoid having it if it's not explicitly requested.
-    if ( !HasExtraStyle(wxDIALOG_EX_CONTEXTHELP) )
-    {
-        Qt::WindowFlags qtFlags = m_qtWindow->windowFlags();
-        qtFlags &= ~Qt::WindowContextHelpButtonHint;
-        m_qtWindow->setWindowFlags(qtFlags);
-    }
-
-    if ( !wxTopLevelWindow::Create( parent, id, title, pos, size, style, name ) )
-        return false;
-
-    PostCreation();
 
     return true;
 }
 
 int wxDialog::ShowModal()
 {
-    WX_HOOK_MODAL_DIALOG();
-    wxCHECK_MSG( GetHandle() != nullptr, -1, "Invalid dialog" );
 
-    QDialog *qDialog = GetDialogHandle();
-    qDialog->setModal(true);
-
-    Show(true);
-
-    bool ret = qDialog->exec();
-    if ( GetReturnCode() == 0 )
-        return ret ? wxID_OK : wxID_CANCEL;
-    return GetReturnCode();
 }
 
 void wxDialog::EndModal(int retCode)
 {
-    wxCHECK_RET( GetDialogHandle() != nullptr, "Invalid dialog" );
 
-    SetReturnCode(retCode);
-    GetDialogHandle()->done( QDialog::Accepted );
 }
 
 bool wxDialog::IsModal() const
@@ -128,8 +82,7 @@ bool wxDialog::Show(bool show)
     return ret;
 }
 
-QDialog *wxDialog::GetDialogHandle() const
+void *wxDialog::GetDialogHandle() const
 {
-    return static_cast<QDialog*>(m_qtWindow);
 }
 

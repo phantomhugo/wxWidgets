@@ -50,7 +50,8 @@
 #include <stdlib.h>
 
 #if defined(__WINDOWS__)
-    #include "wx/msw/private.h" // includes windows.h
+    // This header includes <windows.h> and declares wxMSWFormatMessage().
+    #include "wx/msw/private.h"
 #endif
 
 #undef wxLOG_COMPONENT
@@ -149,7 +150,18 @@ PreviousLogInfo gs_prevLog;
 // map containing all components for which log level was explicitly set
 //
 // NB: all accesses to it must be protected by GetLevelsCS() critical section
-WX_DEFINE_GLOBAL_VAR(wxStringToNumHashMap, ComponentLevels);
+namespace
+{
+
+using ComponentLevelsMap = std::unordered_map<wxString, wxLogLevel>;
+
+inline ComponentLevelsMap& GetComponentLevels()
+{
+    static ComponentLevelsMap s_componentLevels;
+    return s_componentLevels;
+}
+
+} // anonymous namespace
 
 // ----------------------------------------------------------------------------
 // wxLogOutputBest: wxLog wrapper around wxMessageOutputBest
@@ -603,13 +615,12 @@ wxLogLevel wxLog::GetComponentLevel(const wxString& componentOrig)
     // Make a copy before modifying it in the loop.
     wxString component = componentOrig;
 
-    const wxStringToNumHashMap& componentLevels = GetComponentLevels();
+    const auto& componentLevels = GetComponentLevels();
     while ( !component.empty() )
     {
-        wxStringToNumHashMap::const_iterator
-            it = componentLevels.find(component);
+        const auto it = componentLevels.find(component);
         if ( it != componentLevels.end() )
-            return static_cast<wxLogLevel>(it->second);
+            return it->second;
 
         component = component.BeforeLast('/');
     }
@@ -880,11 +891,11 @@ void wxLogStderr::DoLogText(const wxString& msg)
 
 #if wxUSE_STD_IOSTREAM
 #include "wx/ioswrap.h"
-wxLogStream::wxLogStream(wxSTD ostream *ostr, const wxMBConv& conv)
+wxLogStream::wxLogStream(std::ostream *ostr, const wxMBConv& conv)
     : wxMessageOutputWithConv(conv)
 {
     if ( ostr == nullptr )
-        m_ostr = &wxSTD cerr;
+        m_ostr = &std::cerr;
     else
         m_ostr = ostr;
 }

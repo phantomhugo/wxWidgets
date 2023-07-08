@@ -24,11 +24,10 @@
 #include "wx/filename.h"
 #include "wx/wfstream.h"
 #include "wx/utils.h"
-#include "wx/hashset.h"
 #include "wx/mimetype.h"
 #include "wx/vector.h"
 
-WX_DECLARE_HASH_SET(wxString, wxStringHash, wxStringEqual, StringSet);
+#include <unordered_set>
 
 class XRCWidgetData
 {
@@ -51,7 +50,7 @@ class XRCWndClassData
 private:
     wxString m_className;
     wxString m_parentClassName;
-    StringSet m_ancestorClassNames;
+    std::unordered_set<wxString> m_ancestorClassNames;
     ArrayOfXRCWidgetData m_wdata;
 
     void BrowseXmlNode(wxXmlNode* node)
@@ -171,7 +170,7 @@ public:
                     m_className +
                     wxT("(") +
                         *m_ancestorClassNames.begin() +
-                        wxT(" *parent=NULL){\n") +
+                        wxT(" *parent=nullptr){\n") +
                     wxT("  InitWidgetsFromXRC((wxWindow *)parent);\n")
                     wxT(" }\n")
                     wxT("};\n")
@@ -180,15 +179,13 @@ public:
         else
         {
             file.Write(m_className + wxT("(){\n") +
-                       wxT("  InitWidgetsFromXRC(NULL);\n")
+                       wxT("  InitWidgetsFromXRC(nullptr);\n")
                        wxT(" }\n")
                        wxT("};\n"));
 
-            for ( StringSet::const_iterator it = m_ancestorClassNames.begin();
-                  it != m_ancestorClassNames.end();
-                  ++it )
+            for ( const auto& name : m_ancestorClassNames )
             {
-                file.Write(m_className + wxT("(") + *it + wxT(" *parent){\n") +
+                file.Write(m_className + wxT("(") + name + wxT(" *parent){\n") +
                             wxT("  InitWidgetsFromXRC((wxWindow *)parent);\n")
                             wxT(" }\n")
                             wxT("};\n"));

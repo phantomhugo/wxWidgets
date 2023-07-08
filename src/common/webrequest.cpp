@@ -39,6 +39,9 @@
 #include "wx/private/webrequest_curl.h"
 #endif
 
+#include <memory>
+#include <unordered_map>
+
 extern WXDLLIMPEXP_DATA_NET(const char) wxWebSessionBackendWinHTTP[] = "WinHTTP";
 extern WXDLLIMPEXP_DATA_NET(const char) wxWebSessionBackendURLSession[] = "URLSession";
 extern WXDLLIMPEXP_DATA_NET(const char) wxWebSessionBackendCURL[] = "CURL";
@@ -637,7 +640,12 @@ void wxWebResponseImpl::Init()
 
 wxString wxWebResponseImpl::GetMimeType() const
 {
-    return GetHeader("Mime-Type");
+    return GetContentType().BeforeFirst(';');
+}
+
+wxString wxWebResponseImpl::GetContentType() const
+{
+    return GetHeader("Content-Type");
 }
 
 wxInputStream * wxWebResponseImpl::GetStream() const
@@ -818,6 +826,13 @@ wxString wxWebResponse::GetMimeType() const
     return m_impl->GetMimeType();
 }
 
+wxString wxWebResponse::GetContentType() const
+{
+    wxCHECK_IMPL( wxString() );
+
+    return m_impl->GetContentType();
+}
+
 int wxWebResponse::GetStatus() const
 {
     wxCHECK_IMPL( -1 );
@@ -865,13 +880,11 @@ wxString wxWebResponse::GetDataFile() const
 // wxWebSessionImpl
 //
 
-WX_DECLARE_STRING_HASH_MAP(wxWebSessionFactory*, wxStringWebSessionFactoryMap);
-
 namespace
 {
 
 wxWebSession gs_defaultSession;
-wxStringWebSessionFactoryMap gs_factoryMap;
+std::unordered_map<wxString, std::unique_ptr<wxWebSessionFactory>> gs_factoryMap;
 
 } // anonymous namespace
 
@@ -949,7 +962,7 @@ wxWebSession wxWebSession::New(const wxString& backendOrig)
         }
     }
 
-    wxStringWebSessionFactoryMap::iterator factory = gs_factoryMap.find(backend);
+    const auto factory = gs_factoryMap.find(backend);
 
     wxWebSessionImplPtr impl;
     if ( factory != gs_factoryMap.end() )
@@ -963,18 +976,13 @@ void
 wxWebSession::RegisterFactory(const wxString& backend,
                               wxWebSessionFactory* factory)
 {
-    if ( !factory->Initialize() )
-    {
-        delete factory;
-        factory = nullptr;
-        return;
-    }
+    // Ensure that the pointer is always freed.
+    std::unique_ptr<wxWebSessionFactory> ptr{factory};
 
-    // Note that we don't have to check here that there is no registered
-    // backend with the same name yet because we're only called from
-    // InitFactoryMap() below. If this function becomes public, we'd need to
-    // free the previous pointer stored for this backend first here.
-    gs_factoryMap[backend] = factory;
+    if ( !factory->Initialize() )
+        return;
+
+    gs_factoryMap[backend] = std::move(ptr);
 }
 
 // static
@@ -997,7 +1005,7 @@ bool wxWebSession::IsBackendAvailable(const wxString& backend)
     if ( gs_factoryMap.empty() )
         InitFactoryMap();
 
-    wxStringWebSessionFactoryMap::iterator factory = gs_factoryMap.find(backend);
+    const auto factory = gs_factoryMap.find(backend);
     return factory != gs_factoryMap.end();
 }
 
@@ -1070,13 +1078,6 @@ public:
 
     virtual void OnExit() override
     {
-        for ( wxStringWebSessionFactoryMap::iterator it = gs_factoryMap.begin();
-              it != gs_factoryMap.end();
-              ++it )
-        {
-            delete it->second;
-        }
-
         gs_factoryMap.clear();
         gs_defaultSession.Close();
     }

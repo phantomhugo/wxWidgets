@@ -19,7 +19,6 @@
 #include "wx/list.h"
 #include "wx/string.h"
 #include "wx/fontenc.h"
-#include "wx/hashmap.h"
 #include "wx/math.h"
 
 // ---------------------------------------------------------------------------
@@ -904,7 +903,7 @@ protected:
     wxList list;
 };
 
-WX_DECLARE_STRING_HASH_MAP(wxColour*, wxStringToColourHashMap);
+class wxStringToColourHashMap;
 
 class WXDLLIMPEXP_CORE wxColourDatabase
 {
@@ -930,15 +929,30 @@ private:
     wxStringToColourHashMap *m_map;
 };
 
-class WXDLLIMPEXP_CORE wxResourceCache: public wxList
+#if WXWIN_COMPATIBILITY_3_2
+
+class
+wxDEPRECATED_MSG("Use wxList directly or just a standard container")
+wxResourceCache : public wxList
 {
 public:
     wxResourceCache() { }
 #if !wxUSE_STD_CONTAINERS
     wxResourceCache(unsigned int keyType) : wxList(keyType) { }
 #endif
-    virtual ~wxResourceCache();
+    virtual ~wxResourceCache()
+    {
+        wxList::compatibility_iterator node = GetFirst ();
+        while (node) {
+            wxObject *item = (wxObject *)node->GetData();
+            delete item;
+
+            node = node->GetNext ();
+        }
+    }
 };
+
+#endif // WXWIN_COMPATIBILITY_3_2
 
 // ---------------------------------------------------------------------------
 // global variables

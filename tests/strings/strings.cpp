@@ -106,6 +106,15 @@ TEST_CASE("StringFormatUnicode", "[wxString]")
     wxString expected(fmt);
     expected.Replace("%i", "1");
     CHECK( s == expected );
+
+    // Repeat exactly the same after creating a wxLocale
+    // object, and ensure formatting Unicode strings still works.
+    wxLocale l(wxLANGUAGE_DEFAULT);
+
+    wxString s2 = wxString::Format(fmt, 1, 1);
+    wxString expected2(fmt);
+    expected2.Replace("%i", "1");
+    CHECK( s2 == expected2 );
 }
 
 TEST_CASE("StringConstructors", "[wxString]")
@@ -668,6 +677,10 @@ TEST_CASE("StringToLong", "[wxString]")
         if ( ld.flags & (Number_LongLong | Number_Unsigned) )
             continue;
 
+        INFO("Checking test case #" << (n + 1) << ": "
+             "\"" << wxString{ld.str} << "\" "
+             "(flags=" << ld.flags << ", base=" << ld.base << ")");
+
         // NOTE: unless you're using some exotic locale, ToCLong and ToLong
         //       should behave the same for our test data set:
 
@@ -701,6 +714,10 @@ TEST_CASE("StringToULong", "[wxString]")
 
         if ( ld.flags & (Number_LongLong | Number_Signed) )
             continue;
+
+        INFO("Checking test case #" << (n + 1) << ": "
+             "\"" << wxString{ld.str} << "\" "
+             "(flags=" << ld.flags << ", base=" << ld.base << ")");
 
         // NOTE: unless you're using some exotic locale, ToCLong and ToLong
         //       should behave the same for our test data set:
@@ -1010,10 +1027,9 @@ TEST_CASE("StringCStrDataImplicitConversion", "[wxString]")
     CHECK( CheckStrConstWChar(s, s.c_str()) );
     CHECK( CheckStrConstChar(s, s.c_str()) );
 
-    // implicit conversion of wxString is not available in STL build
-#if !wxUSE_STL
+#ifndef wxNO_IMPLICIT_WXSTRING_CONV_TO_PTR
     CHECK( CheckStrConstWChar(s, s) );
-#if wxUSE_UNSAFE_WXSTRING_CONV
+#ifndef wxNO_UNSAFE_WXSTRING_CONV
     CHECK( CheckStrConstChar(s, s) );
 #endif
 #endif

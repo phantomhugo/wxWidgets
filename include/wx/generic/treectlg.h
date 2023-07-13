@@ -385,7 +385,7 @@ private:
 
 // Also define wxTreeCtrl to be wxGenericTreeCtrl on all platforms without a
 // native version, i.e. all but MSW and Qt.
-#if !(defined(__WXMSW__) || defined(__WXQT__)) || defined(__WXUNIVERSAL__)
+#if !(defined(__WXMSW__) || defined(__WXQT__)) || defined(__WXUNIVERSAL__) || defined(__WXWASM__))
 /*
  * wxTreeCtrl has to be a real class or we have problems with
  * the run-time information.

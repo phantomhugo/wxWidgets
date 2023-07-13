@@ -50,7 +50,7 @@ class WXDLLIMPEXP_CORE wxListBox : public wxListBoxBase, public wxScrollHelper
 {
 public:
     // ctors and such
-    wxListBox() : wxScrollHelper(this) { Init(); }
+    wxListBox();
     wxListBox(wxWindow *parent,
               wxWindowID id,
               const wxPoint& pos = wxDefaultPosition,
@@ -58,13 +58,8 @@ public:
               int n = 0, const wxString choices[] = (const wxString *) NULL,
               long style = 0,
               const wxValidator& validator = wxDefaultValidator,
-              const wxString& name = wxASCII_STR(wxListBoxNameStr) )
-        : wxScrollHelper(this)
-    {
-        Init();
+              const wxString& name = wxASCII_STR(wxListBoxNameStr) );
 
-        Create(parent, id, pos, size, n, choices, style, validator, name);
-    }
     wxListBox(wxWindow *parent,
               wxWindowID id,
               const wxPoint& pos,
@@ -102,8 +97,7 @@ public:
     virtual void SetString(unsigned int n, const wxString& s) override;
     virtual int FindString(const wxString& s, bool bCase = false) const override;
 
-    virtual bool IsSelected(int n) const override
-        { return m_selections.Index(n) != wxNOT_FOUND; }
+    virtual bool IsSelected(int n) const override;
     virtual int GetSelection() const override;
     virtual int GetSelections(wxArrayInt& aSelections) const override;
 

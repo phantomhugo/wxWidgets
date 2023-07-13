@@ -43,7 +43,7 @@ public:
     bool Create( const wxBitmap& bitmap );
 
     // implementation
-    WXPixmap GetBitmap() const              { return m_bitmap; }
+    WXPixmap GetBitmap() const;
     void SetBitmap( WXPixmap bitmap )       { m_bitmap = bitmap; }
 
 private:
@@ -91,7 +91,7 @@ public:
     int GetDepth() const;
 
 #if wxUSE_IMAGE
-    wxBitmap( const wxImage& image, int depth = -1, double WXUNUSED(scale) = 1.0 ) { (void)CreateFromImage(image, depth); }
+    wxBitmap( const wxImage& image, int depth = -1, double WXUNUSED(scale) = 1.0 );
     wxImage ConvertToImage() const;
     bool CreateFromImage(const wxImage& image, int depth = -1);
 #endif // wxUSE_IMAGE
@@ -128,9 +128,7 @@ public:
 
     WXPixmap GetDrawable() const;
 
-    // This is provided only for compatibility with the other ports, there is
-    // no alpha support in X11 bitmaps.
-    bool HasAlpha() const { return false; }
+    bool HasAlpha() const;
 
 protected:
     virtual wxGDIRefData *CreateGDIRefData() const;

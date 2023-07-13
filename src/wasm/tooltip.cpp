@@ -14,26 +14,25 @@
 #endif // WX_PRECOMP
 
 #include "wx/tooltip.h"
-#include "wx/qt/private/utils.h"
 
 /* static */ void wxToolTip::Enable(bool WXUNUSED(flag))
 {
-    wxMISSING_FUNCTION();
+
 }
 
 /* static */ void wxToolTip::SetDelay(long WXUNUSED(milliseconds))
 {
-    wxMISSING_FUNCTION();
+
 }
 
 /* static */ void wxToolTip::SetAutoPop(long WXUNUSED(milliseconds))
 {
-    wxMISSING_FUNCTION();
+
 }
 
 /* static */ void wxToolTip::SetReshow(long WXUNUSED(milliseconds))
 {
-    wxMISSING_FUNCTION();
+
 }
 
 
@@ -60,7 +59,5 @@ const wxString &wxToolTip::GetTip() const
 
 void wxToolTip::SetWindow(wxWindow *win)
 {
-    wxCHECK_RET(win != nullptr, "window should not be null");
-    m_window = win;
-    m_window->QtApplyToolTip(m_text);
+//
 }

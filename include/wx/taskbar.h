@@ -93,6 +93,8 @@ private:
     #include "wx/osx/taskbarosx.h"
 #elif defined (__WXQT__)
     #include "wx/qt/taskbar.h"
+#elif defined (__WXWASM__)
+    #include "wx/wasm/taskbar.h"
 #endif
 
 // ----------------------------------------------------------------------------

@@ -1,19 +1,14 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/qt/statusbar.h
-// Author:      Peter Most, Javier Torres, Mariano Reingart, Sean D'Epagnier
-// Copyright:   (c) 2010 wxWidgets dev team
+// Name:        wx/wasm/statusbar.h
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2023 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef _WX_QT_STATUSBAR_H_
-#define _WX_QT_STATUSBAR_H_
+#ifndef _WX_WASM_STATUSBAR_H_
+#define _WX_WASM_STATUSBAR_H_
 
 #include "wx/statusbr.h"
-
-class QLabel;
-class QStatusBar;
-
-template < class T > class QList;
 
 class WXDLLIMPEXP_CORE wxStatusBar : public wxStatusBarBase
 {
@@ -34,18 +29,12 @@ public:
     virtual void Refresh( bool eraseBackground = true,
                           const wxRect *rect = nullptr ) override;
 
-    QStatusBar *GetQStatusBar() const { return m_qtStatusBar; }
-    QWidget *GetHandle() const override;
-
 protected:
     virtual void DoUpdateStatusText(int number) override;
 
 private:
     void Init();
     void UpdateFields();
-
-    QStatusBar *m_qtStatusBar;
-    wxVector<QLabel*> m_qtPanes;
 
     wxDECLARE_DYNAMIC_CLASS(wxStatusBar);
 };

@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/dialog.cpp
-// Author:      Peter Most, Javier Torres, Mariano Reingart, Sean D'Epagnier
-// Copyright:   (c) 2010 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2022 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -59,8 +59,6 @@ void wxDialog::EndModal(int retCode)
 bool wxDialog::IsModal() const
 {
     wxCHECK_MSG( GetDialogHandle() != nullptr, false, "Invalid dialog" );
-
-    return GetDialogHandle()->isModal();
 }
 
 bool wxDialog::Show(bool show)

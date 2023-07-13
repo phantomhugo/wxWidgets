@@ -28,7 +28,7 @@ class WXDLLIMPEXP_FWD_CORE wxBitmap;
 class WXDLLIMPEXP_CORE wxPen: public wxPenBase
 {
 public:
-    wxPen() { }
+    wxPen();
 
     wxPen( const wxColour &colour, int width = 1, wxPenStyle style = wxPENSTYLE_SOLID );
 
@@ -39,7 +39,7 @@ public:
     virtual ~wxPen();
 
     bool operator == ( const wxPen& pen ) const;
-    bool operator != (const wxPen& pen) const { return !(*this == pen); }
+    bool operator != (const wxPen& pen) const;
 
     void SetColour( const wxColour &colour );
     void SetColour( unsigned char red, unsigned char green, unsigned char blue );

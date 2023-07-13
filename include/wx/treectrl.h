@@ -25,7 +25,7 @@
 #include "wx/systhemectrl.h"
 #include "wx/withimages.h"
 
-#if !defined(__WXMSW__) && !defined(__WXQT__) || defined(__WXUNIVERSAL__)
+#if !defined(__WXMSW__) && !defined(__WXQT__) && !defined(__WXWASM__) || defined(__WXUNIVERSAL__)
     #define wxHAS_GENERIC_TREECTRL
 #endif
 
@@ -455,6 +455,8 @@ private:
     #include "wx/msw/treectrl.h"
 #elif defined(__WXQT__)
     #include "wx/qt/treectrl.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/treectrl.h"
 #else
     #error "unknown native wxTreeCtrl implementation"
 #endif

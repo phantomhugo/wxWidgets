@@ -264,7 +264,7 @@ void wxListCtrl::SetItemFont( long item, const wxFont &f)
 
 wxFont wxListCtrl::GetItemFont( long item ) const
 {
-    return m_model->GetItemFont(item);
+
 }
 
 int wxListCtrl::GetSelectedItemCount() const
@@ -343,11 +343,6 @@ bool wxListCtrl::DeleteAllItems()
 {
     if ( GetItemCount() == 0 )
         return true;
-
-    wxListEvent event;
-    InitListEvent(event, this, wxEVT_LIST_DELETE_ALL_ITEMS);
-
-    HandleWindowEvent(event);
 
     return true;
 }

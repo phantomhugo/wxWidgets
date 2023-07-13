@@ -33,14 +33,12 @@ class wxPenRefData: public wxGDIRefData
 
         wxPenRefData( const wxPenRefData& data )
         : wxGDIRefData()
-            , m_qtPen(data.m_qtPen)
         {
             defaultPen();
         }
 
         bool operator == (const wxPenRefData& data) const
         {
-             return m_qtPen == data.m_qtPen;
         }
 
         const wxDash *m_dashes;
@@ -57,17 +55,11 @@ wxPen::wxPen()
 wxPen::wxPen( const wxColour &colour, int width, wxPenStyle style)
 {
     m_refData = new wxPenRefData();
-    M_PENDATA.setWidth(width);
-    M_PENDATA.setStyle(ConvertPenStyle(style));
-    M_PENDATA.setColor(colour.GetQColor());
+
 }
 
 wxPen::wxPen(const wxColour& col, int width, int style)
 {
-    m_refData = new wxPenRefData();
-    M_PENDATA.setWidth(width);
-    M_PENDATA.setStyle(ConvertPenStyle((wxPenStyle)style));
-    M_PENDATA.setColor(col.GetQColor());
 }
 
 
@@ -88,25 +80,23 @@ bool wxPen::operator!=(const wxPen& pen) const
 void wxPen::SetColour(const wxColour& col)
 {
     AllocExclusive();
-    M_PENDATA.setColor(col.GetQColor());
 }
 
 void wxPen::SetColour(unsigned char r, unsigned char g, unsigned char b)
 {
     AllocExclusive();
-    M_PENDATA.setColor(QColor(r, g, b));
 }
 
 void wxPen::SetWidth(int width)
 {
     AllocExclusive();
-    M_PENDATA.setWidth(width);
+
 }
 
 void wxPen::SetStyle(wxPenStyle style)
 {
     AllocExclusive();
-    M_PENDATA.setStyle(ConvertPenStyle(style));
+
 }
 
 void wxPen::SetStipple(const wxBitmap& WXUNUSED(stipple))
@@ -120,32 +110,24 @@ void wxPen::SetDashes(int nb_dashes, const wxDash *dash)
     ((wxPenRefData *)m_refData)->m_dashes = dash;
     ((wxPenRefData *)m_refData)->m_dashesSize = nb_dashes;
 
-    QVector<qreal> dashes;
-    if (dash)
-    {
-        for (int i = 0; i < nb_dashes; i++)
-            dashes << dash[i];
-    }
 
-    M_PENDATA.setDashPattern(dashes);
 }
 
 void wxPen::SetJoin(wxPenJoin join)
 {
     AllocExclusive();
-    M_PENDATA.setJoinStyle(ConvertPenJoinStyle(join));
+
 }
 
 void wxPen::SetCap(wxPenCap cap)
 {
     AllocExclusive();
-    M_PENDATA.setCapStyle(ConvertPenCapStyle(cap));
+
 }
 
 wxColour wxPen::GetColour() const
 {
-    wxColour c(M_PENDATA.color());
-    return c;
+
 }
 
 wxBitmap *wxPen::GetStipple() const
@@ -155,33 +137,28 @@ wxBitmap *wxPen::GetStipple() const
 
 wxPenStyle wxPen::GetStyle() const
 {
-    return ConvertPenStyle(M_PENDATA.style());
+
 }
 
 wxPenJoin wxPen::GetJoin() const
 {
-    return ConvertPenJoinStyle(M_PENDATA.joinStyle());
+
 }
 
 wxPenCap wxPen::GetCap() const
 {
-    return ConvertPenCapStyle(M_PENDATA.capStyle());
+
 }
 
 int wxPen::GetWidth() const
 {
-    return M_PENDATA.width();
+
 }
 
 int wxPen::GetDashes(wxDash **ptr) const
 {
     *ptr = (wxDash *)((wxPenRefData *)m_refData)->m_dashes;
     return ((wxPenRefData *)m_refData)->m_dashesSize;
-}
-
-QPen wxPen::GetHandle() const
-{
-    return M_PENDATA;
 }
 
 wxGDIRefData *wxPen::CreateGDIRefData() const

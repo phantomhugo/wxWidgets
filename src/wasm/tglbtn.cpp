@@ -15,10 +15,6 @@
 
 #include "wx/stockitem.h"
 #include "wx/tglbtn.h"
-#include "wx/qt/private/converter.h"
-#include "wx/qt/private/winevent.h"
-
-#include <QtWidgets/QPushButton>
 
 wxDEFINE_EVENT( wxEVT_TOGGLEBUTTON, wxCommandEvent );
 
@@ -95,21 +91,15 @@ bool wxToggleButton::Create(wxWindow *parent,
             const wxString& name)
 {
     // create a checkable push button
-    QtCreate(parent);
-    m_qtPushButton->setCheckable(true);
 
-    // this button is toggleable and has a text label
-    SetLabel( wxIsStockID( id ) ? wxGetStockLabel( id ) : label );
-
-    return QtCreateControl( parent, id, pos, size, style, validator, name );
 }
 
 void wxToggleButton::SetValue(bool state)
 {
-    m_qtPushButton->setChecked( state );
+
 }
 
 bool wxToggleButton::GetValue() const
 {
-    return m_qtPushButton->isChecked();
+
 }

@@ -36,19 +36,7 @@ bool wxMDIParentFrame::Create(wxWindow *parent,
             long style,
             const wxString& name)
 {
-    m_qtWindow = new wxQtMDIParentFrame( parent, this );
 
-    if (!wxFrameBase::Create( parent, id, title, pos, size, style, name ))
-        return false;
-
-    wxMDIClientWindow *client = OnCreateClient();
-    m_clientWindow = client;
-    if ( !m_clientWindow->CreateClient(this, GetWindowStyleFlag()) )
-        return false;
-
-    GetQMainWindow()->setCentralWidget( client->GetHandle() );
-
-    PostCreation();
 
     return true;
 }
@@ -92,11 +80,6 @@ bool wxMDIChildFrame::Create(wxMDIParentFrame *parent,
     bool ok = wxFrame::Create(parent->GetClientWindow(), id,
                               title,
                                pos, size, style, name);
-    if (ok)
-    {
-        // Add the window to the internal MDI client area:
-        static_cast<QMdiArea*>(parent->GetQMainWindow()->centralWidget())->addSubWindow(GetHandle());
-    }
     return ok;
 }
 
@@ -115,20 +98,7 @@ wxMDIClientWindow::wxMDIClientWindow()
 bool wxMDIClientWindow::CreateClient(wxMDIParentFrame *parent, long WXUNUSED(style))
 {
     // create the MDI client area where the children window are displayed:
-    m_qtWindow = new wxQtMdiArea( parent, this );
     return true;
-}
-
-// Helper implementation:
-
-wxQtMDIParentFrame::wxQtMDIParentFrame( wxWindow *parent, wxMDIParentFrame *handler )
-    : wxQtEventSignalHandler< QMainWindow, wxMDIParentFrame >( parent, handler )
-{
-}
-
-wxQtMdiArea::wxQtMdiArea(wxWindow *parent, wxMDIClientWindow *handler )
-    : wxQtEventSignalHandler< QMdiArea, wxMDIClientWindow >( parent, handler )
-{
 }
 
 #endif // wxUSE_MDI

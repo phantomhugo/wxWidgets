@@ -1,14 +1,12 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/qt/treectrl.h
-// Author:      Peter Most
-// Copyright:   (c) Peter Most
+// Name:        wx/wasm/treectrl.h
+// Author:      Hugo Castellanos
+// Copyright:   (c) Hugo Castellanos
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef _WX_QT_TREECTRL_H_
-#define _WX_QT_TREECTRL_H_
-
-class wxQTreeWidget;
+#ifndef _WX_WASM_TREECTRL_H_
+#define _WX_WASM_TREECTRL_H_
 
 class WXDLLIMPEXP_CORE wxTreeCtrl : public wxTreeCtrlBase
 {
@@ -115,7 +113,7 @@ public:
 
     virtual void SetWindowStyleFlag(long styles) override;
 
-    virtual QWidget *GetHandle() const override;
+    virtual void *GetHandle() const override;
 
 protected:
     virtual int DoGetItemState(const wxTreeItemId& item) const override;
@@ -143,8 +141,7 @@ private:
 
     void DoUpdateIconsSize(wxImageList *imageList);
 
-    wxQTreeWidget *m_qtTreeWidget;
     wxDECLARE_DYNAMIC_CLASS(wxTreeCtrl);
 };
 
-#endif // _WX_QT_TREECTRL_H_
+#endif // _WX_WASM_TREECTRL_H_

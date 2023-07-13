@@ -1,14 +1,12 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/qt/statline.h
-// Author:      Peter Most
-// Copyright:   (c) Peter Most
+// Name:        wx/wasm/statline.h
+// Author:      Hugo Castellanos
+// Copyright:   (c) Hugo Castellanos
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef _WX_QT_STATLINE_H_
-#define _WX_QT_STATLINE_H_
-
-class QFrame;
+#ifndef _WX_WASM_STATLINE_H_
+#define _WX_WASM_STATLINE_H_
 
 class WXDLLIMPEXP_CORE wxStaticLine : public wxStaticLineBase
 {
@@ -29,12 +27,9 @@ public:
                  long style = wxLI_HORIZONTAL,
                  const wxString &name = wxASCII_STR(wxStaticLineNameStr) );
 
-    virtual QWidget *GetHandle() const override;
-
 private:
-    QFrame *m_qtFrame;
 
     wxDECLARE_DYNAMIC_CLASS( wxStaticLine );
 };
 
-#endif // _WX_QT_STATLINE_H_
+#endif // _WX_WASM_STATLINE_H_

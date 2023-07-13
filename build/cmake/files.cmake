@@ -3061,7 +3061,6 @@ set(WASM_SRC
     src/wasm/scrolbar.cpp
     src/wasm/settings.cpp
     src/wasm/slider.cpp
-    src/wasm/sockqt.cpp
     src/wasm/spinbutt.cpp
     src/wasm/spinctrl.cpp
     src/wasm/statbmp.cpp

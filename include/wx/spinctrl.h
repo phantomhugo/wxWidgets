@@ -129,6 +129,10 @@ typedef void (wxEvtHandler::*wxSpinDoubleEventFunction)(wxSpinDoubleEvent&);
     #define wxHAS_NATIVE_SPINCTRL
     #define wxHAS_NATIVE_SPINCTRLDOUBLE
     #include "wx/qt/spinctrl.h"
+#elif defined(__WXWASM__)
+    #define wxHAS_NATIVE_SPINCTRL
+    #define wxHAS_NATIVE_SPINCTRLDOUBLE
+    #include "wx/wasm/spinctrl.h"
 #endif // platform
 
 #if !defined(wxHAS_NATIVE_SPINCTRL) || !defined(wxHAS_NATIVE_SPINCTRLDOUBLE)

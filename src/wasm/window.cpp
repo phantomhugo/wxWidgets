@@ -242,66 +242,6 @@ void wxWindowWasm::DoGetTextExtent(const wxString& string, int *x, int *y, int *
         *externalLeading = fontMetrics.lineSpacing();
 }
 
-QWidget *wxWindowWasm::QtGetClientWidget() const
-{
-    QWidget *qtWidget = nullptr;
-    if ( m_qtContainer != nullptr )
-    {
-        qtWidget = m_qtContainer->viewport();
-    }
-
-    if ( qtWidget == nullptr )
-    {
-        // We don't have scrollbars or the QScrollArea has no children
-        qtWidget = GetHandle();
-    }
-
-    return qtWidget;
-}
-
-/* Returns a scrollbar for the given orientation, or nullptr if the scrollbar
- * has not been previously created and create is false */
-QScrollBar *wxWindowWasm::QtGetScrollBar( int orientation ) const
-{
-    QScrollBar *scrollBar = nullptr;
-
-    if ( orientation == wxHORIZONTAL )
-        scrollBar = m_horzScrollBar;
-    else
-        scrollBar = m_vertScrollBar;
-
-    return scrollBar;
-}
-
-/* Returns a new scrollbar for the given orientation, or set the scrollbar
- * passed as parameter */
-QScrollBar *wxWindowWasm::QtSetScrollBar( int orientation, QScrollBar *scrollBar )
-{
-    QScrollArea *scrollArea = QtGetScrollBarsContainer();
-    wxCHECK_MSG( scrollArea, nullptr, "Window without scrolling area" );
-
-    // Create a new scrollbar if needed
-    if ( !scrollBar )
-    {
-        scrollBar = new wxQtInternalScrollBar(this, this);
-        scrollBar->setOrientation( orientation == wxHORIZONTAL ? Qt::Horizontal : Qt::Vertical );
-    }
-
-    // Let Qt handle layout
-    if ( orientation == wxHORIZONTAL )
-    {
-        scrollArea->setHorizontalScrollBar( scrollBar );
-        m_horzScrollBar = scrollBar;
-    }
-    else
-    {
-        scrollArea->setVerticalScrollBar( scrollBar );
-        m_vertScrollBar = scrollBar;
-    }
-    return scrollBar;
-}
-
-
 void wxWindowWasm::SetScrollbar( int orientation, int pos, int thumbvisible, int range, bool WXUNUSED(refresh) )
 {
     wxCHECK_RET(GetHandle(), "Window has not been created");

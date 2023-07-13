@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/statline.cpp
-// Author:      Peter Most
-// Copyright:   (c) Peter Most
+// Author:      Hugo Castellanos
+// Copyright:   (c) Hugo Castellanos
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -10,10 +10,7 @@
 
 #include "wx/statline.h"
 
-#include <QtWidgets/QFrame>
-
-wxStaticLine::wxStaticLine() :
-    m_qtFrame(nullptr)
+wxStaticLine::wxStaticLine()
 {
 }
 
@@ -34,16 +31,5 @@ bool wxStaticLine::Create( wxWindow *parent,
              long style,
              const wxString &name)
 {
-    m_qtFrame = new QFrame( parent->GetHandle() );
-    if ( style & wxLI_HORIZONTAL )
-        m_qtFrame->setFrameStyle( QFrame::HLine );
-    else if ( style & wxLI_VERTICAL )
-        m_qtFrame->setFrameStyle( QFrame::VLine );
-
-    return QtCreateControl( parent, id, pos, size, style, wxDefaultValidator, name );
 }
 
-QWidget *wxStaticLine::GetHandle() const
-{
-    return m_qtFrame;
-}

@@ -53,8 +53,6 @@ wxWindow *wxFindWindowAtPoint(const wxPoint& pt)
 
 wxWindow *wxFindWindowAtPointer(wxPoint& pt)
 {
-    pt = wxQtConvertPoint( QCursor::pos() );
-
     return wxFindWindowAtPoint( pt );
 }
 

@@ -87,18 +87,14 @@ wxBitmap::wxBitmap(const wxString &filename, wxBitmapType type )
     LoadFile(filename, type);
 }
 
-void wxBitmap::InitFromImage(const wxImage& image, int depth, double WXUNUSED(scale) )
-{
-}
-
 wxBitmap::wxBitmap(const wxImage& image, int depth, double scale)
 {
-    InitFromImage(image, depth, scale);
+
 }
 
 wxBitmap::wxBitmap(const wxImage& image, const wxDC& dc)
 {
-    InitFromImage(image, -1, dc.GetContentScaleFactor());
+
 }
 
 wxBitmap::wxBitmap(const wxCursor& cursor)
@@ -139,10 +135,7 @@ int wxBitmap::GetDepth() const
 #if wxUSE_IMAGE
 wxImage wxBitmap::ConvertToImage() const
 {
-    QPixmap pixmap(M_PIXDATA);
-    if ( M_MASK && M_MASK->GetHandle() )
-        pixmap.setMask(*M_MASK->GetHandle());
-    return ConvertImage(pixmap.toImage());
+
 }
 
 #endif // wxUSE_IMAGE
@@ -161,7 +154,6 @@ void wxBitmap::SetMask(wxMask *mask)
 
 wxBitmap wxBitmap::GetSubBitmap(const wxRect& rect) const
 {
-    return wxBitmap(M_PIXDATA.copy(wxQtConvertRect(rect)));
 }
 
 
@@ -215,42 +207,23 @@ bool wxBitmap::SaveFile(const wxString &name, wxBitmapType type,
         default:
             break;
     }
-    return type_name &&
-        M_PIXDATA.save(wxQtConvertString(name), type_name);
+    return type_name;
 }
 
 bool wxBitmap::LoadFile(const wxString &name, wxBitmapType type)
 {
-#if wxUSE_IMAGE
-    //Try to load using wx
-    wxImage image;
-    if (image.LoadFile(name, type) && image.IsOk())
-    {
-        *this = wxBitmap(image);
-        return true;
-    }
-    else
-#endif
-    {
-        //Try to load using Qt
-        AllocExclusive();
 
-        //TODO: Use passed image type instead of auto-detection
-        return M_PIXDATA.load(wxQtConvertString(name));
-    }
 }
 
 
 #if wxUSE_PALETTE
 wxPalette *wxBitmap::GetPalette() const
 {
-    wxMISSING_IMPLEMENTATION( "wxBitmap palettes" );
     return nullptr;
 }
 
 void wxBitmap::SetPalette(const wxPalette& WXUNUSED(palette))
 {
-    wxMISSING_IMPLEMENTATION( "wxBitmap palettes" );
 }
 
 #endif // wxUSE_PALETTE
@@ -271,11 +244,6 @@ void wxBitmap::SetDepth(int depth)
 
 }
 #endif
-
-WXPixmap *wxBitmap::GetHandle() const
-{
-
-}
 
 wxGDIRefData *wxBitmap::CreateGDIRefData() const
 {
@@ -308,11 +276,6 @@ wxMask::wxMask(const wxMask &mask)
 
 }
 
-wxMask& wxMask::operator=(const wxMask &mask)
-{
-
-}
-
 wxMask::wxMask(const wxBitmap& bitmap, const wxColour& colour)
 {
 
@@ -333,28 +296,9 @@ wxMask::~wxMask()
 
 }
 
-// this function is called from Create() to free the existing mask data
-void wxMask::FreeData()
+
+WXPixmap wxMask::GetBitmap() const
 {
 
 }
 
-bool wxMask::InitFromColour(const wxBitmap& bitmap, const wxColour& colour)
-{
-
-    return true;
-}
-
-bool wxMask::InitFromMonoBitmap(const wxBitmap& bitmap)
-{
-
-}
-
-wxBitmap wxMask::GetBitmap() const
-{
-
-}
-
-WXBitmap *wxMask::GetHandle() const
-{
-}

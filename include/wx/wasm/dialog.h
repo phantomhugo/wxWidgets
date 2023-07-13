@@ -38,7 +38,7 @@ public:
     virtual bool IsModal() const override;
     virtual bool Show(bool show = true) override;
 
-    QDialog *GetDialogHandle() const;
+    void *GetDialogHandle() const;
 
 private:
 

@@ -60,7 +60,7 @@ wxDataFormat::wxDataFormat(const wxString &id)
 
 void wxDataFormat::SetId(const wxString& id)
 {
-    SetMimeType(id);
+
 }
 
 wxString wxDataFormat::GetId() const

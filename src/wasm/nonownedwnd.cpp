@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/nonownedwnd.cpp
-// Author:      Sean D'Epagnier
-// Copyright:   (c) 2016 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2023 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -35,25 +35,18 @@ wxNonOwnedWindow::wxNonOwnedWindow()
 
 bool wxNonOwnedWindow::DoClearShape()
 {
-    GetHandle()->setMask(QBitmap());
     return true;
 }
 
 bool wxNonOwnedWindow::DoSetRegionShape(const wxRegion& region)
 {
-    QPixmap pixmap(GetHandle()->size());
-    QPainter painter(&pixmap);
-    painter.fillRect(pixmap.rect(), Qt::white);
-    painter.setClipRegion(region.GetHandle());
-    painter.fillRect(pixmap.rect(), Qt::black);
-    GetHandle()->setMask(pixmap.createMaskFromColor(Qt::white));
+
     return true;
 }
 
 #if wxUSE_GRAPHICS_CONTEXT
 bool wxNonOwnedWindow::DoSetPathShape(const wxGraphicsPath& WXUNUSED(path))
 {
-    wxMISSING_IMPLEMENTATION( __FUNCTION__ );
     return true;
 }
 #endif

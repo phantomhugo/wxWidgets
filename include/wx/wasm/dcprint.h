@@ -1,12 +1,12 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/qt/dcprint.h
-// Author:      Peter Most
-// Copyright:   (c) Peter Most
+// Name:        wx/wasm/dcprint.h
+// Author:      Hugo Castellanos
+// Copyright:   (c) Hugo Castellanos
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef _WX_QT_DCPRINT_H_
-#define _WX_QT_DCPRINT_H_
+#ifndef _WX_WASM_DCPRINT_H_
+#define _WX_WASM_DCPRINT_H_
 
 #include "wx/dc.h"
 
@@ -103,4 +103,4 @@ private:
     wxDECLARE_NO_COPY_CLASS(wxPrinterDCImpl);
 };
 
-#endif // _WX_QT_DCPRINT_H_
+#endif // _WX_WASM_DCPRINT_H_

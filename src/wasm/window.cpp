@@ -172,27 +172,11 @@ void wxWindowWasm::Refresh( bool WXUNUSED( eraseBackground ), const wxRect *rect
 
 bool wxWindowWasm::SetCursor( const wxCursor &cursor )
 {
-    if (!wxWindowBase::SetCursor(cursor))
-        return false;
-
-    if ( cursor.IsOk() )
-        GetHandle()->setCursor(cursor.GetHandle());
-    else
-        GetHandle()->unsetCursor();
-
     return true;
 }
 
 bool wxWindowWasm::SetFont( const wxFont &font )
 {
-    // SetFont may be called before Create, so the font is stored
-    // by the base class, and set in PostCreation
-
-    if (GetHandle())
-    {
-        GetHandle()->setFont( font.GetHandle() );
-        return true;
-    }
 
     return wxWindowBase::SetFont(font);
 }
@@ -206,7 +190,7 @@ int wxWindowWasm::GetCharHeight() const
 
 int wxWindowWasm::GetCharWidth() const
 {
-    return ( GetHandle()->fontMetrics().averageCharWidth() );
+
 }
 
 void wxWindowWasm::DoGetTextExtent(const wxString& string, int *x, int *y, int *descent,
@@ -227,19 +211,7 @@ void wxWindowWasm::DoGetTextExtent(const wxString& string, int *x, int *y, int *
     if ( string.empty() && !descent && !externalLeading )
         return;
 
-    QFontMetrics fontMetrics( font != nullptr ? font->GetHandle() : GetHandle()->font() );
 
-    if ( x != nullptr )
-        *x = wxQtGetWidthFromMetrics(fontMetrics, wxQtConvertString( string ));
-
-    if ( y != nullptr )
-        *y = fontMetrics.height();
-
-    if ( descent != nullptr )
-        *descent = fontMetrics.descent();
-
-    if ( externalLeading != nullptr )
-        *externalLeading = fontMetrics.lineSpacing();
 }
 
 void wxWindowWasm::SetScrollbar( int orientation, int pos, int thumbvisible, int range, bool WXUNUSED(refresh) )
@@ -247,99 +219,41 @@ void wxWindowWasm::SetScrollbar( int orientation, int pos, int thumbvisible, int
     wxCHECK_RET(GetHandle(), "Window has not been created");
 
     //If not exist, create the scrollbar
-    QScrollBar *scrollBar = QtGetScrollBar( orientation );
-    if ( scrollBar == nullptr )
-        scrollBar = QtSetScrollBar( orientation );
 
-    // Configure the scrollbar if it exists. If range is zero we can get here with
-    // scrollBar == nullptr and it is not a problem
-    if ( scrollBar )
-    {
-        scrollBar->setRange( 0, range - thumbvisible );
-        scrollBar->setPageStep( thumbvisible );
-        {
-            wxQtEnsureSignalsBlocked blocker(scrollBar);
-            scrollBar->setValue(pos);
-        }
-        scrollBar->show();
-
-        if ( HasFlag(wxALWAYS_SHOW_SB) && (range == 0) )
-        {
-            // Disable instead of hide
-            scrollBar->setEnabled( false );
-        }
-        else
-            scrollBar->setEnabled( true );
-    }
 
 }
 
 void wxWindowWasm::SetScrollPos( int orientation, int pos, bool WXUNUSED( refresh ))
 {
-    QScrollBar *scrollBar = QtGetScrollBar( orientation );
-    if ( scrollBar )
-        scrollBar->setValue( pos );
+
 }
 
 int wxWindowWasm::GetScrollPos( int orientation ) const
 {
-    QScrollBar *scrollBar = QtGetScrollBar( orientation );
-    wxCHECK_MSG( scrollBar, 0, "Invalid scrollbar" );
 
-    return scrollBar->value();
 }
 
 int wxWindowWasm::GetScrollThumb( int orientation ) const
 {
-    QScrollBar *scrollBar = QtGetScrollBar( orientation );
-    wxCHECK_MSG( scrollBar, 0, "Invalid scrollbar" );
 
-    return scrollBar->pageStep();
 }
 
 int wxWindowWasm::GetScrollRange( int orientation ) const
 {
-    QScrollBar *scrollBar = QtGetScrollBar( orientation );
-    wxCHECK_MSG( scrollBar, 0, "Invalid scrollbar" );
-
     return scrollBar->maximum();
 }
 
 // scroll window to the specified position
 void wxWindowWasm::ScrollWindow( int dx, int dy, const wxRect *rect )
 {
-    // check if this is a scroll area (scroll only inner viewport)
-    QWidget *widget;
-    if ( QtGetScrollBarsContainer() )
-        widget = QtGetScrollBarsContainer()->viewport();
-    else
-        widget = GetHandle();
-    // scroll the widget or the specified rect (not children)
-    if ( rect != nullptr )
-        widget->scroll( dx, dy, wxQtConvertRect( *rect ));
-    else
-        widget->scroll( dx, dy );
+
 }
 
 
 #if wxUSE_DRAG_AND_DROP
 void wxWindowWasm::SetDropTarget( wxDropTarget *dropTarget )
 {
-    if ( m_dropTarget == dropTarget )
-        return;
 
-    if ( m_dropTarget != nullptr )
-    {
-        m_dropTarget->Disconnect();
-        delete m_dropTarget;
-    }
-
-    m_dropTarget = dropTarget;
-
-    if ( m_dropTarget != nullptr )
-    {
-        m_dropTarget->ConnectTo(m_qtWindow);
-    }
 }
 #endif
 
@@ -429,74 +343,31 @@ void wxWindowWasm::SetWindowStyleFlag( long style )
 //        qtFrame->setFrameShadow( QFrame::Plain );
 //    }
 
-    if ( !GetHandle() )
-        return;
 
-    Qt::WindowFlags qtFlags = GetHandle()->windowFlags();
-
-    if ( HasFlag( wxFRAME_NO_TASKBAR ) )
-    {
-//        qtFlags &= ~Qt::WindowType_Mask;
-        if ( (style & wxSIMPLE_BORDER) || (style & wxNO_BORDER) ) {
-            qtFlags = Qt::ToolTip | Qt::FramelessWindowHint;
-        }
-        else
-            qtFlags |= Qt::Dialog;
-    }
-    else
-    if ( ( (style & wxSIMPLE_BORDER) || (style & wxNO_BORDER) )
-         != qtFlags.testFlag( Qt::FramelessWindowHint ) )
-    {
-        qtFlags ^= Qt::FramelessWindowHint;
-    }
-
-    GetHandle()->setWindowFlags( qtFlags );
 }
 
 void wxWindowWasm::SetExtraStyle( long exStyle )
 {
-    long exStyleOld = GetExtraStyle();
-    if ( exStyle == exStyleOld )
-        return;
 
-    // update the internal variable
-    wxWindowBase::SetExtraStyle(exStyle);
-
-    if (!m_qtWindow)
-        return;
-
-    Qt::WindowFlags flags = m_qtWindow->windowFlags();
-
-    if (!(exStyle & wxWS_EX_CONTEXTHELP) != !(flags & Qt::WindowContextHelpButtonHint))
-    {
-        flags ^= Qt::WindowContextHelpButtonHint;
-        m_qtWindow->setWindowFlags(flags);
-    }
 }
 
 
 
 void wxWindowWasm::DoClientToScreen( int *x, int *y ) const
 {
-    QPoint screenPosition = GetHandle()->mapToGlobal( QPoint( *x, *y ));
-    *x = screenPosition.x();
-    *y = screenPosition.y();
+
 }
 
 
 void wxWindowWasm::DoScreenToClient( int *x, int *y ) const
 {
-    QPoint clientPosition = GetHandle()->mapFromGlobal( QPoint( *x, *y ));
-    *x = clientPosition.x();
-    *y = clientPosition.y();
+
 }
 
 
 void wxWindowWasm::DoCaptureMouse()
 {
-    wxCHECK_RET( GetHandle() != nullptr, wxT("invalid window") );
-    GetHandle()->grabMouse();
-    s_capturedWindow = this;
+
 }
 
 
@@ -515,21 +386,13 @@ wxWindowWasm *wxWindowBase::GetCapture()
 
 void wxWindowWasm::DoGetPosition(int *x, int *y) const
 {
-    QWidget *qtWidget = GetHandle();
-    *x = qtWidget->x();
-    *y = qtWidget->y();
+
 }
 
 
 void wxWindowWasm::DoGetSize(int *width, int *height) const
 {
-    QSize size = GetHandle()->frameSize();
-    QRect rect = GetHandle()->frameGeometry();
-    wxASSERT( size.width() == rect.width() );
-    wxASSERT( size.height() == rect.height() );
 
-    if (width)  *width = rect.width();
-    if (height) *height = rect.height();
 }
 
 
@@ -575,43 +438,18 @@ void wxWindowWasm::DoSetSize(int x, int y, int width, int height, int sizeFlags 
 
 void wxWindowWasm::DoGetClientSize(int *width, int *height) const
 {
-    QWidget *qtWidget = QtGetClientWidget();
-    wxCHECK_RET( qtWidget, "window must be created" );
 
-    const QRect geometry = qtWidget->geometry();
-    if (width)  *width = geometry.width();
-    if (height) *height = geometry.height();
 }
 
 
 void wxWindowWasm::DoSetClientSize(int width, int height)
 {
-    QWidget *qtWidget = QtGetClientWidget();
-    wxCHECK_RET( qtWidget, "window must be created" );
 
-    QRect geometry = qtWidget->geometry();
-    geometry.setWidth( width );
-    geometry.setHeight( height );
-    qtWidget->setGeometry( geometry );
 }
 
 void wxWindowWasm::DoMoveWindow(int x, int y, int width, int height)
 {
-    QWidget *qtWidget = GetHandle();
 
-    qtWidget->move( x, y );
-
-    // There doesn't seem to be any way to change Qt frame size directly, so
-    // change the widget size, but take into account the extra margins
-    // corresponding to the frame decorations.
-    const QSize frameSize = qtWidget->frameSize();
-    const QSize innerSize = qtWidget->geometry().size();
-    const QSize frameSizeDiff = frameSize - innerSize;
-
-    const int clientWidth = std::max(width - frameSizeDiff.width(), 0);
-    const int clientHeight = std::max(height - frameSizeDiff.height(), 0);
-
-    qtWidget->resize(clientWidth, clientHeight);
 }
 
 #if wxUSE_TOOLTIPS
@@ -622,15 +460,7 @@ void wxWindowWasm::QtApplyToolTip(const wxString& text)
 
 void wxWindowWasm::DoSetToolTip( wxToolTip *tip )
 {
-    if ( m_tooltip == tip )
-        return;
 
-    wxWindowBase::DoSetToolTip( tip );
-
-    if ( m_tooltip )
-        m_tooltip->SetWindow(this);
-    else
-        QtApplyToolTip(wxString());
 }
 #endif // wxUSE_TOOLTIPS
 

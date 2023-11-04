@@ -291,7 +291,7 @@ void wxTraceMSWMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 #endif  // wxDEBUG_LEVEL >= 2
 
-void wxRemoveHandleAssociation(wxWindowMSW *win);
+extern void wxRemoveHandleAssociation(wxWindowMSW *win);
 extern void wxAssociateWinWithHandle(HWND hWnd, wxWindowMSW *win);
 
 // get the text metrics for the current font
@@ -871,6 +871,11 @@ bool wxWindowMSW::SetFont(const wxFont& font)
         wxSetWindowFont(hWnd, GetFont());
     }
 
+    return true;
+}
+
+bool wxWindowMSW::IsTransparentBackgroundSupported(wxString* WXUNUSED(reason)) const
+{
     return true;
 }
 
@@ -1542,31 +1547,25 @@ void wxWindowMSW::MSWUpdateStyle(long flagsOld, long exflagsOld)
     }
 }
 
-wxBorder wxWindowMSW::GetDefaultBorderForControl() const
-{
-    return wxBORDER_THEME;
-}
-
-wxBorder wxWindowMSW::GetDefaultBorder() const
-{
-    return wxWindowBase::GetDefaultBorder();
-}
-
 // Translate wxBORDER_THEME (and other border styles if necessary) to the value
 // that makes most sense for this Windows environment
-wxBorder wxWindowMSW::TranslateBorder(wxBorder border) const
+wxBorder wxWindowMSW::DoTranslateBorder(wxBorder border) const
 {
-#if wxUSE_UXTHEME
     if (border == wxBORDER_THEME)
     {
+#if wxUSE_UXTHEME
         if (CanApplyThemeBorder())
         {
             if ( wxUxThemeIsActive() )
                 return wxBORDER_THEME;
         }
-        return wxBORDER_SUNKEN;
+#endif // wxUSE_UXTHEME
+
+        // In dark mode the standard sunken border is too bright, so prefer
+        // using a simple(r) and darker border instead.
+        return wxMSWDarkMode::IsActive() ? wxBORDER_SIMPLE : wxBORDER_SUNKEN;
     }
-#endif
+
     return border;
 }
 
@@ -1603,7 +1602,7 @@ WXDWORD wxWindowMSW::MSWGetStyle(long flags, WXDWORD *exstyle) const
     if ( flags & wxHSCROLL )
         style |= WS_HSCROLL;
 
-    const wxBorder border = TranslateBorder(GetBorder(flags));
+    const wxBorder border = DoTranslateBorder(GetBorder(flags));
 
     // After translation, border is now optimized for the specific version of Windows
     // and theme engine presence.
@@ -1656,6 +1655,12 @@ WXDWORD wxWindowMSW::MSWGetStyle(long flags, WXDWORD *exstyle) const
             *exstyle |= WS_EX_CONTROLPARENT;
         }
 #endif // __WXUNIVERSAL__
+
+        // Set this style when background style is set to transparent. Don't
+        // apply it to toplevel windows, since it will make events (like mouse
+        // clicks) fall through the window.
+        if ( GetBackgroundStyle() == wxBG_STYLE_TRANSPARENT && !IsTopLevel() )
+            *exstyle |= WS_EX_TRANSPARENT;
     }
 
     return style;
@@ -1694,17 +1699,12 @@ bool wxWindowMSW::Reparent(wxWindowBase *parent)
 
     ::SetParent(hWndChild, hWndParent);
 
-    MSWAfterReparent();
-
-    return true;
-}
-
-void wxWindowMSW::MSWAfterReparent()
-{
     if ( wxHasWindowExStyle(this, WS_EX_CONTROLPARENT) )
     {
         EnsureParentHasControlParentStyle(GetParent());
     }
+
+    return true;
 }
 
 void wxWindowMSW::MSWDisableComposited()
@@ -2277,6 +2277,10 @@ void wxWindowMSW::DoSetClientSize(int width, int height)
         const int widthWin = rectWin.right - rectWin.left,
                   heightWin = rectWin.bottom - rectWin.top;
 
+        wxRect proposedRect(rectWin.left, rectWin.top,
+                            width + widthWin - rectClient.right,
+                            height + heightWin - rectClient.bottom);
+
         if ( IsTopLevel() )
         {
             // toplevel window's coordinates are mirrored if the TLW is a child of another
@@ -2288,8 +2292,34 @@ void wxWindowMSW::DoSetClientSize(int width, int height)
             if ( tlwParent && (::GetWindowLong(tlwParent, GWL_EXSTYLE) & WS_EX_LAYOUTRTL) != 0 )
             {
                 const int diffWidth = width - (rectClient.right - rectClient.left);
-                rectWin.left -= diffWidth;
-                rectWin.right -= diffWidth;
+                proposedRect.x -= diffWidth;
+            }
+
+            // Another complication with TLWs is that changing their size may
+            // change the monitor they are on, even without changing their
+            // position. This is unexpected and especially so if the new
+            // monitor uses a different DPI scaling and so moving the window to
+            // it changes its size -- which may result in an infinite recursion
+            // if the window calls SetClientSize() when DPI changes.
+            //
+            // So ensure that the window stays on the same monitor, adjusting
+            // its position if necessary.
+            const int currentDisplay =
+                wxDisplay::GetFromWindow(static_cast<const wxWindow*>(this));
+            if ( currentDisplay != wxNOT_FOUND &&
+                    wxDisplay::GetFromRect(proposedRect) != currentDisplay )
+            {
+                // It's not obvious how to determine the smallest modification
+                // of the window position sufficient for keeping it on the
+                // current display, so keep things simple and preserve the
+                // position of its center horizontally.
+                const wxRect currentRect = wxRectFromRECT(rectWin);
+                proposedRect.MakeCenteredIn(currentRect, wxHORIZONTAL);
+                if ( wxDisplay::GetFromRect(proposedRect) != currentDisplay )
+                {
+                    // And if this isn't sufficient, then vertically too.
+                    proposedRect.MakeCenteredIn(currentRect, wxVERTICAL);
+                }
             }
         }
         else
@@ -2300,6 +2330,8 @@ void wxWindowMSW::DoSetClientSize(int width, int height)
             if ( parent )
             {
                 ::ScreenToClient(GetHwndOf(parent), (POINT *)&rectWin);
+                proposedRect.x = rectWin.left;
+                proposedRect.y = rectWin.top;
             }
         }
 
@@ -2307,9 +2339,9 @@ void wxWindowMSW::DoSetClientSize(int width, int height)
         // and not defer it here as otherwise the value returned by
         // GetClient/WindowRect() wouldn't change as the window wouldn't be
         // really resized
-        MSWMoveWindowToAnyPosition(GetHwnd(), rectWin.left, rectWin.top,
-                                   width + widthWin - rectClient.right,
-                                   height + heightWin - rectClient.bottom, true);
+        MSWMoveWindowToAnyPosition(GetHwnd(), proposedRect.x, proposedRect.y,
+                                   proposedRect.width, proposedRect.height,
+                                   true);
     }
 }
 
@@ -3165,11 +3197,7 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
             }
             else // no DC given
             {
-                if ( MSWShouldUseAutoDarkMode() &&
-                        wxMSWDarkMode::PaintIfNecessary(GetHwnd(), m_oldWndProc) )
-                    processed = true;
-                else
-                    processed = HandlePaint();
+                processed = HandlePaint();
             }
             break;
 
@@ -3820,8 +3848,7 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
         // If we want the default themed border then we need to draw it ourselves
         case WM_NCCALCSIZE:
             {
-                const wxBorder border = TranslateBorder(GetBorder());
-                if (wxUxThemeIsActive() && border == wxBORDER_THEME)
+                if (DoTranslateBorder(GetBorder()) == wxBORDER_THEME)
                 {
                     // first ask the widget to calculate the border size
                     rc.result = MSWDefWindowProc(message, wParam, lParam);
@@ -3880,8 +3907,7 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
 
         case WM_NCPAINT:
             {
-                const wxBorder border = TranslateBorder(GetBorder());
-                if (wxUxThemeIsActive() && border == wxBORDER_THEME)
+                if (DoTranslateBorder(GetBorder()) == wxBORDER_THEME)
                 {
                     // first ask the widget to paint its non-client area, such as scrollbars, etc.
                     rc.result = MSWDefWindowProc(message, wParam, lParam);
@@ -3927,7 +3953,7 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
                     }
 
                     // Draw the border
-                    ::DrawThemeBackground(hTheme, GetHdcOf(*impl), EP_EDITTEXT, nState, &rcBorder, nullptr);
+                    hTheme.DrawBackground(GetHdcOf(*impl), rcBorder, EP_EDITTEXT, nState);
                 }
             }
             break;
@@ -5030,6 +5056,11 @@ wxWindowMSW::MSWUpdateOnDPIChange(const wxSize& oldDPI, const wxSize& newDPI)
 
     wxDPIChangedEvent event(oldDPI, newDPI);
     event.SetEventObject(this);
+
+    // Another hook to give the derived window a chance to update itself after
+    // updating all the children, but before the user-defined event handler.
+    MSWBeforeDPIChangedEvent(event);
+
     return HandleWindowEvent(event);
 }
 
@@ -7067,44 +7098,31 @@ wxWindow *wxGetActiveWindow()
 extern wxWindow *wxGetWindowFromHWND(WXHWND hWnd)
 {
     HWND hwnd = (HWND)hWnd;
+    if ( !hwnd )
+        return nullptr;
 
-    // For a radiobutton, we get the radiobox from GWL_USERDATA (which is set
-    // by code in msw/radiobox.cpp), for all the others we just search up the
-    // window hierarchy
-    wxWindow *win = nullptr;
-    if ( hwnd )
-    {
-        win = wxFindWinFromHandle(hwnd);
-        if ( !win )
-        {
-            // spin control text buddy window should be mapped to spin ctrl
-            // itself so try it too
+    wxWindow *win = wxFindWinFromHandle(hwnd);
+
+    // spin control text buddy window should be mapped to spin ctrl
+    // itself so try it too
 #if wxUSE_SPINCTRL && !defined(__WXUNIVERSAL__)
-            if ( !win )
-            {
-                win = wxSpinCtrl::GetSpinForTextCtrl((WXHWND)hwnd);
-            }
-#endif // wxUSE_SPINCTRL
-        }
-    }
-
-    while ( hwnd && !win )
+    if ( !win )
     {
-        // this is a really ugly hack needed to avoid mistakenly returning the
-        // parent frame wxWindow for the find/replace modeless dialog HWND -
-        // this, in turn, is needed to call IsDialogMessage() from
-        // wxApp::ProcessMessage() as for this we must return nullptr from here
-        //
-        // FIXME: this is clearly not the best way to do it but I think we'll
-        //        need to change HWND <-> wxWindow code more heavily than I can
-        //        do it now to fix it
+        win = wxSpinCtrl::GetSpinForTextCtrl((WXHWND)hwnd);
+    }
+#endif // wxUSE_SPINCTRL
+
+    while ( !win )
+    {
+        // Avoid going beyond the top level window (only they have owner in
+        // Win32) as we could find its owner wxFrame which would be unwanted.
         if ( ::GetWindow(hwnd, GW_OWNER) )
-        {
-            // it's a dialog box, don't go upwards
-            break;
-        }
+            return nullptr;
 
         hwnd = ::GetParent(hwnd);
+        if ( !hwnd )
+            return nullptr;
+
         win = wxFindWinFromHandle(hwnd);
     }
 

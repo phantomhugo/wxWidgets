@@ -166,6 +166,16 @@ wxTreeView_GetItemRect(HWND hwnd,
                         (LPARAM)&param) == TRUE;
 }
 
+inline void
+wxTreeView_RefreshItem(HWND hwnd,
+                       HTREEITEM hItem)
+{
+    TVGetItemRectParam param;
+
+    wxTreeView_GetItemRect(hwnd, hItem, param, FALSE);
+    ::InvalidateRect(hwnd, &param.rect, FALSE);
+}
+
 } // anonymous namespace
 
 // wrappers for TreeView_GetItem/TreeView_SetItem
@@ -1533,10 +1543,21 @@ wxTreeItemId wxTreeCtrl::DoInsertAfter(const wxTreeItemId& parent,
     tvIns.item.lParam = (LPARAM)param;
     tvIns.item.mask = mask;
 
+    // Without this, the tree doesn't show a "+" button when we add the first
+    // child, at least after removing the children previously (see #23718).
+    const bool refreshFirstChild =
+            !IsHiddenRoot(parent) &&
+                !TreeView_GetChild(GetHwnd(), HITEM(parent));
+
     HTREEITEM id = TreeView_InsertItem(GetHwnd(), &tvIns);
     if ( id == 0 )
     {
         wxLogLastError(wxT("TreeView_InsertItem"));
+    }
+
+    if ( refreshFirstChild )
+    {
+        wxTreeView_RefreshItem(GetHwnd(), HITEM(parent));
     }
 
     // associate the application tree item with Win32 tree item handle
@@ -1682,6 +1703,10 @@ void wxTreeCtrl::DeleteChildren(const wxTreeItemId& item)
     {
         Delete(children[n]);
     }
+
+    // Refresh update the "+" button which otherwise can remain displayed.
+    if ( !IsHiddenRoot(item) )
+        wxTreeView_RefreshItem(GetHwnd(), HITEM(item));
 }
 
 void wxTreeCtrl::DeleteAllItems()
@@ -1979,7 +2004,18 @@ void wxTreeCtrl::EnsureVisible(const wxTreeItemId& item)
 
 void wxTreeCtrl::ScrollTo(const wxTreeItemId& item)
 {
-    if ( !TreeView_SelectSetFirstVisible(GetHwnd(), HITEM(item)) )
+    HTREEITEM htItem = HITEM(item);
+
+    if ( IsHiddenRoot(item) )
+    {
+        // Calling TreeView_SelectSetFirstVisible() with the invisible root
+        // item would simply crash (#23534), so don't do this. However also
+        // don't just assert and return as this works in the generic version,
+        // so do the same thing as it does here, and scroll to the top item.
+        htItem = TreeView_GetChild(GetHwnd(), htItem);
+    }
+
+    if ( !TreeView_SelectSetFirstVisible(GetHwnd(), htItem) )
     {
         wxLogLastError(wxT("TreeView_SelectSetFirstVisible"));
     }

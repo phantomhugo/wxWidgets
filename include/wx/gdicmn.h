@@ -2,7 +2,6 @@
 // Name:        wx/gdicmn.h
 // Purpose:     Common GDI classes, types and declarations
 // Author:      Julian Smart
-// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -331,6 +330,10 @@ public:
     int GetHeight() const { return y; }
 
     bool IsFullySpecified() const { return x != wxDefaultCoord && y != wxDefaultCoord; }
+
+    // Check that this size object is at least as big as the other one in both
+    // directions.
+    bool IsAtLeast(const wxSize& sz) const { return x >= sz.x && y >= sz.y; }
 
     // combine this size with the other one replacing the default (i.e. equal
     // to wxDefaultCoord) components of this object with those of the other
@@ -848,11 +851,20 @@ public:
 
     // centre this rectangle in the given (usually, but not necessarily,
     // larger) one
+    void MakeCenteredIn(const wxRect& r, int dir = wxBOTH)
+    {
+        if ( dir & wxHORIZONTAL )
+            x = r.x + (r.width - width)/2;
+        if ( dir & wxVERTICAL )
+            y = r.y + (r.height - height)/2;
+    }
+
+    // same as above but returns the new rectangle instead of modifying this one
     wxRect CentreIn(const wxRect& r, int dir = wxBOTH) const
     {
-        return wxRect(dir & wxHORIZONTAL ? r.x + (r.width - width)/2 : x,
-                      dir & wxVERTICAL ? r.y + (r.height - height)/2 : y,
-                      width, height);
+        wxRect rect(*this);
+        rect.MakeCenteredIn(r, dir);
+        return rect;
     }
 
     wxRect CenterIn(const wxRect& r, int dir = wxBOTH) const

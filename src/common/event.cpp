@@ -2,7 +2,6 @@
 // Name:        src/common/event.cpp
 // Purpose:     Event classes
 // Author:      Julian Smart
-// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -751,7 +750,6 @@ wxKeyEvent::wxKeyEvent(wxEventType type)
 
     m_x =
     m_y = wxDefaultCoord;
-    m_hasPosition = false;
 
     InitPropagation();
 }
@@ -914,6 +912,11 @@ wxHelpEvent::Origin wxHelpEvent::GuessOrigin(Origin origin)
 // ----------------------------------------------------------------------------
 // wxDPIChangedEvent
 // ----------------------------------------------------------------------------
+
+wxPoint wxDPIChangedEvent::Scale(wxPoint pt) const
+{
+    return wxRescaleCoord(pt).From(m_oldDPI).To(m_newDPI);
+}
 
 wxSize wxDPIChangedEvent::Scale(wxSize sz) const
 {

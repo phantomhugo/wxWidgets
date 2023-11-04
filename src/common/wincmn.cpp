@@ -2,7 +2,6 @@
 // Name:        src/common/wincmn.cpp
 // Purpose:     common (to all ports) wxWindow functions
 // Author:      Julian Smart, Vadim Zeitlin
-// Modified by:
 // Created:     13/07/98
 // Copyright:   (c) wxWidgets team
 // Licence:     wxWindows licence
@@ -3255,10 +3254,6 @@ wxBorder wxWindowBase::GetBorder(long flags) const
     if ( border == wxBORDER_DEFAULT )
     {
         border = GetDefaultBorder();
-    }
-    else if ( border == wxBORDER_THEME )
-    {
-        border = GetDefaultBorderForControl();
     }
 
     return border;

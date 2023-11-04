@@ -2,7 +2,6 @@
 // Name:        wx/msw/statusbar.h
 // Purpose:     native implementation of wxStatusBar
 // Author:      Vadim Zeitlin
-// Modified by:
 // Created:     04.04.98
 // Copyright:   (c) 1998 Vadim Zeitlin <zeitlin@dptmaths.ens-cachan.fr>
 // Licence:     wxWindows licence
@@ -49,6 +48,11 @@ public:
     virtual int GetBorderY() const override;
 
     // override some wxWindow virtual methods too
+    virtual wxVisualAttributes GetDefaultAttributes() const override;
+
+    static wxVisualAttributes
+    GetClassDefaultAttributes(wxWindowVariant variant = wxWINDOW_VARIANT_NORMAL);
+
     virtual WXLRESULT MSWWindowProc(WXUINT nMsg,
                                     WXWPARAM wParam,
                                     WXLPARAM lParam) override;

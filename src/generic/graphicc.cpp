@@ -2,7 +2,6 @@
 // Name:        src/generic/graphicc.cpp
 // Purpose:     cairo device context class
 // Author:      Stefan Csomor
-// Modified by:
 // Created:     2006-10-03
 // Copyright:   (c) 2006 Stefan Csomor
 // Licence:     wxWindows licence
@@ -533,11 +532,10 @@ protected:
 #ifdef __WXMAC__
     static wxPoint MacAdjustCgContextOrigin(CGContextRef cg);
 #endif // __WXMAC__
-    
+
 #ifdef __WXQT__
     QPainter* m_qtPainter;
-    QImage* m_qtImage;
-    cairo_surface_t* m_qtSurface;
+    QImage    m_qtImage;
 #endif
 #ifdef __WXMSW__
     cairo_surface_t* m_mswSurface;
@@ -587,7 +585,7 @@ protected:
 #ifdef __WXMAC__
     CGContextRef m_cgContext;
 #endif // __WXMAC__
-    
+
 private:
     cairo_t* m_context;
     cairo_matrix_t m_internalTransform;
@@ -1623,14 +1621,14 @@ wxCairoBitmapData::wxCairoBitmapData( wxGraphicsRenderer* renderer, const wxBitm
     // different format and iterator than if it doesn't...
     const bool isSrcBpp32 = bmp.GetDepth() == 32;
 
-#if defined(__WXMSW__) || defined(__WXOSX__)
-    // Under MSW and OSX we can have 32 bpp xRGB bitmaps (without alpha).
+#if defined(__WXMSW__) || defined(__WXOSX__) || defined(__WXQT__)
+    // Under MSW, OSX and Qt we can have 32 bpp xRGB bitmaps (without alpha).
     const bool hasAlpha = bmp.HasAlpha();
 #endif
 
     cairo_format_t bufferFormat =
-    // Under MSW and OSX we can have 32 bpp xRGB bitmaps (without alpha).
-#if defined(__WXMSW__) || defined(__WXOSX__)
+    // Under MSW, OSX and Qt we can have 32 bpp xRGB bitmaps (without alpha).
+#if defined(__WXMSW__) || defined(__WXOSX__) || defined(__WXQT__)
         (isSrcBpp32 && hasAlpha) || bmp.GetMask() != nullptr
 #else
         isSrcBpp32 || bmp.GetMask() != nullptr
@@ -1660,11 +1658,11 @@ wxCairoBitmapData::wxCairoBitmapData( wxGraphicsRenderer* renderer, const wxBitm
                     // with alpha in the upper 8 bits, then red, then green, then
                     // blue. The 32-bit quantities are stored native-endian.
                     // Pre-multiplied alpha is used.
-#if defined (__WXMSW__) || defined(__WXOSX__)
+#if defined (__WXMSW__) || defined(__WXOSX__) || defined(__WXQT__)
                     unsigned char alpha = hasAlpha ? p.Alpha() : wxALPHA_OPAQUE;
-                    // MSW and OSX bitmap pixel bits are already premultiplied.
+                    // MSW, OSX and Qt bitmap pixel bits are already premultiplied.
                     *data = (alpha << 24 | p.Red() << 16 | p.Green() << 8 | p.Blue());
-#else // !__WXMSW__ , !__WXOSX__
+#else // !__WXMSW__ , !__WXOSX__ , !__WXQT__
                     // We always have alpha, but we need to premultiply it.
                     unsigned char alpha = p.Alpha();
                     if (alpha == wxALPHA_TRANSPARENT)
@@ -1674,7 +1672,7 @@ wxCairoBitmapData::wxCairoBitmapData( wxGraphicsRenderer* renderer, const wxBitm
                             | Premultiply(alpha, p.Red()) << 16
                             | Premultiply(alpha, p.Green()) << 8
                             | Premultiply(alpha, p.Blue()));
-#endif // __WXMSW__, __WXOSX__ / !__WXMSW__, !__WXOSX__
+#endif // __WXMSW__, __WXOSX__, __WXQT__ / !__WXMSW__, !__WXOSX__, !__WXQT__
                     ++data;
                     ++p;
                 }
@@ -2077,14 +2075,21 @@ wxCairoContext::wxCairoContext( wxGraphicsRenderer* renderer, const wxWindowDC& 
 #ifdef __WXQT__
     m_qtPainter = static_cast<QPainter*>(dc.GetHandle());
     // create a internal buffer (fallback if cairo_qt_surface is missing)
-    m_qtImage = new QImage(width, height, QImage::Format_ARGB32_Premultiplied);
+    m_qtImage = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
     // clear the buffer to be painted over the current contents
-    m_qtImage->fill(Qt::transparent);
-    m_qtSurface = cairo_image_surface_create_for_data(m_qtImage->bits(),
+    m_qtImage.fill(Qt::transparent);
+    cairo_surface_t* qtSurface = cairo_image_surface_create_for_data(m_qtImage.bits(),
                                                       CAIRO_FORMAT_ARGB32,
                                                       width, height,
-                                                      m_qtImage->bytesPerLine());
-    Init( cairo_create( m_qtSurface ) );
+                                                      m_qtImage.bytesPerLine());
+
+    Init( cairo_create( qtSurface ) );
+    cairo_surface_destroy( qtSurface );
+
+    // Transfer transformation settings from source DC to Cairo context on our own.
+    ApplyTransformFromDC(dc);
+
+    m_qtPainter->setWorldMatrixEnabled(false);
 #endif
 }
 
@@ -2284,14 +2289,21 @@ wxCairoContext::wxCairoContext( wxGraphicsRenderer* renderer, const wxMemoryDC& 
 #ifdef __WXQT__
     m_qtPainter = static_cast<QPainter*>(dc.GetHandle());
     // create a internal buffer (fallback if cairo_qt_surface is missing)
-    m_qtImage = new QImage(width, height, QImage::Format_ARGB32_Premultiplied);
+    m_qtImage = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
     // clear the buffer to be painted over the current contents
-    m_qtImage->fill(Qt::transparent);
-    m_qtSurface = cairo_image_surface_create_for_data(m_qtImage->bits(),
+    m_qtImage.fill(Qt::transparent);
+    cairo_surface_t* qtSurface = cairo_image_surface_create_for_data(m_qtImage.bits(),
                                                       CAIRO_FORMAT_ARGB32,
                                                       width, height,
-                                                      m_qtImage->bytesPerLine());
-    Init( cairo_create( m_qtSurface ) );
+                                                      m_qtImage.bytesPerLine());
+
+    Init( cairo_create( qtSurface ) );
+    cairo_surface_destroy( qtSurface );
+
+    // Transfer transformation settings from source DC to Cairo context on our own.
+    ApplyTransformFromDC(dc);
+
+    m_qtPainter->setWorldMatrixEnabled(false);
 #endif
 }
 
@@ -2393,8 +2405,6 @@ wxCairoContext::wxCairoContext( wxGraphicsRenderer* renderer, cairo_t *context )
 {
 #ifdef __WXQT__
     m_qtPainter = nullptr;
-    m_qtImage = nullptr;
-    m_qtSurface = nullptr;
 #endif
 #ifdef __WXMSW__
     m_mswSurface = nullptr;
@@ -2403,7 +2413,7 @@ wxCairoContext::wxCairoContext( wxGraphicsRenderer* renderer, cairo_t *context )
 #ifdef __WXMAC__
     m_cgContext = nullptr;
 #endif // __WXMAC__
-    
+
     Init( cairo_reference(context), true );
     m_width = 0;
     m_height = 0;
@@ -2460,8 +2470,6 @@ wxCairoContext::wxCairoContext(wxGraphicsRenderer* renderer) :
 {
 #ifdef __WXQT__
     m_qtPainter = nullptr;
-    m_qtImage = nullptr;
-    m_qtSurface = nullptr;
 #endif
 #ifdef __WXMSW__
     m_mswSurface = nullptr;
@@ -2501,13 +2509,12 @@ wxCairoContext::~wxCairoContext()
     }
 #endif // __WXMAC__
 #ifdef __WXQT__
-    if ( m_qtPainter != nullptr )
+    if ( m_context && m_qtPainter->isActive() )
     {
         // draw the internal buffered image to the widget
-        cairo_surface_flush(m_qtSurface);
-        m_qtPainter->drawImage( 0,0, *m_qtImage );
-        delete m_qtImage;
-        cairo_surface_destroy( m_qtSurface );
+        cairo_surface_flush( cairo_get_target(m_context) );
+        m_qtPainter->drawImage( 0,0, m_qtImage );
+        m_qtPainter->setWorldMatrixEnabled(true);
     }
 #endif
 
@@ -2849,10 +2856,10 @@ void wxCairoContext::Flush()
     }
 #endif
 #ifdef __WXQT__
-    if ( m_qtSurface )
+    if ( m_context && m_qtPainter->isActive() )
     {
-        cairo_surface_flush(m_qtSurface);
-        m_qtPainter->drawImage( 0,0, *m_qtImage );
+        cairo_surface_flush( cairo_get_target(m_context) );
+        m_qtPainter->drawImage( 0,0, m_qtImage );
     }
 #endif
 }

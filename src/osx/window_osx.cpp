@@ -2,7 +2,6 @@
 // Name:        src/osx/window_osx.cpp
 // Purpose:     wxWindowMac
 // Author:      Stefan Csomor
-// Modified by:
 // Created:     1998-01-01
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -390,19 +389,6 @@ bool wxWindowMac::Create(wxWindowMac *parent,
         MacPostControlCreate(pos, size) ;
     }
 
-#ifndef __WXUNIVERSAL__
-    // Don't give scrollbars to wxControls unless they ask for them
-    if ( (! IsKindOf(CLASSINFO(wxControl))
-#if wxUSE_STATUSBAR
-        && ! IsKindOf(CLASSINFO(wxStatusBar))
-#endif
-        )
-         || (IsKindOf(CLASSINFO(wxControl)) && ((style & wxHSCROLL) || (style & wxVSCROLL))))
-    {
-        MacCreateScrollBars( style ) ;
-    }
-#endif
-
     wxWindowCreateEvent event((wxWindow*)this);
     GetEventHandler()->AddPendingEvent(event);
 
@@ -430,6 +416,20 @@ void wxWindowMac::MacPostControlCreate(const wxPoint& pos,
     {
         SetPosition(pos);
     }
+
+#ifndef __WXUNIVERSAL__
+    // Don't give scrollbars to wxControls unless they ask for them
+    if ( (! IsKindOf(CLASSINFO(wxControl))
+#if wxUSE_STATUSBAR
+        && ! IsKindOf(CLASSINFO(wxStatusBar))
+#endif
+        )
+         || (IsKindOf(CLASSINFO(wxControl)) && (HasFlag(wxHSCROLL) || HasFlag(wxVSCROLL))))
+    {
+        MacCreateScrollBars( ) ;
+    }
+#endif
+
 }
 
 void wxWindowMac::DoSetWindowVariant( wxWindowVariant variant )
@@ -2044,12 +2044,12 @@ bool wxWindowMac::MacHasScrollBarCorner() const
     return false;
 }
 
-void wxWindowMac::MacCreateScrollBars( long style )
+void wxWindowMac::MacCreateScrollBars()
 {
 #if wxUSE_SCROLLBAR
     wxASSERT_MSG( m_vScrollBar == nullptr && m_hScrollBar == nullptr , wxT("attempt to create window twice") ) ;
 
-    if ( style & ( wxVSCROLL | wxHSCROLL ) )
+    if ( HasFlag( wxVSCROLL | wxHSCROLL ) )
     {
         int scrlsize = MAC_SCROLLBAR_SIZE ;
         if ( GetWindowVariant() == wxWINDOW_VARIANT_SMALL || GetWindowVariant() == wxWINDOW_VARIANT_MINI )
@@ -2067,13 +2067,13 @@ void wxWindowMac::MacCreateScrollBars( long style )
         wxSize hSize(width - adjust, scrlsize) ;
 
         // we have to set the min size to a smaller value, otherwise they cannot get smaller (InitialSize sets MinSize)
-        if ( style & wxVSCROLL )
+        if ( HasFlag(wxVSCROLL) )
         {
             m_vScrollBar = new wxScrollBar((wxWindow*)this, wxID_ANY, vPoint, vSize , wxVERTICAL);
             m_vScrollBar->SetMinSize( wxDefaultSize );
         }
 
-        if ( style  & wxHSCROLL )
+        if ( HasFlag(wxHSCROLL) )
         {
             m_hScrollBar = new wxScrollBar((wxWindow*)this, wxID_ANY, hPoint, hSize , wxHORIZONTAL);
             m_hScrollBar->SetMinSize( wxDefaultSize );

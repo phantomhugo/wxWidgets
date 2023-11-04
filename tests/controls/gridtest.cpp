@@ -26,7 +26,7 @@
     #include "wx/stopwatch.h"
 #endif // __WXGTK__
 
-#include "waitforpaint.h"
+#include "waitfor.h"
 
 // To disable tests which work locally, but not when run on GitHub CI.
 #if defined(__WXGTK__) && !defined(__WXGTK3__)
@@ -553,23 +553,29 @@ TEST_CASE_METHOD(GridTestCase, "Grid::LabelClick", "[grid]")
     wxYield();
 
     sim.MouseClick();
-    wxYield();
-
+    WaitFor("mouse click to be processed", [&]() {
+        return lclick.GetCount() != 0;
+    });
     CHECK(lclick.GetCount() == 1);
 
     sim.MouseDblClick();
-    wxYield();
-
+    WaitFor("mouse double click to be processed", [&]() {
+        return ldclick.GetCount() != 0;
+    });
     CHECK(ldclick.GetCount() == 1);
 
     sim.MouseClick(wxMOUSE_BTN_RIGHT);
-    wxYield();
+    WaitFor("mouse right click to be processed", [&]() {
+        return rclick.GetCount() != 0;
+    });
 
     CHECK(rclick.GetCount() == 1);
     rclick.Clear();
 
     sim.MouseDblClick(wxMOUSE_BTN_RIGHT);
-    wxYield();
+    WaitFor("mouse right double click to be processed", [&]() {
+        return rclick.GetCount() != 0;
+    });
 
     if ( m_grid->IsUsingNativeHeader() )
     {
@@ -608,7 +614,9 @@ TEST_CASE_METHOD(GridTestCase, "Grid::SortClick", "[grid]")
     wxYield();
 
     sim.MouseClick();
-    wxYield();
+    WaitFor("mouse click to be processed", [&]() {
+        return sort.GetCount() != 0;
+    });
 
     CHECK(sort.GetCount() == 1);
 #endif
@@ -642,7 +650,9 @@ TEST_CASE_METHOD(GridTestCase, "Grid::Size", "[grid]")
     wxYield();
 
     sim.MouseUp();
-    wxYield();
+    WaitFor("mouse release to be processed", [&]() {
+        return colsize.GetCount() != 0;
+    });
 
     CHECK(colsize.GetCount() == 1);
 
@@ -651,7 +661,9 @@ TEST_CASE_METHOD(GridTestCase, "Grid::Size", "[grid]")
 
     sim.MouseDragDrop(pt.x, pt.y, pt.x, pt.y + 50);
 
-    wxYield();
+    WaitFor("mouse drag to be processed", [&]() {
+        return rowsize.GetCount() != 0;
+    });
 
     CHECK(rowsize.GetCount() == 1);
 #endif
@@ -702,7 +714,9 @@ TEST_CASE_METHOD(GridTestCase, "Grid::RangeSelect", "[grid]")
     wxYield();
 
     sim.MouseUp();
-    wxYield();
+    WaitFor("mouse up to be processed", [&]() {
+        return select.GetCount() != 0;
+    });
 
     CHECK(select.GetCount() == 1);
 #endif
@@ -1791,6 +1805,177 @@ TEST_CASE_METHOD(GridTestCase, "Grid::CellAttribute", "[attr][cell][grid]")
         CHECK_ATTR_COUNT( numAttrs );
         CHECK( !HasCellAttr(numRows - 1 , numCols - 1) );
     }
+}
+
+namespace SetTable_ClearAttrCache
+{
+
+static unsigned int drawCount1;
+
+class Renderer1 : public wxGridCellRenderer
+{
+public:
+    virtual void Draw(wxGrid& grid,
+                      wxGridCellAttr& attr,
+                      wxDC& dc,
+                      const wxRect& rect,
+                      int row, int col,
+                      bool isSelected) override
+    {
+        ++drawCount1;
+        wxGridCellRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
+    }
+
+    virtual wxSize GetBestSize(wxGrid& /*grid*/,
+                               wxGridCellAttr& /*attr*/,
+                               wxDC& /*dc*/,
+                               int /*row*/, int /*col*/) override
+        { return wxSize(111, 111); }
+
+    virtual wxGridCellRenderer *Clone() const override
+        { return new Renderer1(*this); }
+};
+
+class Attr1 : public wxGridCellAttr
+{
+public:
+    Attr1()
+    {
+        SetRenderer(new Renderer1);
+    }
+};
+
+static unsigned int drawCount2;
+
+class Renderer2 : public wxGridCellRenderer
+{
+public:
+    virtual void Draw(wxGrid& grid,
+                      wxGridCellAttr& attr,
+                      wxDC& dc,
+                      const wxRect& rect,
+                      int row, int col,
+                      bool isSelected) override
+    {
+        ++drawCount2;
+        wxGridCellRenderer::Draw(grid, attr, dc, rect, row, col, isSelected);
+    }
+
+    virtual wxSize GetBestSize(wxGrid& /*grid*/,
+                               wxGridCellAttr& /*attr*/,
+                               wxDC& /*dc*/,
+                               int /*row*/, int /*col*/) override
+        { return wxSize(222, 222); }
+
+    virtual wxGridCellRenderer *Clone() const override
+        { return new Renderer2(*this); }
+};
+
+class Attr2 : public wxGridCellAttr
+{
+public:
+    Attr2()
+    {
+        SetRenderer(new Renderer2);
+    }
+};
+
+class AttrProvider : public wxGridCellAttrProvider
+{
+public:
+    AttrProvider(wxGridCellAttr* attr_)
+        : attr(attr_)
+    {
+    }
+
+    ~AttrProvider()
+    {
+        attr->DecRef();
+    }
+
+    virtual wxGridCellAttr *GetAttr(int /*row*/, int /*col*/,
+                                    wxGridCellAttr::wxAttrKind  /*kind*/ ) const override
+    {
+        attr->IncRef();
+        return attr;
+    }
+protected:
+    wxGridCellAttr* attr;
+};
+
+class GridTable1 : public wxGridTableBase
+{
+public:
+    GridTable1()
+    {
+        SetAttrProvider(new AttrProvider(new Attr1));
+    }
+
+    virtual int GetNumberRows() override { return 1; }
+    virtual int GetNumberCols() override { return 1; }
+    virtual wxString GetValue( int /*row*/, int /*col*/ ) override { return wxS("1"); }
+    virtual void SetValue( int /*row*/, int /*col*/, const wxString& /*value*/ ) override { }
+};
+
+class GridTable2 : public wxGridTableBase
+{
+public:
+    GridTable2()
+    {
+        SetAttrProvider(new AttrProvider(new Attr2));
+    }
+
+    virtual int GetNumberRows() override { return 2; }
+    virtual int GetNumberCols() override { return 2; }
+    virtual wxString GetValue( int /*row*/, int /*col*/ ) override { return wxS("2"); }
+    virtual void SetValue( int /*row*/, int /*col*/, const wxString& /*value*/ ) override { }
+};
+
+// Under wxQt, we get spurious paint events if we call Refresh+Update.
+// So just call Refresh+wxYield which seems to fix the failures in the
+// test below.
+inline void UpdateGrid(wxGrid* grid)
+{
+#ifndef __WXQT__
+    grid->Refresh();
+    grid->Update();
+#else
+    grid->Refresh();
+    wxYield();
+#endif
+}
+
+} // namespace SetTable_ClearAttrCache
+
+TEST_CASE_METHOD(GridTestCase, "Grid::SetTable_ClearAttrCache", "[grid]")
+{
+    // Set up tables of different custom types, each with its
+    // own custom renderer. Switch the grid between them and
+    // check that the correct renderer is called each time
+    // (testing that the grid's attrCache isn't reusing stale values)
+
+    // Fails on OSX (renderer hasn't been called by the time the checks are done?)
+#if !defined(__WXOSX__)
+    using namespace SetTable_ClearAttrCache;
+
+    GridTable1 table1;
+    GridTable2 table2;
+
+    drawCount1 = drawCount2 = 0;
+    m_grid->SetTable(&table2);
+    UpdateGrid(m_grid);
+    CHECK(drawCount1 == 0);
+    CHECK(drawCount2 == 2*2);
+
+    drawCount1 = drawCount2 = 0;
+    m_grid->SetTable(&table1);
+    UpdateGrid(m_grid);
+    CHECK(drawCount1 == 1*1);
+    CHECK(drawCount2 == 0);
+
+    // Remove the grid table before our local objects go out of scope
+    m_grid->SetTable(nullptr);
+#endif // !__WXOSX__
 }
 
 #define CHECK_MULTICELL() CHECK_THAT( *m_grid, HasMulticellOnly(multi) )

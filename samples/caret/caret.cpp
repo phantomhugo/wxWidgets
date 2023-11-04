@@ -2,7 +2,6 @@
 // Name:        caret.cpp
 // Purpose:     wxCaret sample
 // Author:      Robert Roebling
-// Modified by:
 // Created:     04/01/98
 // Copyright:   (c) wxWindows team
 // Licence:     wxWindows licence
@@ -306,7 +305,7 @@ MyCanvas::MyCanvas( wxWindow *parent )
 {
     m_text = nullptr;
 
-    SetBackgroundColour(*wxWHITE);
+    SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
 
     SetFontSize(12);
 

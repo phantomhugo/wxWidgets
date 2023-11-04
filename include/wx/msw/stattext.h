@@ -2,7 +2,6 @@
 // Name:        wx/msw/stattext.h
 // Purpose:     wxStaticText class
 // Author:      Julian Smart
-// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -46,6 +45,11 @@ protected:
     virtual void DoSetSize(int x, int y, int w, int h,
                            int sizeFlags = wxSIZE_AUTO) override;
     virtual wxSize DoGetBestClientSize() const override;
+
+    virtual bool MSWHandleMessage(WXLRESULT *result,
+                                  WXUINT message,
+                                  WXWPARAM wParam,
+                                  WXLPARAM lParam) override;
 
     virtual wxString WXGetVisibleLabel() const override;
     virtual void WXSetVisibleLabel(const wxString& str) override;

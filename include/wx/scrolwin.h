@@ -2,7 +2,6 @@
 // Name:        wx/scrolwin.h
 // Purpose:     wxScrolledWindow, wxScrolledControl and wxScrollHelper
 // Author:      Vadim Zeitlin
-// Modified by:
 // Created:     30.08.00
 // Copyright:   (c) 2000 Vadim Zeitlin <zeitlin@dptmaths.ens-cachan.fr>
 // Licence:     wxWindows licence
@@ -499,5 +498,18 @@ public:
 };
 
 typedef wxScrolled<wxWindow> wxScrolledCanvas;
+
+namespace wxPrivate
+{
+
+// This class is specifically DLL-exported, even though it's trivial, in order
+// to ensure that there is only a single copy of wxScrolledCanvas in the wx DLL.
+class WXDLLIMPEXP_CORE wxScrolledCanvasDummySubclass : public wxScrolledCanvas
+{
+public:
+    wxScrolledCanvasDummySubclass();
+};
+
+} // namespace wxPrivate
 
 #endif // _WX_SCROLWIN_H_BASE_

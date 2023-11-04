@@ -25,7 +25,7 @@
 
     class WXDLLIMPEXP_CORE wxSearchCtrlBaseBaseClass
         : public wxCompositeWindow< wxNavigationEnabled<wxControl> >,
-          public wxTextEntryBase
+          public wxTextEntry
     {
     };
 #elif defined(__WXMAC__)

@@ -2,7 +2,6 @@
 // Name:        src/common/dcgraph.cpp
 // Purpose:     graphics context methods common to all platforms
 // Author:      Stefan Csomor
-// Modified by:
 // Created:
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -452,15 +451,6 @@ void wxGCDCImpl::DoSetDeviceClippingRegion( const wxRegion &region )
 void wxGCDCImpl::DestroyClippingRegion()
 {
     m_graphicContext->ResetClip();
-#if !defined(__WXOSX__) && !defined(__WXMSW__) && !defined(__WXGTK__)
-    // currently the clip eg of a window extends to the area between the scrollbars
-    // so we must explicitly make sure it only covers the area we want it to draw
-    int width, height ;
-    GetOwner()->GetSize( &width , &height ) ;
-    wxPoint clipOrig = DeviceToLogical(0, 0);
-    wxSize clipDim = DeviceToLogicalRel(width, height);
-    m_graphicContext->Clip(clipOrig.x, clipOrig.y, clipDim.x, clipDim.y);
-#endif // !__WXOSX__ && !__WXMSW__ && !__WXGTK__
 
     m_graphicContext->SetPen( m_pen );
     m_graphicContext->SetBrush( m_brush );

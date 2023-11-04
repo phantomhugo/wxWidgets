@@ -2,7 +2,6 @@
 // Name:        src/msw/textctrl.cpp
 // Purpose:     wxTextCtrl
 // Author:      Julian Smart
-// Modified by:
 // Created:     04/01/98
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -878,7 +877,7 @@ bool wxTextCtrl::EnableProofCheck(const wxTextProofOptions& options)
 
     ::SendMessage(GetHwnd(), EM_SETLANGOPTIONS, 0, langOptions);
 
-   return GetProofCheckOptions().IsSpellCheckEnabled();
+   return GetProofCheckOptions().IsSpellCheckEnabled() == options.IsSpellCheckEnabled();
 }
 
 wxTextProofOptions wxTextCtrl::GetProofCheckOptions() const

@@ -2,7 +2,6 @@
 // Name:        wx/osx/window.h
 // Purpose:     wxWindowMac class
 // Author:      Stefan Csomor
-// Modified by:
 // Created:     1998-01-01
 // Copyright:   (c) Stefan Csomor
 // Licence:     wxWindows licence
@@ -342,7 +341,7 @@ protected:
     virtual bool        MacIsChildOfClientArea( const wxWindow* child ) const ;
 
     bool                MacHasScrollBarCorner() const;
-    void                MacCreateScrollBars( long style ) ;
+    void                MacCreateScrollBars( ) ;
     void                MacRepositionScrollBars() ;
 
     // implement the base class pure virtuals

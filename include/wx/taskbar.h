@@ -81,7 +81,6 @@ private:
 // ----------------------------------------------------------------------------
 // now include the actual class declaration
 // ----------------------------------------------------------------------------
-
 #if defined(__WXMSW__)
     #include "wx/msw/taskbar.h"
 #elif defined(__WXGTK__)

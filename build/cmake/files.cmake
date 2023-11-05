@@ -3028,7 +3028,6 @@ set(WASM_SRC
     src/wasm/dc.cpp
     src/wasm/dcclient.cpp
     src/wasm/dcmemory.cpp
-    src/wasm/dcprint.cpp
     src/wasm/dcscreen.cpp
     src/wasm/defs.cpp
     src/wasm/dialog.cpp
@@ -3071,7 +3070,6 @@ set(WASM_SRC
     src/wasm/statline.cpp
     src/wasm/stattext.cpp
     src/wasm/statusbar.cpp
-    src/wasm/taskbar.cpp
     src/wasm/textctrl.cpp
     src/wasm/textentry.cpp
     src/wasm/tglbtn.cpp

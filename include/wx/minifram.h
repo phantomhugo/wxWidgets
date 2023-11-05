@@ -24,6 +24,8 @@
 #include "wx/osx/minifram.h"
 #elif defined(__WXQT__)
 #include "wx/qt/minifram.h"
+#elif defined(__WXWASM__)
+#include "wx/wasm/minifram.h"
 #else
 // TODO: it seems that wxMiniFrame could be just defined here generically
 //       instead of having all the above port-specific headers

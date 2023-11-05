@@ -71,7 +71,7 @@ public:
     wxBitmap(const wxImage& image, const wxDC& dc);
 
     // Convert from wxIcon / wxCursor
-    wxBitmap(const wxIcon& icon) { CopyFromIcon(icon); }
+    wxBitmap(const wxIcon& icon);
     explicit wxBitmap(const wxCursor& cursor);
     virtual ~wxBitmap();
 

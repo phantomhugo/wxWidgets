@@ -1,8 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/minifram.cpp
 // Purpose:     wxMiniFrame
-// Author:      Mariano Reingart
-// Copyright:   (c) 2014 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2023 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

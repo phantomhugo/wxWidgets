@@ -57,6 +57,11 @@ void wxTreeCtrl::OnImagesChanged()
     }
 }
 
+void wxTreeCtrl::SetImageList(wxImageList *imageList)
+{
+    m_imagesState.SetImageList(imageList);
+}
+
 void wxTreeCtrl::SetStateImageList(wxImageList *imageList)
 {
     m_imagesState.SetImageList(imageList);

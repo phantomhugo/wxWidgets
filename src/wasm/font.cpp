@@ -245,60 +245,7 @@ wxFontFamily wxFont::DoGetFamily() const
 // wxNativeFontInfo
 // ----------------------------------------------------------------------------
 
-void wxNativeFontInfo::Init()
-{
-}
-
-double wxNativeFontInfo::GetFractionalPointSize() const
-{
-
-}
-
 wxSize wxNativeFontInfo::GetPixelSize() const
-{
-
-}
-
-wxFontStyle wxNativeFontInfo::GetStyle() const
-{
-
-    wxFAIL_MSG( "Invalid font style value" );
-    return wxFontStyle();
-}
-
-int wxNativeFontInfo::GetNumericWeight() const
-{
-
-}
-
-bool wxNativeFontInfo::GetUnderlined() const
-{
-
-}
-
-bool wxNativeFontInfo::GetStrikethrough() const
-{
-
-}
-
-wxString wxNativeFontInfo::GetFaceName() const
-{
-    // use font info to get the matched face name (not the family given)
-
-}
-
-wxFontFamily wxNativeFontInfo::GetFamily() const
-{
-
-    return wxFONTFAMILY_UNKNOWN;
-}
-
-wxFontEncoding wxNativeFontInfo::GetEncoding() const
-{
-    return wxFONTENCODING_UTF8;
-}
-
-void wxNativeFontInfo::SetFractionalPointSize(double pointsize)
 {
 
 }
@@ -306,60 +253,4 @@ void wxNativeFontInfo::SetFractionalPointSize(double pointsize)
 void wxNativeFontInfo::SetPixelSize(const wxSize& size)
 {
 
-}
-
-void wxNativeFontInfo::SetStyle(wxFontStyle style)
-{
-
-}
-
-void wxNativeFontInfo::SetNumericWeight(int weight)
-{
-
-}
-
-void wxNativeFontInfo::SetUnderlined(bool underlined)
-{
-
-}
-
-void wxNativeFontInfo::SetStrikethrough(bool strikethrough)
-{
-
-}
-
-bool wxNativeFontInfo::SetFaceName(const wxString& facename)
-{
-
-    return true;
-}
-
-void wxNativeFontInfo::SetFamily(wxFontFamily family)
-{
-
-}
-
-void wxNativeFontInfo::SetEncoding(wxFontEncoding WXUNUSED(encoding))
-{
-
-}
-
-bool wxNativeFontInfo::FromString(const wxString& s)
-{
-    return true;
-}
-
-wxString wxNativeFontInfo::ToString() const
-{
-
-}
-
-bool wxNativeFontInfo::FromUserString(const wxString& s)
-{
-    return FromString(s);
-}
-
-wxString wxNativeFontInfo::ToUserString() const
-{
-    return ToString();
 }

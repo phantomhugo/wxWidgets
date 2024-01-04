@@ -33,7 +33,7 @@
 class WXDLLIMPEXP_CORE wxPopupWindowBase : public wxNonOwnedWindow
 {
 public:
-    wxPopupWindowBase() { }
+    wxPopupWindowBase() = default;
     virtual ~wxPopupWindowBase();
 
     // create the popup window
@@ -127,7 +127,7 @@ class WXDLLIMPEXP_CORE wxPopupTransientWindow : public wxPopupTransientWindowBas
 {
 public:
     // ctors
-    wxPopupTransientWindow() { }
+    wxPopupTransientWindow() = default;
     wxPopupTransientWindow(wxWindow *parent, int style = wxBORDER_NONE)
         { Create(parent, style); }
 

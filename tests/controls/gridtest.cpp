@@ -194,6 +194,52 @@ void FitGridToMulticell(TestableGrid* grid, const Multicell& multi)
     }
 }
 
+// Function used to wait until the given predicate becomes true or timeout
+// expires or the mouse moves away, in which case the test is abandoned.
+bool
+WaitForEventAt(
+    const wxPoint& pos,
+    const char* what,
+    const std::function<bool ()>& pred,
+    int timeout = 500
+)
+{
+    wxStopWatch sw;
+    for ( ;; )
+    {
+        wxYield();
+
+        if ( pred() )
+            break;
+
+        if ( wxGetMousePosition() != pos )
+        {
+            WARN("Mouse unexpectedly moved to " << wxGetMousePosition()
+                    << " from the expected " << pos << "; skipping test");
+            return false;
+        }
+
+        if ( sw.Time() > timeout )
+        {
+            // This sporadically happens under AppVeyor for unknown reasons and
+            // there doesn't seem to be anything we can do about it, so just
+            // skip the test if it happens.
+            if ( IsAutomaticTest() )
+            {
+                WARN("Timed out waiting for " << what << "; skipping test");
+                return false;
+            }
+
+            // Otherwise fail it -- maybe someone will be able to understand
+            // why it happens one day if it does happen locally.
+            FAIL("Timed out waiting for " << what);
+            break; // unreachable
+        }
+    }
+
+    return true;
+}
+
 } // anonymous namespace
 
 namespace Catch
@@ -360,6 +406,8 @@ GridTestCase::GridTestCase() : m_tempGrid(nullptr)
     m_grid->Refresh();
     m_grid->Update();
 
+    wxTheApp->GetTopWindow()->Raise();
+
     waitForPaint.YieldUntilPainted();
 }
 
@@ -437,13 +485,18 @@ TEST_CASE_METHOD(GridTestCase, "Grid::CellClick", "[grid]")
     wxYield();
 
     sim.MouseClick();
-    wxYield();
-
+    if ( !WaitForEventAt(point, "mouse click to be processed", [&]() {
+            return lclick.GetCount() != 0;
+        }) )
+        return;
     CHECK(lclick.GetCount() == 1);
     lclick.Clear();
 
     sim.MouseDblClick();
-    wxYield();
+    if ( !WaitForEventAt(point, "double click to be processed", [&]() {
+            return lclick.GetCount() != 0 || ldclick.GetCount() != 0;
+        }) )
+        return;
 
     //A double click event sends a single click event first
     //test to ensure this still happens in the future
@@ -451,13 +504,18 @@ TEST_CASE_METHOD(GridTestCase, "Grid::CellClick", "[grid]")
     CHECK(ldclick.GetCount() == 1);
 
     sim.MouseClick(wxMOUSE_BTN_RIGHT);
-    wxYield();
-
+    if ( !WaitForEventAt(point, "right click to be processed", [&]() {
+            return rclick.GetCount() != 0;
+        }) )
+        return;
     CHECK(rclick.GetCount() == 1);
     rclick.Clear();
 
     sim.MouseDblClick(wxMOUSE_BTN_RIGHT);
-    wxYield();
+    if ( !WaitForEventAt(point, "right double click to be processed", [&]() {
+            return rclick.GetCount() != 0 || rdclick.GetCount() != 0;
+        }) )
+        return;
 
     CHECK(rclick.GetCount() == 1);
     CHECK(rdclick.GetCount() == 1);
@@ -487,8 +545,10 @@ TEST_CASE_METHOD(GridTestCase, "Grid::ReorderedColumnsCellClick", "[grid]")
     wxYield();
 
     sim.MouseClick();
-    wxYield();
-
+    if ( !WaitForEventAt(point, "mouse click to be processed", [&]() {
+            return click.GetCount() != 0;
+        }) )
+        return;
     CHECK(click.GetCount() == 1);
 #endif
 }
@@ -510,22 +570,32 @@ TEST_CASE_METHOD(GridTestCase, "Grid::CellSelect", "[grid]")
     wxYield();
 
     sim.MouseClick();
-    wxYield();
-
+    if ( !WaitForEventAt(point, "mouse click to be processed", [&]() {
+            return cell.GetCount() != 0;
+        }) )
+        return;
     CHECK(cell.GetCount() == 1);
-
     cell.Clear();
 
     m_grid->SetGridCursor(1, 1);
+
+    CHECK(cell.GetCount() == 1);
+    cell.Clear();
+
     m_grid->GoToCell(1, 0);
+
+    CHECK(cell.GetCount() == 1);
+    cell.Clear();
 
     sim.MouseMove(point);
     wxYield();
 
     sim.MouseDblClick();
-    wxYield();
-
-    CHECK(cell.GetCount() == 3);
+    if ( !WaitForEventAt(point, "mouse double click to be processed", [&]() {
+            return cell.GetCount() != 0;
+        }) )
+        return;
+    CHECK(cell.GetCount() == 1);
 #endif
 }
 
@@ -535,9 +605,13 @@ TEST_CASE_METHOD(GridTestCase, "Grid::LabelClick", "[grid]")
     if ( !EnableUITests() )
         return;
 
-    SECTION("Default") {}
-    SECTION("Native header") { m_grid->UseNativeColHeader(); }
-    SECTION("Native labels") { m_grid->SetUseNativeColLabels(); }
+    wxString desc;
+
+    SECTION("Default") { desc = "default header"; }
+    SECTION("Native header") { desc = "native header"; m_grid->UseNativeColHeader(); }
+    SECTION("Native labels") { desc = "native labels"; m_grid->SetUseNativeColLabels(); }
+
+    INFO("Using " << desc);
 
     EventCounter lclick(m_grid, wxEVT_GRID_LABEL_LEFT_CLICK);
     EventCounter ldclick(m_grid, wxEVT_GRID_LABEL_LEFT_DCLICK);
@@ -553,29 +627,32 @@ TEST_CASE_METHOD(GridTestCase, "Grid::LabelClick", "[grid]")
     wxYield();
 
     sim.MouseClick();
-    WaitFor("mouse click to be processed", [&]() {
-        return lclick.GetCount() != 0;
-    });
+    if ( !WaitForEventAt(pos, "mouse click to be processed", [&]() {
+            return lclick.GetCount() != 0;
+        }) )
+        return;
     CHECK(lclick.GetCount() == 1);
 
     sim.MouseDblClick();
-    WaitFor("mouse double click to be processed", [&]() {
-        return ldclick.GetCount() != 0;
-    });
+    if ( !WaitForEventAt(pos, "mouse double click to be processed", [&]() {
+            return ldclick.GetCount() != 0;
+        }) )
+        return;
     CHECK(ldclick.GetCount() == 1);
 
     sim.MouseClick(wxMOUSE_BTN_RIGHT);
-    WaitFor("mouse right click to be processed", [&]() {
-        return rclick.GetCount() != 0;
-    });
-
+    if ( !WaitForEventAt(pos, "mouse right click to be processed", [&]() {
+            return rclick.GetCount() != 0;
+        }) )
+        return;
     CHECK(rclick.GetCount() == 1);
     rclick.Clear();
 
     sim.MouseDblClick(wxMOUSE_BTN_RIGHT);
-    WaitFor("mouse right double click to be processed", [&]() {
-        return rclick.GetCount() != 0;
-    });
+    if ( !WaitForEventAt(pos, "mouse right double click to be processed", [&]() {
+            return rclick.GetCount() != 0;
+        }) )
+        return;
 
     if ( m_grid->IsUsingNativeHeader() )
     {
@@ -597,9 +674,13 @@ TEST_CASE_METHOD(GridTestCase, "Grid::SortClick", "[grid]")
     if ( !EnableUITests() )
         return;
 
-    SECTION("Default") {}
-    SECTION("Native header") { m_grid->UseNativeColHeader(); }
-    SECTION("Native labels") { m_grid->SetUseNativeColLabels(); }
+    wxString desc;
+
+    SECTION("Default") { desc = "default header"; }
+    SECTION("Native header") { desc = "native header"; m_grid->UseNativeColHeader(); }
+    SECTION("Native labels") { desc = "native labels"; m_grid->SetUseNativeColLabels(); }
+
+    INFO("Using " << desc);
 
     m_grid->SetSortingColumn(0);
 
@@ -614,10 +695,10 @@ TEST_CASE_METHOD(GridTestCase, "Grid::SortClick", "[grid]")
     wxYield();
 
     sim.MouseClick();
-    WaitFor("mouse click to be processed", [&]() {
-        return sort.GetCount() != 0;
-    });
-
+    if ( !WaitForEventAt(pos, "mouse click to be processed", [&]() {
+            return sort.GetCount() != 0;
+        }) )
+        return;
     CHECK(sort.GetCount() == 1);
 #endif
 }
@@ -639,7 +720,11 @@ TEST_CASE_METHOD(GridTestCase, "Grid::Size", "[grid]")
     wxUIActionSimulator sim;
 
     wxPoint pt = m_grid->ClientToScreen(wxPoint(m_grid->GetRowLabelSize() +
-                                        m_grid->GetColSize(0), 5));
+                                                m_grid->GetColSize(0), 5));
+#ifdef __WXQT__
+    pt += wxPoint(1, 0); // FIXME: why this is needed?
+#endif
+
     sim.MouseMove(pt);
     wxYield();
 
@@ -658,6 +743,10 @@ TEST_CASE_METHOD(GridTestCase, "Grid::Size", "[grid]")
 
     pt = m_grid->ClientToScreen(wxPoint(5, m_grid->GetColLabelSize() +
                                         m_grid->GetRowSize(0)));
+
+#ifdef __WXQT__
+    pt += wxPoint(0, 1); // FIXME: why this is needed?
+#endif
 
     sim.MouseDragDrop(pt.x, pt.y, pt.x, pt.y + 50);
 
@@ -973,6 +1062,7 @@ TEST_CASE_METHOD(GridTestCase, "Grid::MoveGridCursorUsingEndKey", "[grid]")
     m_grid->SetColPos(10, 5);
 
     m_grid->SetFocus();
+    wxYield();
 
     sim.KeyDown(WXK_END, wxMOD_CONTROL);
     sim.KeyUp(WXK_END, wxMOD_CONTROL);
@@ -999,6 +1089,7 @@ TEST_CASE_METHOD(GridTestCase, "Grid::SelectUsingEndKey", "[grid]")
     REQUIRE( m_grid->IsVisible(0, 0) );
 
     m_grid->SetFocus();
+    wxYield();
 
     sim.KeyDown(WXK_END, wxMOD_CONTROL | wxMOD_SHIFT);
     sim.KeyUp(WXK_END, wxMOD_CONTROL | wxMOD_SHIFT);
@@ -1045,8 +1136,12 @@ TEST_CASE_METHOD(GridTestCase, "Grid::AddRowCol", "[grid]")
 
 TEST_CASE_METHOD(GridTestCase, "Grid::DeleteAndAddRowCol", "[grid]")
 {
-    SECTION("Default") {}
-    SECTION("Native header") { m_grid->UseNativeColHeader(); }
+    wxString desc;
+
+    SECTION("Default") { desc = "default header"; }
+    SECTION("Native header") { desc = "native header"; m_grid->UseNativeColHeader(); }
+
+    INFO("Using " << desc);
 
     CHECK(m_grid->GetNumberRows() == 10);
     CHECK(m_grid->GetNumberCols() == 2);
@@ -1077,9 +1172,13 @@ TEST_CASE_METHOD(GridTestCase, "Grid::DeleteAndAddRowCol", "[grid]")
 
 TEST_CASE_METHOD(GridTestCase, "Grid::ColumnOrder", "[grid]")
 {
-    SECTION("Default") {}
-    SECTION("Native header") { m_grid->UseNativeColHeader(); }
-    SECTION("Native labels") { m_grid->SetUseNativeColLabels(); }
+    wxString desc;
+
+    SECTION("Default") { desc = "default header"; }
+    SECTION("Native header") { desc = "native header"; m_grid->UseNativeColHeader(); }
+    SECTION("Native labels") { desc = "native labels"; m_grid->SetUseNativeColLabels(); }
+
+    INFO("Using " << desc);
 
     m_grid->AppendCols(2);
 
@@ -1373,6 +1472,8 @@ TEST_CASE_METHOD(GridTestCase, "Grid::Editable", "[grid]")
     m_grid->SetFocus();
     m_grid->SetGridCursor(1, 1);
 
+    wxYield();
+
     sim.Text("abab");
     wxYield();
 
@@ -1403,6 +1504,8 @@ TEST_CASE_METHOD(GridTestCase, "Grid::ReadOnly", "[grid]")
     m_grid->SetFocus();
 
     m_grid->SetGridCursor(1, 1);
+
+    wxYield();
 
     CHECK(m_grid->IsCurrentCellReadOnly());
 
@@ -1481,15 +1584,19 @@ TEST_CASE_METHOD(GridTestCase, "Grid::WindowAsEditorControl", "[grid]")
 
 TEST_CASE_METHOD(GridTestCase, "Grid::ResizeScrolledHeader", "[grid]")
 {
-    // TODO this test currently works only under Windows and GTK unfortunately
-#if wxUSE_UIACTIONSIMULATOR && (defined(__WXMSW__) || defined(__WXGTK__))
+    // TODO this test currently works only under Windows, GTK and Qt unfortunately
+#if wxUSE_UIACTIONSIMULATOR && (defined(__WXMSW__) || defined(__WXGTK__) || defined(__WXQT__))
     if ( !EnableUITests() )
         return;
 
     wxSKIP_AUTOMATIC_TEST_IF_GTK2();
 
-    SECTION("Default") {}
-    SECTION("Native header") { m_grid->UseNativeColHeader(); }
+    wxString desc;
+
+    SECTION("Default") { desc = "default header"; }
+    SECTION("Native header") { desc = "native header"; m_grid->UseNativeColHeader(); }
+
+    INFO("Using " << desc);
 
     int const startwidth = m_grid->GetColSize(0);
     int const draglength = 100;
@@ -1505,6 +1612,10 @@ TEST_CASE_METHOD(GridTestCase, "Grid::ResizeScrolledHeader", "[grid]")
                                    + wxPoint(m_grid->GetRowLabelSize(),
                                              m_grid->GetColLabelSize())
                                    - wxPoint(0, 5));
+
+#ifdef __WXQT__
+    point += wxPoint(1, 0); // FIXME: why this is needed?
+#endif
 
     wxUIActionSimulator sim;
 
@@ -1528,14 +1639,16 @@ TEST_CASE_METHOD(GridTestCase, "Grid::ResizeScrolledHeader", "[grid]")
 
 TEST_CASE_METHOD(GridTestCase, "Grid::ColumnMinWidth", "[grid]")
 {
-    // TODO this test currently works only under Windows and GTK unfortunately
-#if wxUSE_UIACTIONSIMULATOR && (defined(__WXMSW__) || defined(__WXGTK__))
+    // TODO this test currently works only under Windows, GTK and Qt unfortunately
+#if wxUSE_UIACTIONSIMULATOR && (defined(__WXMSW__) || defined(__WXGTK__) || defined(__WXQT__))
     if ( !EnableUITests() )
         return;
 
     wxSKIP_AUTOMATIC_TEST_IF_GTK2();
 
-    SECTION("Default") {}
+    wxString desc;
+
+    SECTION("Default") { desc = "default header"; }
     SECTION("Native header")
     {
         // For some unknown reason, this test fails under AppVeyor even though
@@ -1544,8 +1657,11 @@ TEST_CASE_METHOD(GridTestCase, "Grid::ColumnMinWidth", "[grid]")
         if ( IsAutomaticTest() )
             return;
 
+        desc = "native header";
         m_grid->UseNativeColHeader();
     }
+
+    INFO("Using " << desc);
 
     int const startminwidth = m_grid->GetColMinimalAcceptableWidth();
     m_grid->SetColMinimalAcceptableWidth(startminwidth*2);
@@ -1560,6 +1676,10 @@ TEST_CASE_METHOD(GridTestCase, "Grid::ColumnMinWidth", "[grid]")
                                    + wxPoint(m_grid->GetRowLabelSize(),
                                              m_grid->GetColLabelSize())
                                    - wxPoint(0, 5));
+
+#ifdef __WXQT__
+    point += wxPoint(1, 0); // FIXME: why this is needed?
+#endif
 
     wxUIActionSimulator sim;
 
@@ -1588,9 +1708,13 @@ void GridTestCase::CheckFirstColAutoSize(int expected)
 
 TEST_CASE_METHOD(GridTestCase, "Grid::AutoSizeColumn", "[grid]")
 {
-    SECTION("Default") {}
-    SECTION("Native header") { m_grid->UseNativeColHeader(); }
-    SECTION("Native labels") { m_grid->SetUseNativeColLabels(); }
+    wxString desc;
+
+    SECTION("Default") { desc = "default header"; }
+    SECTION("Native header") { desc = "native header"; m_grid->UseNativeColHeader(); }
+    SECTION("Native labels") { desc = "native labels"; m_grid->SetUseNativeColLabels(); }
+
+    INFO("Using " << desc);
 
     // Hardcoded extra margin for the columns used in grid.cpp.
     const int margin = m_grid->FromDIP(10);

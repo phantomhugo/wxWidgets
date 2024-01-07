@@ -103,6 +103,11 @@ void wxCalendarCtrl::Mark(size_t day, bool mark)
 
 }
 
+void wxCalendarCtrl::SetHeaderColours(const wxColour& colFg, const wxColour& colBg)
+{
+
+}
+
 void wxCalendarCtrl::SetHoliday(size_t day)
 {
     wxCHECK_RET( day > 0 && day < 32, "invalid day" );
@@ -132,6 +137,11 @@ wxCalendarDateAttr *wxCalendarCtrl::GetAttr(size_t day) const
 }
 
 void wxCalendarCtrl::SetAttr(size_t day, wxCalendarDateAttr *attr)
+{
+
+}
+
+void *wxCalendarCtrl::GetHandle() const
 {
 
 }

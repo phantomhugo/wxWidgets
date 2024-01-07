@@ -47,8 +47,6 @@ void wxToolTip::SetTip(const wxString& tip)
 {
     m_text = tip;
 
-    if ( m_window )
-        m_window->QtApplyToolTip(m_text);
 }
 
 const wxString &wxToolTip::GetTip() const

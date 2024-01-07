@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/evtloop.h
 // Author:      Hugo Armando Castellanos
-// Copyright:   (c) 2022 Hugo Armando Castellanos Morales
+// Copyright:   (c) 2023 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -11,8 +11,8 @@
 class WXDLLIMPEXP_CORE wxWasmEventLoopBase : public wxEventLoopBase
 {
 public:
-    wxWasmEventLoopBase();
-    ~wxWasmEventLoopBase();
+    wxWasmEventLoopBase() = default;
+    ~wxWasmEventLoopBase()=default;
 
     virtual int DoRun() override;
     virtual void ScheduleExit(int rc = 0) override;
@@ -32,10 +32,17 @@ private:
 
 #if wxUSE_GUI
 
-class WXDLLIMPEXP_CORE wxGUIEventLoop : public wxQtEventLoopBase
+class WXDLLIMPEXP_CORE wxGUIEventLoop : public wxWasmEventLoopBase
 {
 public:
     wxGUIEventLoop();
+    ~wxGUIEventLoop() = default;
+    bool Dispatch() override;
+    bool Pending() const override;
+    void ScheduleExit(int rc = 0) override;
+protected:
+    // real implementation of Run()
+    virtual int DoRun() override;
 };
 
 #endif // wxUSE_GUI

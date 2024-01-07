@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/menuitem.cpp
-// Author:      Peter Most, Mariano Reingart
-// Copyright:   (c) 2010 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -27,12 +27,9 @@ wxMenuItem::wxMenuItem(wxMenu *parentMenu, int id, const wxString& text,
 
 }
 
-
-
 void wxMenuItem::SetItemLabel( const wxString &label )
 {
     wxMenuItemBase::SetItemLabel( label );
-
 }
 
 void wxMenuItem::SetCheckable( bool checkable )
@@ -41,22 +38,16 @@ void wxMenuItem::SetCheckable( bool checkable )
 
 }
 
-
-
 void wxMenuItem::Enable( bool enable )
 {
     wxMenuItemBase::Enable( enable );
 
 }
 
-
-
 bool wxMenuItem::IsEnabled() const
 {
 
 }
-
-
 
 void wxMenuItem::Check( bool checked )
 {
@@ -64,14 +55,17 @@ void wxMenuItem::Check( bool checked )
 
 }
 
-
-
 bool wxMenuItem::IsChecked() const
 {
 
 }
 
 void wxMenuItem::SetBitmap(const wxBitmapBundle& bitmap)
+{
+
+}
+
+void *wxMenuItem::GetHandle() const
 {
 
 }

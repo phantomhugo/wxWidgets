@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/checkbox.cpp
 // Author:      Hugo Castellanos
-// Copyright:   (c) 2023 wxWidgets dev team
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -58,6 +58,10 @@ void wxCheckBox::Release()
 
 }
 
+wxBitmap wxCheckBox::GetBitmap(State state, Status status) const
+{
+
+}
 
 void wxCheckBox::ChangeValue(bool value)
 {
@@ -70,6 +74,16 @@ void wxCheckBox::SendEvent()
 }
 
 void wxCheckBox::OnCheck()
+{
+
+}
+
+wxSize wxCheckBox::DoGetBestClientSize() const
+{
+
+}
+
+wxSize wxCheckBox::GetBitmapSize() const
 {
 
 }

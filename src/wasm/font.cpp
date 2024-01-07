@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/font.cpp
 // Author:      Hugo Castellanos
-// Copyright:   (c) 2023 wxWidgets dev team
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -32,64 +32,14 @@ public:
 
 #define M_FONTDATA ((wxFontRefData *)m_refData)->m_nativeFontInfo
 
-wxFont::wxFont()
-{
-    m_refData = new wxFontRefData();
-}
-
-wxFont::wxFont(const wxFontInfo& info)
-{
-    m_refData = new wxFontRefData(info);
-}
-
-wxFont::wxFont(const wxString& nativeFontInfoString)
-{
-    m_refData = new wxFontRefData();
-}
-
 wxFont::wxFont(const wxNativeFontInfo& info)
 {
 
 }
 
-wxFont::wxFont(int size,
-       wxFontFamily family,
-       wxFontStyle style,
-       wxFontWeight weight,
-       bool underlined,
-       const wxString& face,
-       wxFontEncoding encoding)
-{
-    m_refData = new wxFontRefData();
-    Create(wxSize(0, size), family, style, weight, underlined, face, encoding);
-}
-
-wxFont::wxFont(const wxSize& pixelSize,
-       wxFontFamily family,
-       wxFontStyle style,
-       wxFontWeight weight,
-       bool underlined,
-       const wxString& face,
-       wxFontEncoding encoding)
-{
-    Create(pixelSize, family, style, weight, underlined, face, encoding);
-}
-
-wxFont::wxFont(int size,
-       int family,
-       int style,
-       int weight,
-       bool underlined,
-       const wxString& face,
-       wxFontEncoding encoding)
-{
-    Create(wxSize(0, size), (wxFontFamily)family, (wxFontStyle)style, (wxFontWeight)weight, underlined, face, encoding);
-}
-
-
 bool wxFont::Create(wxSize size, wxFontFamily family, wxFontStyle style,
         wxFontWeight weight, bool underlined, const wxString& face,
-        wxFontEncoding encoding )
+        wxFontEncoding encoding)
 {
     UnRef();
 
@@ -100,19 +50,9 @@ bool wxFont::Create(wxSize size, wxFontFamily family, wxFontStyle style,
     return true;
 }
 
-int wxFont::GetPointSize() const
-{
-    return M_FONTDATA.wxNativeFontInfo::GetPointSize();
-}
-
 double wxFont::GetFractionalPointSize() const
 {
     return M_FONTDATA.GetFractionalPointSize();
-}
-
-wxSize wxFont::GetPixelSize() const
-{
-    return M_FONTDATA.GetPixelSize();
 }
 
 wxFontStyle wxFont::GetStyle() const
@@ -150,19 +90,16 @@ bool wxFont::GetStrikethrough() const
     return M_FONTDATA.GetStrikethrough();
 }
 
+bool wxFont::IsFixedWidth() const
+{
+
+}
 
 void wxFont::SetFractionalPointSize(double pointSize)
 {
     AllocExclusive();
 
     M_FONTDATA.SetFractionalPointSize(pointSize);
-}
-
-void wxFont::SetPixelSize(const wxSize& pixelSize)
-{
-    AllocExclusive();
-
-    M_FONTDATA.SetPixelSize(pixelSize);
 }
 
 bool wxFont::SetFaceName(const wxString& facename)

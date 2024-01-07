@@ -1,9 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/colour.cpp
 // Purpose:     wxColour class implementation for wxQt
-// Author:      Kolya Kosenko
-// Created:     2010-05-12
-// Copyright:   (c) 2010 Kolya Kosenko
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -32,7 +31,33 @@ unsigned long wxColour::GetPixel() const
     return 0;
 }
 
+wxGDIRefData *wxColour::CreateGDIRefData() const
+{
+
+}
+wxGDIRefData *wxColour::CloneGDIRefData(const wxGDIRefData *data) const
+{
+
+}
 void wxColour::InitRGBA(ChannelType r, ChannelType g, ChannelType b, ChannelType a)
+{
+
+}
+
+bool wxColour::FromString(const wxString& str)
+{
+
+}
+
+unsigned char wxColour::Red() const
+{
+
+}
+unsigned char wxColour::Green() const
+{
+
+}
+unsigned char wxColour::Blue() const
 {
 
 }

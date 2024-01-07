@@ -29,7 +29,6 @@ public:
 private:
     wxBitmap m_selected;
 
-    DECLARE_CLASS(wxMemoryDCImpl);
     DECLARE_NO_COPY_CLASS(wxMemoryDCImpl);
 };
 

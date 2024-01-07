@@ -2,8 +2,7 @@
 // Name:        wx/wasm/font.h
 // Purpose:     wxFont class
 // Author:      Hugo Castellanos
-// Created:     17.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -19,13 +18,6 @@ public:
 
     wxFont(const wxFontInfo& info)
     {
-        Create(info.GetPointSize(),
-               info.GetFamily(),
-               info.GetStyle(),
-               info.GetWeight(),
-               info.IsUnderlined(),
-               info.GetFaceName(),
-               info.GetEncoding());
 
         if ( info.IsUsingSizeInPixels() )
             SetPixelSize(info.GetPixelSize());
@@ -39,7 +31,6 @@ public:
            const wxString& face = wxEmptyString,
            wxFontEncoding encoding = wxFONTENCODING_DEFAULT)
     {
-        Create(size, family, style, weight, underlined, face, encoding);
     }
 
     wxFont(const wxSize& pixelSize,
@@ -50,11 +41,10 @@ public:
            const wxString& face = wxEmptyString,
            wxFontEncoding encoding = wxFONTENCODING_DEFAULT)
     {
-        Create(10, family, style, weight, underlined, face, encoding);
         SetPixelSize(pixelSize);
     }
 
-    bool Create(int size,
+    bool Create(wxSize size,
                 wxFontFamily family,
                 wxFontStyle style,
                 wxFontWeight weight,
@@ -72,10 +62,7 @@ public:
     bool Create(const wxString& fontname,
         wxFontEncoding fontenc = wxFONTENCODING_DEFAULT);
 
-    // DELETEME: no longer seems to be implemented.
-    // bool Create(const wxNativeFontInfo& fontinfo);
-
-    virtual ~wxFont();
+    virtual ~wxFont() = default;
 
     // implement base class pure virtuals
     virtual double GetFractionalPointSize() const;
@@ -100,18 +87,6 @@ public:
 
     wxDECLARE_COMMON_FONT_METHODS();
 
-    wxDEPRECATED_MSG("use wxFONT{FAMILY,STYLE,WEIGHT}_XXX constants")
-    wxFont(int size,
-           int family,
-           int style,
-           int weight,
-           bool underlined = false,
-           const wxString& face = wxEmptyString,
-           wxFontEncoding encoding = wxFONTENCODING_DEFAULT)
-    {
-        (void)Create(size, (wxFontFamily)family, (wxFontStyle)style, (wxFontWeight)weight, underlined, face, encoding);
-    }
-
     // Implementation
 
     // Find an existing, or create a new, XFontStruct
@@ -126,11 +101,7 @@ public:
     // of the fonts and a mapping file.
 
     // Return font struct, and optionally the Motif font list
-    wxXFont *GetInternalFont(double scale = 1.0,
-        WXDisplay* display = NULL) const;
-
-    // Helper function for convenient access of the above.
-    WXFontStructPtr GetFontStruct(double scale = 1.0,
+    void *GetInternalFont(double scale = 1.0,
         WXDisplay* display = NULL) const;
 
 protected:

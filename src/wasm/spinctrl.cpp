@@ -34,14 +34,50 @@ bool wxSpinCtrl::Create( wxWindow *parent, wxWindowID id, const wxString& value,
 
 }
 
+bool wxSpinCtrl::GetSnapToTicks() const
+{
+
+}
+
+wxString wxSpinCtrl::GetTextValue() const
+{
+
+}
+int wxSpinCtrl::GetValue() const
+{
+
+}
+int wxSpinCtrl::GetMin() const
+{
+
+}
+int wxSpinCtrl::GetMax() const
+{
+
+}
+
+void wxSpinCtrl::SetSnapToTicks(bool snap_to_ticks)
+{
+
+}
 
 bool wxSpinCtrl::SetBase(int base)
 {
     return true;
 }
 
+void wxSpinCtrl::SetSelection(long from, long to)
+{
+
+}
+
 void wxSpinCtrl::SetValue( const wxString &value )
 {
+}
+
+void wxSpinCtrl::SetValue(int val)
+{
+
 }
 
 //##############################################################################
@@ -80,6 +116,11 @@ unsigned wxSpinCtrlDouble::GetDigits() const
 }
 
 void wxSpinCtrlDouble::SetValue( const wxString &value )
+{
+
+}
+
+void wxSpinCtrlDouble::SetValue(double val)
 {
 
 }

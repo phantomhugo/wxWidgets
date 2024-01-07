@@ -14,13 +14,39 @@
     #include "wx/window.h"
 #endif // WX_PRECOMP
 
-#include "wx/dcclient.h"
+#include "wx/wasm/dcclient.h"
 
 //##############################################################################
 
+wxWindowDCImpl::wxWindowDCImpl( wxDC *owner ):wxWasmDCImpl(owner)
+{
+
+}
+
+wxWindowDCImpl::wxWindowDCImpl( wxDC *owner, wxWindow *win ):wxWasmDCImpl(owner)
+{
+
+}
 
 //##############################################################################
 
+wxClientDCImpl::wxClientDCImpl( wxDC *owner ):wxWindowDCImpl(owner)
+{
+
+}
+
+wxClientDCImpl::wxClientDCImpl( wxDC *owner, wxWindow *win ):wxWindowDCImpl(owner,win)
+{
+
+}
 
 //##############################################################################
 
+wxPaintDCImpl::wxPaintDCImpl( wxDC *owner ):wxWindowDCImpl(owner)
+{
+
+}
+wxPaintDCImpl::wxPaintDCImpl( wxDC *owner, wxWindow *win ):wxWindowDCImpl(owner,win)
+{
+
+}

@@ -40,3 +40,8 @@ bool wxControl::Create(wxWindow *parent, wxWindowID id,
 
     return isCreated;
 }
+
+void wxControl::SetLabel(const wxString& label)
+{
+
+}

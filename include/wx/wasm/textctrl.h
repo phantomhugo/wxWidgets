@@ -2,8 +2,7 @@
 // Name:        wx/wasm/region.h
 // Purpose:     wxTextCtrl class
 // Author:      Hugo Castellanos
-// Created:     17.07.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 

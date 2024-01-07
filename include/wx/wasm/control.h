@@ -2,8 +2,7 @@
 // Name:        wx/wasm/control.h
 // Purpose:     wxControl class
 // Author:      Hugo Castellanos
-// Created:     17.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -77,7 +76,6 @@ private:
     int        m_indexAccel;
 
     wxDECLARE_DYNAMIC_CLASS(wxControl);
-    wxDECLARE_EVENT_TABLE();
 };
 
 #endif // _WX_WASM_CONTROL_H_

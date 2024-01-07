@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/palette.cpp
-// Author:      Peter Most
-// Copyright:   (c) Peter Most
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -46,3 +46,7 @@ wxGDIRefData *wxPalette::CloneGDIRefData(const wxGDIRefData *WXUNUSED(data)) con
     return nullptr;
 }
 
+int wxPalette::GetColoursCount() const
+{
+
+}

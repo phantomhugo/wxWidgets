@@ -16,7 +16,7 @@ class WXDLLIMPEXP_CORE wxWasmDCImpl : public wxDCImpl
 {
 public:
     wxWasmDCImpl( wxDC *owner );
-    ~wxWasmDCImpl();
+    ~wxWasmDCImpl() = default;
 
     virtual bool CanDrawBitmap() const override;
     virtual bool CanGetTextExtent() const override;
@@ -102,7 +102,6 @@ public:
                            wxCoord xoffset, wxCoord yoffset,
                            wxPolygonFillMode fillStyle = wxODDEVEN_RULE) override;
 
-    // Use Qt transformations, as they automatically scale pen widths, text...
     virtual void ComputeScaleAndOrigin() override;
 
 protected:
@@ -112,7 +111,6 @@ private:
 
     void ApplyRasterColourOp();
 
-    wxDECLARE_CLASS(wxWasmDCImpl);
     wxDECLARE_NO_COPY_CLASS(wxWasmDCImpl);
 
 };

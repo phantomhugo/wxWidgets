@@ -2,8 +2,7 @@
 // Name:        wx/wasm/bitmap.h
 // Purpose:     wxBitmap class
 // Author:      Hugo Castellanos
-// Created:     17.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -73,7 +72,7 @@ public:
     // Convert from wxIcon / wxCursor
     wxBitmap(const wxIcon& icon);
     explicit wxBitmap(const wxCursor& cursor);
-    virtual ~wxBitmap();
+    virtual ~wxBitmap() = default;
 
     static void InitStandardHandlers();
 

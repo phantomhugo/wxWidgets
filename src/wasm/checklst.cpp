@@ -82,6 +82,17 @@ void wxCheckListBox::DoDeleteOneItem(unsigned int n)
 {
 
 }
+
+void wxCheckListBox::DoDrawRange(wxControlRenderer *renderer,int itemFirst, int itemLast)
+{
+
+}
+
+wxSize wxCheckListBox::DoGetBestClientSize() const
+{
+
+}
+
 void wxCheckListBox::DoClear()
 {
 

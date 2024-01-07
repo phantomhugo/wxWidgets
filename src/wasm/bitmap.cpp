@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/bitmap.cpp
-// Author:      Peter Most, Javier Torres, Mariano Reingart, Sean D'Epagnier
-// Copyright:   (c) 2010 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -97,6 +97,11 @@ wxBitmap::wxBitmap(const wxImage& image, const wxDC& dc)
 
 }
 
+wxBitmap::wxBitmap(const wxIcon& icon)
+{
+
+}
+
 wxBitmap::wxBitmap(const wxCursor& cursor)
 {
 }
@@ -131,7 +136,6 @@ int wxBitmap::GetDepth() const
 {
 }
 
-
 #if wxUSE_IMAGE
 wxImage wxBitmap::ConvertToImage() const
 {
@@ -139,6 +143,11 @@ wxImage wxBitmap::ConvertToImage() const
 }
 
 #endif // wxUSE_IMAGE
+
+bool wxBitmap::CopyFromIcon(const wxIcon& icon)
+{
+
+}
 
 wxMask *wxBitmap::GetMask() const
 {

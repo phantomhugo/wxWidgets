@@ -2055,7 +2055,6 @@ private:
     #endif // wxUniv
     #include "wx/qt/window.h"
 #elif defined(__WXWASM__)
-    #define wxWindowNative wxWindowWasm
     #define wxWindowWasm wxWindow
     #include "wx/wasm/window.h"
 #endif

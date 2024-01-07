@@ -8,21 +8,21 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-#include "wx/dcscreen.h"
+#include "wx/wasm/dcscreen.h"
 
 
-//wxIMPLEMENT_ABSTRACT_CLASS(wxScreenDCImpl, wxQtDCImpl);
+wxIMPLEMENT_ABSTRACT_CLASS(wxScreenDCImpl, wxWasmDCImpl);
 
-// wxScreenDCImpl::wxScreenDCImpl( wxScreenDC *owner )
-//     : wxWindowDCImpl( owner )
-// {
-// }
-//
-// wxScreenDCImpl::~wxScreenDCImpl( )
-// {
-// }
-//
-// void wxScreenDCImpl::DoGetSize(int *width, int *height) const
-// {
-//     wxDisplaySize(width, height);
-// }
+wxScreenDCImpl::wxScreenDCImpl( wxScreenDC *owner )
+    : wxWindowDCImpl( owner )
+{
+}
+
+wxScreenDCImpl::~wxScreenDCImpl( )
+{
+}
+
+void wxScreenDCImpl::DoGetSize(int *width, int *height) const
+{
+    wxDisplaySize(width, height);
+}

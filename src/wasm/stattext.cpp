@@ -51,3 +51,7 @@ wxString wxStaticText::WXGetVisibleLabel() const
 
 }
 
+WXWidget wxStaticText::GetHandle() const
+{
+
+}

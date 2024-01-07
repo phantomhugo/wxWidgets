@@ -203,5 +203,10 @@ long wxToolBar::GetButtonStyle()
 
 }
 
+WXWidget wxToolBar::GetHandle() const
+{
+
+}
+
 #endif // wxUSE_TOOLBAR
 

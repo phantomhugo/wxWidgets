@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/listbox.cpp
-// Author:      Peter Most, Mariano Reingart
-// Copyright:   (c) 2010 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -73,7 +73,17 @@ void wxListBox::Init()
 #endif // wxUSE_CHECKLISTBOX
 }
 
+void wxListBox::EnsureVisible(int n)
+{
+
+}
+
 bool wxListBox::IsSelected(int n) const
+{
+
+}
+
+wxBorder wxListBox::GetDefaultBorder() const
 {
 
 }
@@ -86,6 +96,11 @@ int wxListBox::GetSelections(wxArrayInt& aSelections) const
 }
 
 unsigned wxListBox::GetCount() const
+{
+
+}
+
+bool wxListBox::SetFont(const wxFont& font)
 {
 
 }
@@ -104,6 +119,16 @@ int wxListBox::FindString(const wxString& s, bool bCase) const
 
 }
 int wxListBox::GetSelection() const
+{
+
+}
+
+void wxListBox::DoDrawRange(wxControlRenderer *renderer, int itemFirst, int itemLast)
+{
+
+}
+
+void wxListBox::DoEnsureVisible(int n)
 {
 
 }
@@ -128,6 +153,11 @@ int wxListBox::DoInsertItems(const wxArrayStringsAdapter & items,
     return n;
 }
 
+int wxListBox::DoListHitTest(const wxPoint& point) const
+{
+
+}
+
 void wxListBox::DoSetItemClientData(unsigned int n, void *clientData)
 {
 }
@@ -136,10 +166,25 @@ void *wxListBox::DoGetItemClientData(unsigned int n) const
 {
 }
 
+wxSize wxListBox::DoGetBestClientSize() const
+{
+
+}
+
+void wxListBox::DoSetSize(int x, int y, int width, int height, int sizeFlags)
+{
+
+}
+
 void wxListBox::DoClear()
 {
 }
 
 void wxListBox::DoDeleteOneItem(unsigned int pos)
 {
+}
+
+void wxListBox::OnInternalIdle()
+{
+
 }

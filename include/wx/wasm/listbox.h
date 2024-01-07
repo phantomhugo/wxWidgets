@@ -2,8 +2,7 @@
 // Name:        wx/wasm/listbox.h
 // Purpose:     wxListBox class
 // Author:      Hugo Castellanos
-// Created:     17.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -284,7 +283,6 @@ private:
     // by not extending the selection but by choosing it directly
     int m_selAnchor;
 
-    wxDECLARE_EVENT_TABLE();
     wxDECLARE_DYNAMIC_CLASS(wxListBox);
 };
 

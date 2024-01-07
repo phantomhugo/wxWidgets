@@ -36,7 +36,7 @@ public:
 
     wxPen( const wxPenInfo& info );
 
-    virtual ~wxPen();
+    virtual ~wxPen() = default;
 
     bool operator == ( const wxPen& pen ) const;
     bool operator != (const wxPen& pen) const;

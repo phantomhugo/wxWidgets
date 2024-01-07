@@ -48,6 +48,10 @@ wxString DataFormatIdToMimeType(wxDataFormatId formatId)
 
 } // anonymous namespace
 
+wxDataFormat::wxDataFormat()
+{
+}
+
 wxDataFormat::wxDataFormat(wxDataFormatId formatId)
 {
     SetType(formatId);

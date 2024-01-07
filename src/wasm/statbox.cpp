@@ -53,3 +53,8 @@ void wxStaticBox::GetBordersForSizer(int *borderTop, int *borderOther) const
     // need extra space for the label:
     *borderTop += GetCharHeight();
 }
+
+WXWidget wxStaticBox::GetHandle() const
+{
+
+}

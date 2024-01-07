@@ -43,6 +43,29 @@ wxTreeCtrl::~wxTreeCtrl()
 {
 }
 
+unsigned int wxTreeCtrl::GetCount() const
+{
+    return 0;
+}
+unsigned int wxTreeCtrl::GetIndent() const
+{
+    return 0;
+}
+void wxTreeCtrl::SetIndent(unsigned int indent)
+{
+
+}
+
+wxString wxTreeCtrl::GetItemText(const wxTreeItemId& item) const
+{
+
+}
+
+int wxTreeCtrl::GetItemImage(const wxTreeItemId& item, wxTreeItemIcon which ) const
+{
+
+}
+
 void wxTreeCtrl::DoUpdateIconsSize(wxImageList *imageList)
 {
     int width, height;
@@ -458,6 +481,11 @@ bool wxTreeCtrl::GetBoundingRect(
 void wxTreeCtrl::SetWindowStyleFlag(long styles)
 {
     wxControl::SetWindowStyleFlag(styles);
+
+}
+
+void *wxTreeCtrl::GetHandle() const
+{
 
 }
 

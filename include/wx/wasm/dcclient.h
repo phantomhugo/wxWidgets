@@ -21,13 +21,12 @@ public:
     wxWindowDCImpl( wxDC *owner );
     wxWindowDCImpl( wxDC *owner, wxWindow *win );
 
-    ~wxWindowDCImpl();
+    ~wxWindowDCImpl() = default;
 
 protected:
     wxWindow *m_window;
 
 private:
-    wxDECLARE_CLASS(wxWindowDCImpl);
     wxDECLARE_NO_COPY_CLASS(wxWindowDCImpl);
 };
 
@@ -38,9 +37,8 @@ public:
     wxClientDCImpl( wxDC *owner );
     wxClientDCImpl( wxDC *owner, wxWindow *win );
 
-    ~wxClientDCImpl();
+    ~wxClientDCImpl() = default;
 private:
-    wxDECLARE_CLASS(wxClientDCImpl);
     wxDECLARE_NO_COPY_CLASS(wxClientDCImpl);
 };
 
@@ -51,7 +49,6 @@ public:
     wxPaintDCImpl( wxDC *owner );
     wxPaintDCImpl( wxDC *owner, wxWindow *win );
 private:
-    wxDECLARE_CLASS(wxPaintDCImpl);
     wxDECLARE_NO_COPY_CLASS(wxPaintDCImpl);
 };
 

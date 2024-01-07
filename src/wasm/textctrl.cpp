@@ -166,3 +166,7 @@ void wxTextCtrl::DoSetValue( const wxString &text, int flags )
     SetInsertionPoint(0);
 }
 
+WXWidget wxTextCtrl::GetHandle() const
+{
+
+}

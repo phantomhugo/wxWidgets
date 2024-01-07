@@ -34,7 +34,7 @@ public:
     wxRegion( const wxBitmap& bmp,
               const wxColour& transColour, int tolerance = 0);
 
-    virtual ~wxRegion();
+    virtual ~wxRegion() = default;
 
     // wxRegionBase methods
     virtual void Clear();

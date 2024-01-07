@@ -37,6 +37,13 @@ wxTimerImpl *wxGUIAppTraits::CreateTimerImpl(wxTimer *timer)
 
 // #endif
 
+#if wxUSE_CONSOLE_EVENTLOOP && wxUSE_EVENTLOOP_SOURCE
+wxEventLoopSourcesManagerBase* wxGUIAppTraits::GetEventLoopSourcesManager()
+{
+
+}
+#endif
+
 wxPortId wxGUIAppTraits::GetToolkitVersion(int *majVer,
                                            int *minVer,
                                            int *microVer) const

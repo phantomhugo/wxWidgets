@@ -2,8 +2,7 @@
 // Name:        wx/wasm/colour.h
 // Purpose:     wxColour class
 // Author:      Hugo Castellanos
-// Created:     17.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -38,7 +37,7 @@ public:
     // ------------
     DEFINE_STD_WXCOLOUR_CONSTRUCTORS
 
-    virtual ~wxColour();
+    virtual ~wxColour() = default;
 
     bool operator==(const wxColour& col) const;
     bool operator!=(const wxColour& col) const;

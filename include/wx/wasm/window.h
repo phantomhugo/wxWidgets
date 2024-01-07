@@ -2,8 +2,7 @@
 // Name:        wx/wasm/window.h
 // Purpose:     wxWindow class
 // Author:      Hugo Castellanos
-// Created:     24.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -11,10 +10,6 @@
 #define _WX_WINDOW_H_
 
 #include "wx/region.h"
-
-// ----------------------------------------------------------------------------
-// wxWindow class for Motif - see also wxWindowBase
-// ----------------------------------------------------------------------------
 
 class WXDLLIMPEXP_CORE wxWindowWasm : public wxWindowBase
 {
@@ -115,7 +110,6 @@ public:
 
 #if wxUSE_TOOLTIPS
     // applies tooltip to the widget.
-    virtual void QtApplyToolTip(const wxString& text);
 #endif // wxUSE_TOOLTIPS
 
 protected:
@@ -142,6 +136,8 @@ protected:
     // same as DoSetSize() for the client size
     virtual void DoSetClientSize(int width, int height) override;
     virtual void DoGetClientSize(int *width, int *height) const override;
+
+    static wxWindow *DoFindFocus();
 
     virtual void DoMoveWindow(int x, int y, int width, int height) override;
 

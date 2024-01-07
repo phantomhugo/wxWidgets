@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/scrolbar.cpp
 // Author:      Hugo Castellanos
-// Copyright:   (c) 2023 wxWidgets dev team
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -65,3 +65,7 @@ void wxScrollBar::SetScrollbar(int position, int WXUNUSED(thumbSize),
 
 }
 
+WXWidget wxScrollBar::GetHandle() const
+{
+
+}

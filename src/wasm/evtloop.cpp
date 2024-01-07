@@ -10,12 +10,45 @@
 
 #include "wx/app.h"
 #include "wx/apptrait.h"
-#include "wx/evtloop.h"
+#include "wx/wasm/evtloop.h"
 #include "wx/private/eventloopsourcesmanager.h"
 
 #if wxUSE_EVENTLOOP_SOURCE
 
+int wxWasmEventLoopBase::DoRun()
+{
 
+}
+
+void wxWasmEventLoopBase::ScheduleExit(int rc)
+{
+
+}
+
+bool wxWasmEventLoopBase::Pending() const
+{
+
+}
+
+bool wxWasmEventLoopBase::Dispatch()
+{
+
+}
+
+int wxWasmEventLoopBase::DispatchTimeout(unsigned long timeout)
+{
+
+}
+
+void wxWasmEventLoopBase::WakeUp()
+{
+
+}
+
+void wxWasmEventLoopBase::DoYieldFor(long eventsToProcess)
+{
+
+}
 
 #if !wxUSE_CONSOLE_EVENTLOOP
 
@@ -35,5 +68,29 @@ wxEventLoopSourcesManagerBase* wxAppTraits::GetEventLoopSourcesManager()
 
 #if wxUSE_GUI
 
+wxGUIEventLoop::wxGUIEventLoop()
+{
+
+}
+
+bool wxGUIEventLoop::Dispatch()
+{
+
+}
+
+bool wxGUIEventLoop::Pending() const
+{
+
+}
+
+void wxGUIEventLoop::ScheduleExit(int rc)
+{
+
+}
+
+int wxGUIEventLoop::DoRun()
+{
+
+}
 
 #endif // wxUSE_GUI

@@ -46,6 +46,10 @@ public:
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxCursor, wxGDIObject);
 
+wxCursor::wxCursor()
+{
+
+}
 
 wxCursor::wxCursor(const wxString& cursor_file,
                    wxBitmapType type,
@@ -53,6 +57,12 @@ wxCursor::wxCursor(const wxString& cursor_file,
 {
 }
 
+#if wxUSE_IMAGE
+wxCursor::wxCursor( const wxImage & image )
+{
+
+}
+#endif
 
 void wxCursor::InitFromStock( wxStockCursor cursorId )
 {

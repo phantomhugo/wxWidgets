@@ -8,7 +8,7 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-#include "wx/statbmp.h"
+#include "wx/wasm/statbmp.h"
 
 wxStaticBitmap::wxStaticBitmap()
 {
@@ -39,11 +39,26 @@ bool wxStaticBitmap::Create( wxWindow *parent,
 
 }
 
+void wxStaticBitmap::SetIcon(const wxIcon& icon)
+{
+
+}
+
 void wxStaticBitmap::SetBitmap(const wxBitmapBundle& bitmap)
 {
 }
+
 
 wxBitmap wxStaticBitmap::GetBitmap() const
 {
 }
 
+wxIcon wxStaticBitmap::GetIcon() const
+{
+
+}
+
+WXWidget wxStaticBitmap::GetHandle() const
+{
+
+}

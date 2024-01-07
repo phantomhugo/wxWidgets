@@ -2,8 +2,7 @@
 // Name:        wx/wasm/checkbox.h
 // Purpose:     wxCheckBox class
 // Author:      Hugo Castellanos
-// Created:     11.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 

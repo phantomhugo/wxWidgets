@@ -453,10 +453,7 @@ void wxWindowWasm::DoMoveWindow(int x, int y, int width, int height)
 }
 
 #if wxUSE_TOOLTIPS
-void wxWindowWasm::QtApplyToolTip(const wxString& text)
-{
-    //GetHandle()->setToolTip(wxQtConvertString(text));
-}
+
 
 void wxWindowWasm::DoSetToolTip( wxToolTip *tip )
 {
@@ -551,4 +548,14 @@ bool wxWindowWasm::EnableTouchEvents(int eventsMask)
     }
 
     return true;
+}
+
+wxWindow *wxWindowBase::DoFindFocus()
+{
+
+}
+
+wxWindow *wxWindowWasm::DoFindFocus()
+{
+
 }

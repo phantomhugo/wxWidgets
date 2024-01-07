@@ -99,7 +99,10 @@ void wxListBox::SetString(unsigned int n, const wxString& s)
 {
 
 }
+int wxListBox::FindString(const wxString& s, bool bCase) const
+{
 
+}
 int wxListBox::GetSelection() const
 {
 

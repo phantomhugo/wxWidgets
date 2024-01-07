@@ -17,6 +17,10 @@
 
 #include "wx/utils.h"
 
+void wxBell()
+{
+
+}
 #if wxUSE_GUI
 wxPoint wxGetMousePosition()
 {
@@ -32,6 +36,10 @@ void wxGetMousePosition( int *x, int *y )
 #endif
 
 #if wxUSE_GUI
+bool wxGetKeyState(wxKeyCode key)
+{
+
+}
 wxMouseState wxGetMouseState()
 {
     wxMouseState ms;
@@ -43,11 +51,6 @@ wxMouseState wxGetMouseState()
 
 wxWindow *wxFindWindowAtPoint(const wxPoint& pt)
 {
-    /* Another option is to use QApplication::topLevelAt()
-     * but that gives the QWidget so the wxWindow list must
-     * be traversed comparing with this, or use the pointer from
-     * a wxQtWidget/wxQtFrame to the window, but they have
-     * no standard interface to return that. */
     return wxGenericFindWindowAtPoint( pt );
 }
 

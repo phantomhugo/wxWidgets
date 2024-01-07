@@ -74,3 +74,15 @@ void wxCheckListBox::Check(unsigned int n, bool check )
 
 }
 
+void wxCheckListBox::OnItemInserted(unsigned int pos)
+{
+
+}
+void wxCheckListBox::DoDeleteOneItem(unsigned int n)
+{
+
+}
+void wxCheckListBox::DoClear()
+{
+
+}

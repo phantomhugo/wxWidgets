@@ -525,3 +525,7 @@ wxTreeItemId wxTreeCtrl::GetNext(const wxTreeItemId &item) const
 
 
 }
+void wxTreeCtrl::SetStateImages(const wxVector<wxBitmapBundle>& images)
+{
+
+}

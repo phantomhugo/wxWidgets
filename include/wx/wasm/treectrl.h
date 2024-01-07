@@ -115,6 +115,8 @@ public:
 
     virtual void *GetHandle() const override;
 
+    virtual void SetStateImages(const wxVector<wxBitmapBundle>& images);
+
 protected:
     virtual int DoGetItemState(const wxTreeItemId& item) const override;
     virtual void DoSetItemState(const wxTreeItemId& item, int state) override;

@@ -47,3 +47,29 @@ wxCheckBoxState wxCheckBox::DoGet3StateValue() const
 {
     return wxCHK_UNDETERMINED;
 }
+
+void wxCheckBox::Press()
+{
+
+}
+
+void wxCheckBox::Release()
+{
+
+}
+
+
+void wxCheckBox::ChangeValue(bool value)
+{
+
+}
+
+void wxCheckBox::SendEvent()
+{
+
+}
+
+void wxCheckBox::OnCheck()
+{
+
+}

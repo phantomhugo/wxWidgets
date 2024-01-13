@@ -2055,6 +2055,13 @@ private:
     #endif // wxUniv
     #include "wx/qt/window.h"
 #elif defined(__WXWASM__)
+    struct wxWasmEvent
+    {
+        int id;
+        std::string eventType;
+        int x;
+        int y;
+    };
     #define wxWindowWasm wxWindow
     #include "wx/wasm/window.h"
 #endif

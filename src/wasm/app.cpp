@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/app.cpp
-// Author:      Peter Most, Javier Torres, Mariano Reingart
-// Copyright:   (c) 2010 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2024 Hugo Armando Castellanos
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -15,6 +15,7 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxApp, wxEvtHandler);
 
 wxApp::wxApp()
 {
+    WXAppConstructed();
 }
 
 
@@ -25,7 +26,10 @@ wxApp::~wxApp()
 
 bool wxApp::Initialize( int &argc, wxChar **argv )
 {
+    if ( !wxAppBase::Initialize(argc, argv) )
+        return false;
 
+    WakeUpIdle();
 
     return true;
 }

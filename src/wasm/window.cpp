@@ -19,6 +19,7 @@
 #include "wx/window.h"
 #include "wx/dnd.h"
 #include "wx/tooltip.h"
+#include <emscripten.h>
 
 #define VERT_SCROLLBAR_POSITION 0, 1
 #define HORZ_SCROLLBAR_POSITION 1, 0
@@ -27,11 +28,6 @@
 #endif // wxUSE_ACCEL
 
 //##############################################################################
-
-#ifdef __WXUNIVERSAL__
-    wxIMPLEMENT_ABSTRACT_CLASS(wxWindow, wxWindowBase);
-#endif // __WXUNIVERSAL__
-
 
 void wxWindowWasm::Init()
 {
@@ -71,27 +67,23 @@ wxWindowWasm::~wxWindowWasm()
 bool wxWindowWasm::Create( wxWindowWasm * parent, wxWindowID id, const wxPoint & pos,
         const wxSize & size, long style, const wxString &name )
 {
-
-
     if ( !wxWindowBase::CreateBase( parent, id, pos, size, style, wxDefaultValidator, name ))
         return false;
 
-    parent->AddChild( this );
+    if (m_parent)
+        parent->AddChild( this );
 
     wxPoint p;
     if ( pos != wxDefaultPosition )
         p = pos;
 
-    DoMoveWindow( p.x, p.y, size.GetWidth(), size.GetHeight() );
-
     PostCreation();
 
-    return ( true );
+    return true;
 }
 
 void wxWindowWasm::PostCreation(bool generic)
 {
-
     wxWindowCreateEvent event(this);
     HandleWindowEvent(event);
 }
@@ -105,16 +97,41 @@ void wxWindowWasm::AddChild( wxWindowBase *child )
 
 bool wxWindowWasm::Show( bool show )
 {
-    if ( !wxWindowBase::Show( show ))
-        return false;
 
     // Show can be called before the underlying window is created:
+    bool result=false;
+    if(show!=IsShown())
+    {
+        if(show)
+        {
+            result=EM_ASM_INT(
+                {
+                    document.getElementById($0).style.display="block";
+                    return 1;
+                },
+                GetId()
+            );
+        }
+        else
+        {
+            result=EM_ASM_INT(
+                {
+                    document.getElementById($0).style.display="none";
+                    return 1;
+                },
+                GetId()
+            );
+        }
+
+    }
+    if ( !wxWindowBase::Show( show ))
+        return false;
 
     wxSizeEvent event(GetSize(), GetId());
     event.SetEventObject(this);
     HandleWindowEvent(event);
 
-    return true;
+    return result;
 }
 
 
@@ -219,8 +236,6 @@ void wxWindowWasm::SetScrollbar( int orientation, int pos, int thumbvisible, int
     wxCHECK_RET(GetHandle(), "Window has not been created");
 
     //If not exist, create the scrollbar
-
-
 }
 
 void wxWindowWasm::SetScrollPos( int orientation, int pos, bool WXUNUSED( refresh ))
@@ -449,7 +464,19 @@ void wxWindowWasm::DoSetClientSize(int width, int height)
 
 void wxWindowWasm::DoMoveWindow(int x, int y, int width, int height)
 {
-
+    EM_ASM_INT(
+        {
+            const currentWindow=document.getElementById($0);
+            currentWindow.style.position="absolute";
+            currentWindow.style.width=$3.toString()+"px";
+            currentWindow.style.height=$4.toString()+"px";
+            currentWindow.style.top=$2.toString()+"px";
+            currentWindow.style.left=$1.toString()+"px";
+            return 1;
+        },
+        GetId(),
+        x,y,width,height
+    );
 }
 
 #if wxUSE_TOOLTIPS
@@ -558,4 +585,23 @@ wxWindow *wxWindowBase::DoFindFocus()
 wxWindow *wxWindowWasm::DoFindFocus()
 {
 
+}
+
+
+
+
+void wxWindowWasm::WasmNotifyEvent(const wxWasmEvent& event)
+{
+    if(event.id==m_windowId)
+    {
+        if(event.eventType=="click")
+        {
+            wxCommandEvent generatedEvent;
+            HandleWindowEvent(generatedEvent);
+        }
+        else if(event.eventType=="dblclick")
+        {
+
+        }
+    }
 }

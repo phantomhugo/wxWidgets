@@ -8,10 +8,11 @@
 #ifndef _WX_WASM_EVTLOOP_H_
 #define _WX_WASM_EVTLOOP_H_
 
+class wxWasmEventSink;
 class WXDLLIMPEXP_CORE wxWasmEventLoopBase : public wxEventLoopBase
 {
 public:
-    wxWasmEventLoopBase() = default;
+    wxWasmEventLoopBase();
     ~wxWasmEventLoopBase()=default;
 
     virtual int DoRun() override;
@@ -23,9 +24,10 @@ public:
     virtual void DoYieldFor(long eventsToProcess) override;
 
     void ScheduleIdleCheck();
-
+    friend void addEventFriend(int id,const std::string& eventType,int x,int y);
 private:
-
+    static std::unique_ptr<wxWasmEventSink> m_sink;
+    bool m_shouldExit;
     wxDECLARE_NO_COPY_CLASS(wxWasmEventLoopBase);
 };
 
@@ -37,12 +39,6 @@ class WXDLLIMPEXP_CORE wxGUIEventLoop : public wxWasmEventLoopBase
 public:
     wxGUIEventLoop();
     ~wxGUIEventLoop() = default;
-    bool Dispatch() override;
-    bool Pending() const override;
-    void ScheduleExit(int rc = 0) override;
-protected:
-    // real implementation of Run()
-    virtual int DoRun() override;
 };
 
 #endif // wxUSE_GUI

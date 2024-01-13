@@ -14,6 +14,12 @@
 
 #include "wx/timer.h"
 
+// wxEventLoopBase *wxConsoleAppTraits::CreateEventLoop()
+// {
+//     printf("En CreateEventLoop\n");
+//     return new wxEventLoop();
+// }
+
 wxEventLoopBase *wxGUIAppTraits::CreateEventLoop()
 {
     return new wxEventLoop();
@@ -22,7 +28,7 @@ wxEventLoopBase *wxGUIAppTraits::CreateEventLoop()
 #if wxUSE_TIMER
 wxTimerImpl *wxGUIAppTraits::CreateTimerImpl(wxTimer *timer)
 {
-
+    return nullptr;
 }
 #endif
 
@@ -37,12 +43,12 @@ wxTimerImpl *wxGUIAppTraits::CreateTimerImpl(wxTimer *timer)
 
 // #endif
 
-#if wxUSE_CONSOLE_EVENTLOOP && wxUSE_EVENTLOOP_SOURCE
-wxEventLoopSourcesManagerBase* wxGUIAppTraits::GetEventLoopSourcesManager()
-{
-
-}
-#endif
+// #if wxUSE_CONSOLE_EVENTLOOP && wxUSE_EVENTLOOP_SOURCE
+// wxEventLoopSourcesManagerBase* wxGUIAppTraits::GetEventLoopSourcesManager()
+// {
+//
+// }
+// #endif
 
 wxPortId wxGUIAppTraits::GetToolkitVersion(int *majVer,
                                            int *minVer,

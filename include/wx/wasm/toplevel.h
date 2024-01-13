@@ -2,8 +2,7 @@
 // Name:        wx/wasm/toplevel.h
 // Purpose:     wxTopLevelWindow class, WASM implementation
 // Author:      Hugo Castellanos
-// Created:     17.07.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2024 Hugo Castellanos
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -30,7 +29,6 @@ public:
                 long style = wxDEFAULT_FRAME_STYLE,
                 const wxString& name = wxASCII_STR(wxFrameNameStr));
 
-    virtual bool Show(bool show = true) override;
     virtual void Maximize(bool maximize = true) override;
     virtual void Restore() override;
     virtual void Iconize(bool iconize = true) override;
@@ -41,7 +39,6 @@ public:
     virtual bool IsFullScreen() const override;
     virtual void SetTitle(const wxString& title) override;
     virtual wxString GetTitle() const override;
-    virtual void SetIcons(const wxIconBundle& icons) override;
 
     // Styles
     virtual void SetWindowStyleFlag( long style ) override;

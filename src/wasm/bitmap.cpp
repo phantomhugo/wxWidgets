@@ -221,7 +221,8 @@ bool wxBitmap::SaveFile(const wxString &name, wxBitmapType type,
 
 bool wxBitmap::LoadFile(const wxString &name, wxBitmapType type)
 {
-
+    //There is no real filesystem here, inmemory filesystem could be used, but in other time...
+    return false;
 }
 
 

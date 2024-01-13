@@ -11,6 +11,7 @@
 
 #include "wx/region.h"
 
+struct wxWasmEvent;
 class WXDLLIMPEXP_CORE wxWindowWasm : public wxWindowBase
 {
     friend class WXDLLIMPEXP_FWD_CORE wxDC;
@@ -78,6 +79,8 @@ public:
     virtual int GetScrollPos( int orient ) const override;
     virtual int GetScrollThumb( int orient ) const override;
     virtual int GetScrollRange( int orient ) const override;
+
+    virtual void WasmNotifyEvent(const wxWasmEvent& event);
 
         // scroll window to the specified position
     virtual void ScrollWindow( int dx, int dy,

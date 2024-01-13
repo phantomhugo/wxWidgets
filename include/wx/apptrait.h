@@ -289,6 +289,8 @@ public:
 // ABX: check __WIN32__ instead of __WXMSW__ for the same MSWBase in any Win32 port
 #if defined(__WIN32__)
     #include "wx/msw/apptrait.h"
+#elif defined(__EMSCRIPTEN__)
+    #include "wx/wasm/apptrait.h"
 #elif defined(__UNIX__)
     #include "wx/unix/apptrait.h"
 #else

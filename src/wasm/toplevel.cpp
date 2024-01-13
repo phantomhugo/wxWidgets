@@ -10,9 +10,10 @@
 
 #include "wx/wasm/toplevel.h"
 
+#include <emscripten.h>
+
 wxTopLevelWindowWasm::wxTopLevelWindowWasm()
 {
-
 }
 
 wxTopLevelWindowWasm::wxTopLevelWindowWasm(wxWindow *parent,
@@ -23,7 +24,7 @@ wxTopLevelWindowWasm::wxTopLevelWindowWasm(wxWindow *parent,
             long style,
             const wxString& name)
 {
-
+    Create(parent,winid,title,pos,size,style,name);
 }
 
 bool wxTopLevelWindowWasm::Create(wxWindow *parent,
@@ -34,12 +35,24 @@ bool wxTopLevelWindowWasm::Create(wxWindow *parent,
             long style,
             const wxString& name)
 {
+    bool result = wxWindow::Create(parent,id,pos,size,style);
 
-}
+    SetTitle(title);
 
-bool wxTopLevelWindowWasm::Show(bool show)
-{
+    EM_ASM_INT(
+        {
+            const newTopLevelWindow=document.createElement("div");
+            newTopLevelWindow.id= $0;
+            newTopLevelWindow.className="wxTopLevelWindow";
+            newTopLevelWindow.style.display="none";
+            document.body.append(newTopLevelWindow);
+            return 1;
+        },
+        GetId()
+    );
 
+    SetSize(0,0,800,600);
+    return result;
 }
 
 void wxTopLevelWindowWasm::Maximize(bool maximize)
@@ -83,11 +96,6 @@ void wxTopLevelWindowWasm::SetTitle(const wxString& title)
 }
 
 wxString wxTopLevelWindowWasm::GetTitle() const
-{
-
-}
-
-void wxTopLevelWindowWasm::SetIcons(const wxIconBundle& icons)
 {
 
 }

@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/frame.cpp
-// Author:      Peter Most, Mariano Reingart
-// Copyright:   (c) 2009 wxWidgets dev team
+// Author:      Hugo Castellanos
+// Copyright:   (c) 2024 wxWidgets dev team
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -23,7 +23,7 @@ wxFrame::~wxFrame()
 bool wxFrame::Create( wxWindow *parent, wxWindowID id, const wxString& title,
     const wxPoint& pos, const wxSize& size, long style, const wxString& name )
 {
-    return true;
+    return wxFrameBase::Create(parent, id, title, pos, size, style, name);
 }
 
 void wxFrame::SetMenuBar( wxMenuBar *menuBar )

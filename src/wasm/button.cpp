@@ -58,3 +58,12 @@ wxSize wxButtonBase::GetDefaultSize(wxWindow* WXUNUSED(win))
     }
     return size;
 }
+
+void wxButton::WasmNotifyEvent(const wxWasmEvent& event)
+{
+    if(event.id==m_windowId&&event.eventType=="click")
+    {
+        wxCommandEvent generatedEvent(wxEVT_BUTTON,event.id);
+        HandleWindowEvent(generatedEvent);
+    }
+}

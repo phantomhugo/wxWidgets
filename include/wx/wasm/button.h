@@ -31,8 +31,8 @@ public:
            const wxValidator& validator = wxDefaultValidator,
            const wxString& name = wxASCII_STR(wxButtonNameStr));
 
-   virtual wxWindow *SetDefault() override;
-
+    virtual wxWindow *SetDefault() override;
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
 
 private:
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxButton);

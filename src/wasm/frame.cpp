@@ -15,6 +15,7 @@
 #endif // WX_PRECOMP
 
 #include "wx/frame.h"
+#include <emscripten.h>
 
 wxFrame::~wxFrame()
 {
@@ -23,31 +24,87 @@ wxFrame::~wxFrame()
 bool wxFrame::Create( wxWindow *parent, wxWindowID id, const wxString& title,
     const wxPoint& pos, const wxSize& size, long style, const wxString& name )
 {
-    return wxFrameBase::Create(parent, id, title, pos, size, style, name);
+    if(wxFrameBase::Create(parent, id, title, pos, size, style, name))
+    {
+        EM_ASM_INT(
+            {
+                //We change the className because this is an specialized class
+                const currentFrame=document.getElementById($0);
+                currentFrame.className="wxFrame";
+                const frameContent=document.createElement("div");
+                frameContent.id= "wxFrame_content";
+                frameContent.className="wxFrame_content";
+                frameContent.style.height="100%";
+                frameContent.style.width="100%";
+                frameContent.style.clear="both";
+                frameContent.style.position="absolute";
+                currentFrame.append(frameContent);
+                return 1;
+            },
+            GetId()
+        );
+    }
+    return true;
 }
 
 void wxFrame::SetMenuBar( wxMenuBar *menuBar )
 {
     if ( menuBar )
     {
-
+        EM_ASM_INT(
+            {
+                const currentFrame=document.getElementById($0);
+                const menuBar=document.getElementById($1);
+                currentFrame.prepend(menuBar);
+                return 1;
+            },
+            GetId(),
+            menuBar->GetId()
+        );
     }
     else
     {
-
+        EM_ASM_INT(
+            {
+                const currentParentless=document.getElementById("wxParentlessTags");
+                const menuBar=document.getElementById($1);
+                currentParentless.append(menuBar);
+                return 1;
+            },
+            GetId(),
+            menuBar->GetId()
+        );
     }
     wxFrameBase::SetMenuBar( menuBar );
 }
 
 void wxFrame::SetStatusBar( wxStatusBar *statusBar )
 {
-    // The current status bar could be deleted by Qt when dereferencing it
-    // TODO: add a mechanism like Detach in menus to avoid issues
     if ( statusBar != nullptr )
     {
+        EM_ASM_INT(
+            {
+                const currentFrame=document.getElementById($0);
+                const statusBar=document.getElementById($1);
+                currentFrame.append(statusBar);
+                return 1;
+            },
+            GetId(),
+            statusBar->GetId()
+        );
     }
     else
     {
+        EM_ASM_INT(
+            {
+                const currentParentless=document.getElementById("wxParentlessTags");
+                const statusBar=document.getElementById($1);
+                currentParentless.append(statusBar);
+                return 1;
+            },
+            GetId(),
+            statusBar->GetId()
+        );
     }
     wxFrameBase::SetStatusBar( statusBar );
 }

@@ -9,7 +9,7 @@
 #include "wx/wxprec.h"
 
 #include "wx/menu.h"
-
+#include <emscripten.h>
 wxMenu::wxMenu(long style)
     : wxMenuBase( style )
 {
@@ -61,19 +61,38 @@ void *wxMenu::GetHandle() const
 
 //##############################################################################
 
-wxMenuBar::wxMenuBar()
+wxMenuBar::wxMenuBar( long style)
 {
+    wxWasmCreateMenuBar(style);
     PostCreation(false);
 }
 
-wxMenuBar::wxMenuBar( long WXUNUSED( style ))
+void wxMenuBar::wxWasmCreateMenuBar(long style)
 {
+     if (!CreateBase( nullptr, -1, wxDefaultPosition, wxDefaultSize, style, wxDefaultValidator, wxT("menubar") ))
+    {
+        wxFAIL_MSG( wxT("wxMenuBar creation failed") );
+        return;
+    }
 
-    PostCreation(false);
+    EM_ASM_INT(
+        {
+            const menuBar=document.createElement("div");
+            menuBar.id= $0;
+            menuBar.className="wxMenuBar";
+            menuBar.style.clear="both";
+            const parentlessDiv=document.getElementById("wxParentlessTags");
+            parentlessDiv.append(menuBar);
+            return 1;
+        },
+        GetId()
+    );
 }
 
-wxMenuBar::wxMenuBar(size_t count, wxMenu *menus[], const wxString titles[], long WXUNUSED( style ))
+wxMenuBar::wxMenuBar(size_t count, wxMenu *menus[], const wxString titles[], long style)
 {
+    wxWasmCreateMenuBar(style);
+
     for ( size_t i = 0; i < count; ++i )
         Append( menus[ i ], titles[ i ] );
 

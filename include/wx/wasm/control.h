@@ -13,13 +13,6 @@ class WXDLLIMPEXP_FWD_CORE wxControlRenderer;
 class WXDLLIMPEXP_FWD_CORE wxInputHandler;
 class WXDLLIMPEXP_FWD_CORE wxRenderer;
 
-// ----------------------------------------------------------------------------
-// wxControlAction: the action is currently just a string which identifies it,
-// later it might become an atom (i.e. an opaque handler to string).
-// ----------------------------------------------------------------------------
-
-typedef wxString wxControlAction;
-
 // the list of actions which apply to all controls (other actions are defined
 // in the controls headers)
 

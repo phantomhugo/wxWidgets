@@ -38,6 +38,7 @@ public:
     wxClientDCImpl( wxDC *owner, wxWindow *win );
 
     ~wxClientDCImpl() = default;
+    static bool CanBeUsedForDrawing(const wxWindow* WXUNUSED(window)) { return true; }
 private:
     wxDECLARE_NO_COPY_CLASS(wxClientDCImpl);
 };

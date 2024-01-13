@@ -34,6 +34,7 @@ protected:
 
 private:
     void Init();
+    void wxWasmCreateMenuBar();
     void UpdateFields();
 
     wxDECLARE_DYNAMIC_CLASS(wxStatusBar);

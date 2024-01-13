@@ -33,8 +33,7 @@ private:
 class WXDLLIMPEXP_CORE wxMenuBar : public wxMenuBarBase
 {
 public:
-    wxMenuBar();
-    wxMenuBar(long style);
+    wxMenuBar(long style=0);
     wxMenuBar(size_t n, wxMenu *menus[], const wxString titles[], long style = 0);
 
     virtual bool Append(wxMenu *menu, const wxString& title) override;
@@ -53,7 +52,7 @@ public:
     virtual void Detach() override;
 
 private:
-
+    void wxWasmCreateMenuBar(long style);
     wxDECLARE_DYNAMIC_CLASS(wxMenuBar);
 };
 

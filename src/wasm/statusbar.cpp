@@ -9,7 +9,7 @@
 #include "wx/wxprec.h"
 
 #include "wx/statusbr.h"
-
+#include <emscripten.h>
 
 wxStatusBar::wxStatusBar()
 {
@@ -21,12 +21,35 @@ wxStatusBar::wxStatusBar(wxWindow *parent, wxWindowID winid,
             const wxString& name)
 {
     Init();
-    Create( parent, winid, style, name );
+
+    if ( winid == wxID_ANY )
+    {
+        SetId(NewControlId());
+    }
+    else // valid id specified
+    {
+        SetId(winid);
+    }
+
+    Create( parent, GetId(), style, name );
 }
 
 bool wxStatusBar::Create(wxWindow *parent, wxWindowID WXUNUSED(winid),
                          long style, const wxString& WXUNUSED(name))
 {
+    wxWasmCreateMenuBar();
+
+    EM_ASM_INT(
+        {
+            const parent=document.getElementById($0);
+            const statusBar=document.getElementById($1);
+            parent.append(statusBar);
+            return 1;
+        },
+        parent->GetId(),
+        GetId()
+    );
+
     PostCreation();
 
     SetFieldsCount(1);
@@ -70,6 +93,22 @@ void wxStatusBar::Refresh( bool eraseBackground, const wxRect *rect )
 void wxStatusBar::Init()
 {
 
+}
+
+void wxStatusBar::wxWasmCreateMenuBar()
+{
+    EM_ASM_INT(
+        {
+            const statusBar=document.createElement("div");
+            statusBar.id= $0;
+            statusBar.className="wxStatusBar";
+            statusBar.style.clear="both";
+            const parentlessDiv=document.getElementById("wxParentlessTags");
+            parentlessDiv.append(statusBar);
+            return 1;
+        },
+        GetId()
+    );
 }
 
 void wxStatusBar::UpdateFields()

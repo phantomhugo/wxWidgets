@@ -45,12 +45,26 @@ bool wxTopLevelWindowWasm::Create(wxWindow *parent,
             newTopLevelWindow.id= $0;
             newTopLevelWindow.className="wxTopLevelWindow";
             newTopLevelWindow.style.display="none";
+            newTopLevelWindow.style.position="absolute";
             document.body.append(newTopLevelWindow);
             return 1;
         },
         GetId()
     );
-
+    if(parent == nullptr)
+    {
+        EM_ASM_INT(
+        {
+            document.body.height="100%";
+            document.body.width="100%";
+            const currentWindow=document.getElementById($0);
+            currentWindow.height="100%";
+            currentWindow.width="100%";
+            return 1;
+        },
+        GetId()
+    );
+    }
     SetSize(0,0,800,600);
     return result;
 }

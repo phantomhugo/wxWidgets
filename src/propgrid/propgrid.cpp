@@ -379,15 +379,15 @@ void wxPropertyGrid::Init1()
     m_unspecifiedAppearance.SetFgCol(*wxLIGHT_GREY);
 
     // Set default keys
-    AddActionTrigger(wxPGKeyboardActions::NextProperty, WXK_RIGHT);
-    AddActionTrigger(wxPGKeyboardActions::NextProperty, WXK_DOWN);
-    AddActionTrigger(wxPGKeyboardActions::PrevProperty, WXK_LEFT);
-    AddActionTrigger(wxPGKeyboardActions::PrevProperty, WXK_UP);
-    AddActionTrigger(wxPGKeyboardActions::ExpandProperty, WXK_RIGHT);
-    AddActionTrigger(wxPGKeyboardActions::CollapseProperty, WXK_LEFT);
-    AddActionTrigger(wxPGKeyboardActions::CancelEdit, WXK_ESCAPE);
-    AddActionTrigger(wxPGKeyboardActions::PressButton, WXK_DOWN, wxMOD_ALT);
-    AddActionTrigger(wxPGKeyboardActions::PressButton, WXK_F4);
+    AddActionTrigger(wxPGKeyboardAction::NextProperty, WXK_RIGHT);
+    AddActionTrigger(wxPGKeyboardAction::NextProperty, WXK_DOWN);
+    AddActionTrigger(wxPGKeyboardAction::PrevProperty, WXK_LEFT);
+    AddActionTrigger(wxPGKeyboardAction::PrevProperty, WXK_UP);
+    AddActionTrigger(wxPGKeyboardAction::ExpandProperty, WXK_RIGHT);
+    AddActionTrigger(wxPGKeyboardAction::CollapseProperty, WXK_LEFT);
+    AddActionTrigger(wxPGKeyboardAction::CancelEdit, WXK_ESCAPE);
+    AddActionTrigger(wxPGKeyboardAction::PressButton, WXK_DOWN, wxMOD_ALT);
+    AddActionTrigger(wxPGKeyboardAction::PressButton, WXK_F4);
 
     m_coloursCustomized = 0;
 
@@ -3485,7 +3485,12 @@ wxVariant wxPropertyGrid::GetUncommittedPropertyValue()
     if ( !tc || !IsEditorsValueModified() )
         return value;
 
+#if WXWIN_COMPATIBILITY_3_2
+    // Special implementation with check if user-overriden obsolete function is still in use
+    if ( !prop->StringToValueWithCheck(value, tc->GetValue()) )
+#else
     if ( !prop->StringToValue(value, tc->GetValue()) )
+#endif // WXWIN_COMPATIBILITY_3_2 | !WXWIN_COMPATIBILITY_3_2
         return value;
 
     if ( !PerformValidation(prop, value, IsStandaloneValidation) )
@@ -3865,13 +3870,13 @@ void wxPropertyGrid::CustomSetCursor( int type, bool override )
 // -----------------------------------------------------------------------
 
 wxString
-wxPropertyGrid::GetUnspecifiedValueText( int argFlags ) const
+wxPropertyGrid::GetUnspecifiedValueText(wxPGPropValFormatFlags flags) const
 {
     const wxPGCell& ua = GetUnspecifiedValueAppearance();
 
     if ( ua.HasText() &&
-         !(argFlags & wxPG_FULL_VALUE) &&
-         !(argFlags & wxPG_EDITABLE_VALUE) )
+         !(flags & wxPGPropValFormatFlags::FullValue) &&
+         !(flags & wxPGPropValFormatFlags::EditableValue) )
         return ua.GetText();
 
     return wxString();
@@ -4602,10 +4607,10 @@ void wxPropertyGrid::OnResize( wxSizeEvent& event )
         if ( !m_doubleBuffer )
         {
             // Create double buffer bitmap to draw on, if none
-            int w = wxMax(width, 250);
-            int h = wxMax(height + dblh, 400);
+            int w = wxMax(width, FromDIP(250));
+            int h = wxMax(height + dblh, FromDIP(400));
             m_doubleBuffer = new wxBitmap;
-            m_doubleBuffer->CreateWithDIPSize( w, h, scaleFactor );
+            m_doubleBuffer->CreateWithLogicalSize( w, h, scaleFactor );
         }
         else
         {
@@ -4619,7 +4624,7 @@ void wxPropertyGrid::OnResize( wxSizeEvent& event )
                 if ( h < (height+dblh) ) h = height + dblh;
                 delete m_doubleBuffer;
                 m_doubleBuffer = new wxBitmap;
-                m_doubleBuffer->CreateWithDIPSize( w, h, scaleFactor );
+                m_doubleBuffer->CreateWithLogicalSize( w, h, scaleFactor );
             }
         }
     }
@@ -5098,7 +5103,12 @@ bool wxPropertyGrid::HandleMouseMove( int x, unsigned int y,
                             wxSize imageSize = GetImageSize(m_propHover, -1);
                             if ( imageSize.x > 0 )
                                 imageWidth = imageSize.x;
+#if WXWIN_COMPATIBILITY_3_2
+                            // Special implementation with check if user-overriden obsolete function is still in use
+                            tipString = m_propHover->GetValueAsStringWithCheck();
+#else
                             tipString = m_propHover->GetValueAsString();
+#endif // WXWIN_COMPATIBILITY_3_2 | !WXWIN_COMPATIBILITY_3_2
                             if ( GetColumnCount() <= 2 )
                             {
                                 wxString unitsString = m_propHover->GetAttribute(wxPG_ATTR_UNITS, wxString());
@@ -5525,9 +5535,9 @@ void wxPropertyGrid::OnMouseUpChild( wxMouseEvent &event )
 // wxPropertyGrid keyboard event handling
 // -----------------------------------------------------------------------
 
-std::pair<wxPGKeyboardActions, wxPGKeyboardActions> wxPropertyGrid::KeyEventToActions(const wxKeyEvent& event) const
+std::pair<wxPGKeyboardAction, wxPGKeyboardAction> wxPropertyGrid::KeyEventToActions(const wxKeyEvent& event) const
 {
-    // Translates wxKeyEvent to wxPGKeyboardActions::XXX
+    // Translates wxKeyEvent to wxPGKeyboardAction::XXX
 
     int keycode = event.GetKeyCode();
     int modifiers = event.GetModifiers();
@@ -5539,16 +5549,16 @@ std::pair<wxPGKeyboardActions, wxPGKeyboardActions> wxPropertyGrid::KeyEventToAc
     auto it = m_actionTriggers.find(hashMapKey);
 
     if ( it == m_actionTriggers.end() )
-        return std::make_pair(wxPGKeyboardActions::Invalid, wxPGKeyboardActions::Invalid);
+        return std::make_pair(wxPGKeyboardAction::Invalid, wxPGKeyboardAction::Invalid);
 
     return it->second;
 }
 
 #if WXWIN_COMPATIBILITY_3_2
-wxPGKeyboardActions wxPropertyGrid::KeyEventToActions(wxKeyEvent &event, wxPGKeyboardActions* pSecond) const
+wxPGKeyboardAction wxPropertyGrid::KeyEventToActions(wxKeyEvent &event, wxPGKeyboardAction* pSecond) const
 {
-    // Translates wxKeyEvent to wxPGKeyboardActions::XXX
-    std::pair<wxPGKeyboardActions, wxPGKeyboardActions> actions = KeyEventToActions(event);
+    // Translates wxKeyEvent to wxPGKeyboardAction::XXX
+    std::pair<wxPGKeyboardAction, wxPGKeyboardAction> actions = KeyEventToActions(event);
 
     if ( pSecond )
     {
@@ -5559,18 +5569,18 @@ wxPGKeyboardActions wxPropertyGrid::KeyEventToActions(wxKeyEvent &event, wxPGKey
 }
 #endif // WXWIN_COMPATIBILITY_3_2
 
-wxPGKeyboardActions wxPropertyGrid::KeyEventToAction(wxKeyEvent& event) const
+wxPGKeyboardAction wxPropertyGrid::KeyEventToAction(wxKeyEvent& event) const
 {
     return KeyEventToActions(event).first;
 }
 
-void wxPropertyGrid::AddActionTrigger(wxPGKeyboardActions action, int keycode, int modifiers)
+void wxPropertyGrid::AddActionTrigger(wxPGKeyboardAction action, int keycode, int modifiers)
 {
     wxASSERT( !(modifiers&~(0xFFFF)) );
 
     int hashMapKey = (keycode & 0xFFFF) | ((modifiers & 0xFFFF) << 16);
 
-    std::pair<wxPGKeyboardActions, wxPGKeyboardActions> curActions;
+    std::pair<wxPGKeyboardAction, wxPGKeyboardAction> curActions;
 
     auto it = m_actionTriggers.find(hashMapKey);
     if ( it != m_actionTriggers.end() )
@@ -5579,20 +5589,20 @@ void wxPropertyGrid::AddActionTrigger(wxPGKeyboardActions action, int keycode, i
         curActions = it->second;
 
         // Can add secondary?
-        wxASSERT_MSG( curActions.second == wxPGKeyboardActions::Invalid,
+        wxASSERT_MSG( curActions.second == wxPGKeyboardAction::Invalid,
                       "You can only add up to two separate actions per key combination." );
 
         curActions.second = action;
     }
     else
     {
-        curActions = std::make_pair(action, wxPGKeyboardActions::Invalid);
+        curActions = std::make_pair(action, wxPGKeyboardAction::Invalid);
     }
 
     m_actionTriggers[hashMapKey] = curActions;
 }
 
-void wxPropertyGrid::ClearActionTriggers(wxPGKeyboardActions action)
+void wxPropertyGrid::ClearActionTriggers(wxPGKeyboardAction action)
 {
 //    wxCHECK_RET(!(action & ~(0xFFFF)), wxS("You can only clear triggers for one action at a time.")
 
@@ -5601,12 +5611,12 @@ void wxPropertyGrid::ClearActionTriggers(wxPGKeyboardActions action)
     {
         if ( it->second.second == action )
         {
-            it->second.second = wxPGKeyboardActions::Invalid;
+            it->second.second = wxPGKeyboardAction::Invalid;
         }
 
         if ( it->second.first == action )
         {
-            if ( it->second.second == wxPGKeyboardActions::Invalid )
+            if ( it->second.second == wxPGKeyboardAction::Invalid )
             {
                 it = m_actionTriggers.erase(it);
                 continue;
@@ -5679,11 +5689,11 @@ void wxPropertyGrid::HandleKeyEvent( wxKeyEvent &event, bool fromChild )
         return;
     }
 
-    wxPGKeyboardActions action;
-    wxPGKeyboardActions secondAction;
+    wxPGKeyboardAction action;
+    wxPGKeyboardAction secondAction;
     std::tie(action, secondAction) = KeyEventToActions(event);
 
-    if ( editorFocused && action == wxPGKeyboardActions::CancelEdit )
+    if ( editorFocused && action == wxPGKeyboardAction::CancelEdit )
     {
         //
         // Esc cancels any changes
@@ -5727,7 +5737,7 @@ void wxPropertyGrid::HandleKeyEvent( wxKeyEvent &event, bool fromChild )
 
         wxPGProperty* p = selected;
 
-        if ( action == wxPGKeyboardActions::Edit && !editorFocused )
+        if ( action == wxPGKeyboardAction::Edit && !editorFocused )
         {
             // Mark as handled only for editable property
             if ( !p->IsCategory() && p->IsEnabled() && !p->HasFlag(wxPGPropertyFlags::ReadOnly) )
@@ -5742,12 +5752,12 @@ void wxPropertyGrid::HandleKeyEvent( wxKeyEvent &event, bool fromChild )
 
         if ( p->GetChildCount() )
         {
-            if ( action == wxPGKeyboardActions::CollapseProperty || secondAction == wxPGKeyboardActions::CollapseProperty )
+            if ( action == wxPGKeyboardAction::CollapseProperty || secondAction == wxPGKeyboardAction::CollapseProperty )
             {
                 if ( (m_windowStyle & wxPG_HIDE_MARGIN) || DoCollapse(p, true) )
                     wasHandled = true;
             }
-            else if ( action == wxPGKeyboardActions::ExpandProperty || secondAction == wxPGKeyboardActions::ExpandProperty )
+            else if ( action == wxPGKeyboardAction::ExpandProperty || secondAction == wxPGKeyboardAction::ExpandProperty )
             {
                 if ( (m_windowStyle & wxPG_HIDE_MARGIN) || DoExpand(p, true) )
                     wasHandled = true;
@@ -5756,11 +5766,11 @@ void wxPropertyGrid::HandleKeyEvent( wxKeyEvent &event, bool fromChild )
 
         if ( !wasHandled )
         {
-            if ( action == wxPGKeyboardActions::PrevProperty || secondAction == wxPGKeyboardActions::PrevProperty )
+            if ( action == wxPGKeyboardAction::PrevProperty || secondAction == wxPGKeyboardAction::PrevProperty )
             {
                 selectDir = -1;
             }
-            else if ( action == wxPGKeyboardActions::NextProperty || secondAction == wxPGKeyboardActions::NextProperty )
+            else if ( action == wxPGKeyboardAction::NextProperty || secondAction == wxPGKeyboardAction::NextProperty )
             {
                 selectDir = 1;
             }
@@ -5774,7 +5784,7 @@ void wxPropertyGrid::HandleKeyEvent( wxKeyEvent &event, bool fromChild )
                 wxPGSelectPropertyFlags selFlags = wxPGSelectPropertyFlags::Null;
                 int reopenLabelEditorCol = -1;
 
-                if ( action == wxPGKeyboardActions::Edit )
+                if ( action == wxPGKeyboardAction::Edit )
                 {
                     // Make the next editor focused as well
                     // if we are actually going to edit the property.
@@ -5792,7 +5802,7 @@ void wxPropertyGrid::HandleKeyEvent( wxKeyEvent &event, bool fromChild )
                 if ( reopenLabelEditorCol >= 0 )
                     DoBeginLabelEdit(reopenLabelEditorCol);
             }
-            else if ( action == wxPGKeyboardActions::Edit )
+            else if ( action == wxPGKeyboardAction::Edit )
             {
                 // For first and last item just validate the value
                 CommitChangesFromEditor();
@@ -5804,7 +5814,7 @@ void wxPropertyGrid::HandleKeyEvent( wxKeyEvent &event, bool fromChild )
     {
         // If nothing was selected, select the first item now
         // (or navigate out of tab).
-        if ( action != wxPGKeyboardActions::CancelEdit && secondAction != wxPGKeyboardActions::CancelEdit )
+        if ( action != wxPGKeyboardAction::CancelEdit && secondAction != wxPGKeyboardAction::CancelEdit )
         {
             wxPGProperty* p = wxPropertyGridInterface::GetFirst();
             if ( p ) DoSelectProperty(p);
@@ -5838,15 +5848,15 @@ void wxPropertyGrid::OnKey( wxKeyEvent &event )
 
 // -----------------------------------------------------------------------
 
-bool wxPropertyGrid::ButtonTriggerKeyTest(wxPGKeyboardActions action, wxKeyEvent& event)
+bool wxPropertyGrid::ButtonTriggerKeyTest(wxPGKeyboardAction action, wxKeyEvent& event)
 {
-    if ( action == wxPGKeyboardActions::Invalid )
+    if ( action == wxPGKeyboardAction::Invalid )
     {
         action = KeyEventToActions(event).first;
     }
 
     // Does the keycode trigger button?
-    if ( action == wxPGKeyboardActions::PressButton &&
+    if ( action == wxPGKeyboardAction::PressButton &&
          m_wndEditor2 )
     {
         wxCommandEvent evt(wxEVT_BUTTON, m_wndEditor2->GetId());
@@ -6396,8 +6406,8 @@ wxPGProperty* wxPropertyGridPopulator::Add( const wxString& propClass,
     m_state->DoInsert(parent, -1, property);
 
     if ( propValue )
-        property->SetValueFromString( *propValue, wxPG_FULL_VALUE|
-                                                  wxPG_PROGRAMMATIC_VALUE );
+        property->SetValueFromString( *propValue, wxPGPropValFormatFlags::FullValue|
+                                                  wxPGPropValFormatFlags::ProgrammaticValue );
 
     return property;
 }

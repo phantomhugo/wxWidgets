@@ -203,7 +203,7 @@ public:
         @a grandparent or the @NULL node (which is the parent of non-linked
         nodes or the parent of a wxXmlDocument's root element node).
     */
-    int GetDepth(wxXmlNode* grandparent = nullptr) const;
+    int GetDepth(const wxXmlNode* grandparent = nullptr) const;
 
     /**
         Returns a flag indicating whether encoding conversion is necessary when saving. The default is @false.
@@ -557,6 +557,20 @@ enum wxXmlDocumentLoadFlag
 };
 
 
+/**
+  Pass this structure to wxXmlDocument::Load() to get more information
+  if an error occurred during XML parsing.
+
+  @since 3.3.0
+ */
+struct wxXmlParseError
+{
+    wxString message;   ///< Error description
+    int line;           ///< Line number where error occurred
+    int column;         ///< Column number where error occurred
+    int byte_offset;    ///< Byte offset where error occurred
+};
+
 
 /**
     @class wxXmlDocument
@@ -827,15 +841,21 @@ public:
         less memory however makes impossible to recreate exactly the loaded text with a
         Save() call later. Read the initial description of this class for more info.
 
+        Create an wxXmlParseError object and pass it to this function to get more
+        information if an error occurred during XML parsing (this parameter is
+        only available since wxWidgets 3.3.0).
+
         Returns true on success, false otherwise.
     */
-    bool Load(const wxString& filename, int flags = wxXMLDOC_NONE);
+    bool Load(const wxString& filename, int flags = wxXMLDOC_NONE,
+              wxXmlParseError* err = nullptr);
 
     /**
         Like Load(const wxString&, int) but takes the data from given input
         stream.
     */
-    bool Load(wxInputStream& stream, int flags = wxXMLDOC_NONE);
+    bool Load(wxInputStream& stream, int flags = wxXMLDOC_NONE,
+              wxXmlParseError* err = nullptr);
 
     /**
         Saves XML tree creating a file named with given string.

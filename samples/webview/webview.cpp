@@ -18,7 +18,9 @@
     #include "wx/wx.h"
 #endif
 
-#if !wxUSE_WEBVIEW_WEBKIT && !wxUSE_WEBVIEW_WEBKIT2 && !wxUSE_WEBVIEW_IE && !wxUSE_WEBVIEW_EDGE
+#if !wxUSE_WEBVIEW_WEBKIT && !wxUSE_WEBVIEW_WEBKIT2 && \
+    !wxUSE_WEBVIEW_IE && !wxUSE_WEBVIEW_EDGE && \
+    !wxUSE_WEBVIEW_CHROMIUM
 #error "A wxWebView backend is required by this sample"
 #endif
 
@@ -27,6 +29,9 @@
 #include "wx/notifmsg.h"
 #include "wx/settings.h"
 #include "wx/webview.h"
+#if wxUSE_WEBVIEW_CHROMIUM
+#include "wx/webview_chromium.h"
+#endif
 #if wxUSE_WEBVIEW_IE
 #include "wx/msw/webview_ie.h"
 #endif
@@ -41,6 +46,7 @@
 #include "wx/fs_arc.h"
 #include "wx/fs_mem.h"
 #include "wx/stdpaths.h"
+#include "wx/utils.h"
 
 #ifndef wxHAS_IMAGES_IN_RESOURCES
     #include "../sample.xpm"
@@ -55,6 +61,14 @@
 #include "wxlogo.xpm"
 
 #include <map>
+
+// This sample can be built with and without wxUSE_WEBVIEW_CHROMIUM, so we
+// can't put the libraries in the project linker options and have to link them
+// from here.
+#if defined(_MSC_VER) && wxUSE_WEBVIEW_CHROMIUM
+    #pragma comment(lib, "libcef")
+    #pragma comment(lib, "libcef_dll_wrapper")
+#endif
 
 //We map menu items to their history items
 using wxMenuHistoryMap = std::map<int, wxSharedPtr<wxWebViewHistoryItem>>;
@@ -98,7 +112,14 @@ private:
 class WebFrame : public wxFrame
 {
 public:
-    WebFrame(const wxString& url, bool isMain = true, wxWebViewWindowFeatures* windowFeatures = nullptr);
+    enum
+    {
+        Child   = 0,
+        Main    = 1,
+        Private = 2
+    };
+
+    WebFrame(const wxString& url, int flags = 0, wxWebViewWindowFeatures* windowFeatures = nullptr);
     virtual ~WebFrame();
 
     void UpdateState();
@@ -127,6 +148,7 @@ public:
     void OnSetZoom(wxCommandEvent& evt);
     void OnError(wxWebViewEvent& evt);
     void OnPrint(wxCommandEvent& evt);
+    void OnOpenPrivateWindow(wxCommandEvent& evt);
     void OnCut(wxCommandEvent& evt);
     void OnCopy(wxCommandEvent& evt);
     void OnPaste(wxCommandEvent& evt);
@@ -177,9 +199,18 @@ public:
     void OnEnableBrowserAcceleratorKeys(wxCommandEvent& evt);
 
 private:
+    // Return a special prefix for the "private" ("incognito") window titles.
+    wxString GetPrivatePrefix() const
+    {
+        wxString prefix;
+        if (m_flags & Private)
+            prefix = "[Private] ";
+        return prefix;
+    }
+
     wxTextCtrl* m_url;
     wxWebView* m_browser;
-    bool m_isMainFrame;
+    int m_flags;
 
     wxToolBar* m_toolbar;
     wxToolBarToolBase* m_toolbar_back;
@@ -248,6 +279,7 @@ private:
     wxStaticText* m_info_text;
     wxTextCtrl* m_find_ctrl;
     wxToolBar* m_find_toolbar;
+    wxTextCtrl* m_log_textCtrl;
 
     wxMenuHistoryMap m_histMenuItems;
     wxString m_findText;
@@ -330,17 +362,34 @@ bool WebApp::OnInit()
         "<p><a href='memory:page1.htm'>Page 1</a> was better.</p></body>");
     wxMemoryFSHandler::AddFile("test.css", "h1 {color: red;}");
 
-    WebFrame *frame = new WebFrame(m_url);
+    // Set log target which only logs debugging messages in the usual way: all
+    // the rest will be shown in wxLogWindow created by WebFrame.
+    class DebugOnlyLog : public wxLog
+    {
+    public:
+        DebugOnlyLog() = default;
+
+    protected:
+        void DoLogTextAtLevel(wxLogLevel level, const wxString& msg) override
+        {
+            // Ignore all non-debug/trace messages.
+            if ( level == wxLOG_Debug || level == wxLOG_Trace )
+                wxLog::DoLogTextAtLevel(level, msg);
+        }
+    };
+
+    delete wxLog::SetActiveTarget(new DebugOnlyLog);
+
+    WebFrame *frame = new WebFrame(m_url, WebFrame::Main);
     frame->Show();
 
     return true;
 }
 
-WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* windowFeatures):
-    wxFrame(nullptr, wxID_ANY, "wxWebView Sample")
+WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* windowFeatures) :
+    wxFrame(nullptr, wxID_ANY, "wxWebView Sample"),
+    m_flags(flags)
 {
-    m_isMainFrame = isMain;
-
     // set the frame icon
     SetIcon(wxICON(sample));
     SetTitle("wxWebView Sample");
@@ -405,10 +454,6 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
     m_info = new wxInfoBar(this);
     topsizer->Add(m_info, wxSizerFlags().Expand());
 
-    // Create a log window
-    if (m_isMainFrame)
-        new wxLogWindow(this, _("Logging"), true, false);
-
 #if wxUSE_WEBVIEW_EDGE
     // Check if a fixed version of edge is present in
     // $executable_path/edge_fixed and use it
@@ -421,8 +466,55 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
         wxLogMessage("Using fixed edge version");
     }
 #endif
-    // Create the webview
-    m_browser = (windowFeatures) ? windowFeatures->GetChildWebView() : wxWebView::New();
+
+    // Create the webview: WX_WEBVIEW_BACKEND environment variable allows to
+    // select the backend to use if there is more than one available.
+    wxString backend;
+    if ( !wxGetEnv("WX_WEBVIEW_BACKEND", &backend) )
+        backend = wxWebViewBackendDefault;
+#if wxUSE_WEBVIEW_CHROMIUM
+    // Allow specifying shorter "CEF" instead of having to type the full class
+    // name.
+    //
+    // Note that this is more than just a minor convenience: this also ensures
+    // that we reference wxWebViewBackendChromium from this file and this means
+    // that MSVC linker keeps wxWebViewChromium code when using static
+    // libraries while without it, it could discard it completely and it
+    // wouldn't be available during run-time at all.
+    else if ( backend.CmpNoCase("cef") == 0 )
+        backend = wxWebViewBackendChromium;
+#endif // wxUSE_WEBVIEW_CHROMIUM
+
+    if ( backend != wxWebViewBackendDefault &&
+            !wxWebView::IsBackendAvailable(backend) )
+    {
+        wxLogWarning("Requested backend \"%s\" is not available, using default "
+                     "backend instead.", backend);
+        backend = wxWebViewBackendDefault;
+    }
+
+    if (!windowFeatures)
+    {
+        wxWebViewConfiguration conf = wxWebView::NewConfiguration(backend);
+        if (m_flags & Private)
+        {
+            if (!conf.EnablePersistentStorage(false))
+            {
+                wxLogWarning("Disabling persistent storage is not supported by this backend!");
+                m_flags ^= Private;
+            }
+        }
+
+        m_browser = wxWebView::New(conf);
+    }
+    else
+    {
+        m_browser = windowFeatures->GetChildWebView();
+    }
+    if ( !m_browser )
+    {
+        wxLogFatalError("Failed to create wxWebView object using \"%s\" backend", backend);
+    }
 
     // With several backends the proxy can only be set before creation, so do
     // it here if the standard environment variable is defined.
@@ -435,7 +527,7 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
     }
 
 #ifdef __WXMAC__
-    if (m_isMainFrame)
+    if (m_flags & Main)
     {
         // With WKWebView handlers need to be registered before creation
         m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
@@ -443,15 +535,55 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
         m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new AdvancedWebViewHandler()));
     }
 #endif
-    m_browser->Create(this, wxID_ANY, url, wxDefaultPosition, wxDefaultSize);
+    if ( !m_browser->Create(this, wxID_ANY, url) )
+    {
+        wxLogFatalError("Failed to create wxWebView");
+    }
+
     topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
 
-    if (m_isMainFrame)
+    if (m_flags & Main)
     {
+        // Setup log text control
+        m_log_textCtrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2);
+        m_log_textCtrl->SetMinSize(FromDIP(wxSize(100, 100)));
+        topsizer->Add(m_log_textCtrl, wxSizerFlags().Expand().Proportion(0));
+        wxLog::SetActiveTarget(new wxLogTextCtrl(m_log_textCtrl));
+
         // Log backend information
         wxLogMessage("Backend: %s Version: %s", m_browser->GetClassInfo()->GetClassName(),
-            wxWebView::GetBackendVersionInfo().ToString());
-        wxLogMessage("User Agent: %s", m_browser->GetUserAgent());
+            wxWebView::GetBackendVersionInfo(backend).ToString());
+
+        // Chromium backend can't be used immediately after creation, so wait
+        // until the browser is created before calling GetUserAgent(), but we
+        // can't do it unconditionally neither as doing it with WebViewGTK
+        // triggers https://gitlab.gnome.org/GNOME/gtk/-/issues/124 and just
+        // kills the sample.
+        const auto initShow = [this](){
+            wxLogMessage("Web view created, user agent is \"%s\"", m_browser->GetUserAgent());
+
+            // We need to synchronize this call with GetUserAgent() one, as
+            // otherwise the results of executing JavaScript inside
+            // GetUserAgent() and AddScriptMessageHandler() could arrive out of
+            // order and we'd get the wrong user agent string back.
+            if (!m_browser->AddScriptMessageHandler("wx"))
+                wxLogError("Could not add script message handler");
+        };
+
+#if wxUSE_WEBVIEW_CHROMIUM
+        if ( backend == wxWebViewBackendChromium )
+        {
+            m_browser->Bind(wxEVT_WEBVIEW_CREATED, [&initShow](wxWebViewEvent& event) {
+                initShow();
+
+                event.Skip();
+            });
+        }
+        else
+#endif // wxUSE_WEBVIEW_CHROMIUM
+        {
+            initShow();
+        }
 
 #ifndef __WXMAC__
         //We register the wxfs:// protocol for testing purposes
@@ -460,8 +592,6 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
         m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
         m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new AdvancedWebViewHandler()));
 #endif
-        if (!m_browser->AddScriptMessageHandler("wx"))
-            wxLogError("Could not add script message handler");
     }
     else
         wxLogMessage("Created new window");
@@ -469,7 +599,7 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
     SetSizer(topsizer);
 
     //Set a more sensible size for web browsing
-    SetSize(FromDIP(wxSize(800, 600)));
+    SetSize(FromDIP(wxSize(940, 700)));
 
     if (windowFeatures)
     {
@@ -489,6 +619,7 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
     wxMenuItem* setPage = m_tools_menu->Append(wxID_ANY , _("Set page text"));
     wxMenuItem* viewSource = m_tools_menu->Append(wxID_ANY , _("View Source"));
     wxMenuItem* viewText = m_tools_menu->Append(wxID_ANY, _("View Text"));
+    wxMenuItem* openPrivate = m_tools_menu->Append(wxID_ANY, _("Open Private Window"));
     m_tools_menu->AppendSeparator();
     m_tools_layout = m_tools_menu->AppendRadioItem(wxID_ANY, _("Use Layout Zoom"));
     m_tools_tiny = m_tools_menu->AppendRadioItem(wxID_ANY, _("Tiny"));
@@ -580,6 +711,16 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
     m_dev_tools = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Dev Tools"));
     m_browser_accelerator_keys = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Browser Accelerator Keys"));
 
+    if (m_flags & Main)
+    {
+        wxMenuItem* showLog = m_tools_menu->AppendCheckItem(wxID_ANY, _("Show Log"));
+        showLog->Check();
+        Bind(wxEVT_MENU, [this](wxCommandEvent& evt) {
+            m_log_textCtrl->Show(evt.IsChecked());
+            Layout();
+        }, showLog->GetId());
+    }
+
     //By default we want to handle navigation and new windows
     m_tools_handle_navigation->Check();
     m_tools_handle_new_window->Check();
@@ -628,6 +769,7 @@ WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* wi
     Bind(wxEVT_MENU, &WebFrame::OnViewSourceRequest, this, viewSource->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnViewTextRequest, this, viewText->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnPrint, this, print->GetId());
+    Bind(wxEVT_MENU, &WebFrame::OnOpenPrivateWindow, this, openPrivate->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnZoomLayout, this, m_tools_layout->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnSetZoom, this, m_tools_tiny->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnSetZoom, this, m_tools_small->GetId());
@@ -709,7 +851,8 @@ void WebFrame::UpdateState()
         m_toolbar->EnableTool( m_toolbar_stop->GetId(), false );
     }
 
-    SetTitle( m_browser->GetCurrentTitle() );
+    SetTitle(GetPrivatePrefix() + m_browser->GetCurrentTitle());
+
     m_url->SetValue( m_browser->GetCurrentURL() );
 }
 
@@ -1020,13 +1163,13 @@ void WebFrame::OnNewWindowFeatures(wxWebViewEvent &evt)
     wxLogMessage("Window features of child webview are available." + featureDescription);
 
     // Create child frame with the features specified by window.open() call
-    WebFrame* newFrame = new WebFrame(evt.GetURL(), false, features);
+    WebFrame* newFrame = new WebFrame(evt.GetURL(), WebFrame::Child, features);
     newFrame->Show();
 }
 
 void WebFrame::OnTitleChanged(wxWebViewEvent& evt)
 {
-    SetTitle(evt.GetString());
+    SetTitle(GetPrivatePrefix() + evt.GetString());
     wxLogMessage("%s", "Title changed; title='" + evt.GetString() + "'");
 }
 
@@ -1052,7 +1195,7 @@ void WebFrame::OnScriptResult(wxWebViewEvent& evt)
 void WebFrame::OnWindowCloseRequested(wxWebViewEvent& WXUNUSED(evt))
 {
     wxLogMessage("Window close requested");
-    if (!m_isMainFrame)
+    if (!(m_flags & Main))
         Close();
 }
 
@@ -1128,32 +1271,32 @@ void WebFrame::OnToolsClicked(wxCommandEvent& WXUNUSED(evt))
     }
     m_histMenuItems.clear();
 
-    wxVector<wxSharedPtr<wxWebViewHistoryItem> > back = m_browser->GetBackwardHistory();
-    wxVector<wxSharedPtr<wxWebViewHistoryItem> > forward = m_browser->GetForwardHistory();
+    // We can't use empty labels for the menu items, so use this helper to give
+    // them at least some name if we don't have anything better.
+    const auto makeLabel = [](const wxString& title)
+    {
+        return title.empty() ? "(untitled)" : title;
+    };
 
     wxMenuItem* item;
 
-    unsigned int i;
-    for(i = 0; i < back.size(); i++)
+    for ( const auto& histItem : m_browser->GetBackwardHistory() )
     {
-        item = m_tools_history_menu->AppendRadioItem(wxID_ANY, back[i]->GetTitle());
-        m_histMenuItems[item->GetId()] = back[i];
+        item = m_tools_history_menu->AppendRadioItem(wxID_ANY, makeLabel(histItem->GetTitle()));
+        m_histMenuItems[item->GetId()] = histItem;
         Bind(wxEVT_MENU, &WebFrame::OnHistory, this, item->GetId());
     }
 
-    wxString title = m_browser->GetCurrentTitle();
-    if ( title.empty() )
-        title = "(untitled)";
-    item = m_tools_history_menu->AppendRadioItem(wxID_ANY, title);
+    item = m_tools_history_menu->AppendRadioItem(wxID_ANY, makeLabel(m_browser->GetCurrentTitle()));
     item->Check();
 
     //No need to connect the current item
     m_histMenuItems[item->GetId()] = wxSharedPtr<wxWebViewHistoryItem>(new wxWebViewHistoryItem(m_browser->GetCurrentURL(), m_browser->GetCurrentTitle()));
 
-    for(i = 0; i < forward.size(); i++)
+    for ( const auto& histItem : m_browser->GetForwardHistory() )
     {
-        item = m_tools_history_menu->AppendRadioItem(wxID_ANY, forward[i]->GetTitle());
-        m_histMenuItems[item->GetId()] = forward[i];
+        item = m_tools_history_menu->AppendRadioItem(wxID_ANY, makeLabel(histItem->GetTitle()));
+        m_histMenuItems[item->GetId()] = histItem;
         Bind(wxEVT_TOOL, &WebFrame::OnHistory, this, item->GetId());
     }
 
@@ -1372,7 +1515,7 @@ void WebFrame::OnAddUserScript(wxCommandEvent & WXUNUSED(evt))
 
 void WebFrame::OnSetCustomUserAgent(wxCommandEvent& WXUNUSED(evt))
 {
-    wxString customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.1 Mobile/15E148 Safari/604.1";
+    wxString customUserAgent = m_browser->GetUserAgent();
     wxTextEntryDialog dialog
     (
         this,
@@ -1464,6 +1607,12 @@ void WebFrame::OnError(wxWebViewEvent& evt)
 void WebFrame::OnPrint(wxCommandEvent& WXUNUSED(evt))
 {
     m_browser->Print();
+}
+
+void WebFrame::OnOpenPrivateWindow(wxCommandEvent& WXUNUSED(evt))
+{
+    WebFrame* newFrame = new WebFrame(m_browser->GetCurrentURL(), WebFrame::Private);
+    newFrame->Show();
 }
 
 SourceViewDialog::SourceViewDialog(wxWindow* parent, wxString source) :

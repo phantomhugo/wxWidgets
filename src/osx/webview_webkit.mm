@@ -117,6 +117,16 @@ public:
         return m_webViewConfiguration;
     }
 
+    virtual bool EnablePersistentStorage(bool enable) override
+    {
+        m_webViewConfiguration.websiteDataStore =
+            enable ?
+                [WKWebsiteDataStore defaultDataStore] :
+                [WKWebsiteDataStore nonPersistentDataStore];
+
+        return true;
+    }
+
     WKWebViewConfiguration* m_webViewConfiguration;
 };
 
@@ -319,6 +329,8 @@ bool wxWebViewWebKit::Create(wxWindow *parent,
     }
 
     m_UIDelegate = uiDelegate;
+
+    NotifyWebViewCreated();
 
     if (m_request)
         [m_webView loadRequest:(NSURLRequest*)m_request];

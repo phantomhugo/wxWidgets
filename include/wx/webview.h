@@ -155,6 +155,7 @@ public:
     void* GetNativeConfiguration() const;
     void SetDataPath(const wxString& path);
     wxString GetDataPath() const;
+    bool EnablePersistentStorage(bool enable);
 
     const wxString& GetBackend() const { return m_backend; }
 
@@ -334,6 +335,9 @@ protected:
     void SendScriptResult(void* clientData, bool success,
         const wxString& output) const;
 
+    // Send wxEVT_WEBVIEW_CREATED event. This function is MT-safe.
+    void NotifyWebViewCreated();
+
 private:
     static void InitFactoryMap();
     static wxStringWebViewFactoryMap::iterator FindFactory(const wxString &backend);
@@ -377,6 +381,13 @@ class WXDLLIMPEXP_WEBVIEW wxWebViewEvent : public wxNotifyEvent
 {
 public:
     wxWebViewEvent() = default;
+
+    wxWebViewEvent(wxWebView& webview, wxEventType type)
+        : wxNotifyEvent(type, webview.GetId())
+    {
+        SetEventObject(&webview);
+    }
+
     wxWebViewEvent(wxEventType type, int id, const wxString& url,
                    const wxString target,
                    wxWebViewNavigationActionFlags flags = wxWEBVIEW_NAV_ACTION_NONE,
@@ -405,6 +416,7 @@ private:
     wxDECLARE_DYNAMIC_CLASS_NO_ASSIGN_DEF_COPY(wxWebViewEvent);
 };
 
+wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_CREATED, wxWebViewEvent );
 wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_NAVIGATING, wxWebViewEvent );
 wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_NAVIGATED, wxWebViewEvent );
 wxDECLARE_EXPORTED_EVENT( WXDLLIMPEXP_WEBVIEW, wxEVT_WEBVIEW_LOADED, wxWebViewEvent );
@@ -422,6 +434,10 @@ typedef void (wxEvtHandler::*wxWebViewEventFunction)
 
 #define wxWebViewEventHandler(func) \
     wxEVENT_HANDLER_CAST(wxWebViewEventFunction, func)
+
+#define EVT_WEBVIEW_CREATED(id, fn) \
+    wx__DECLARE_EVT1(wxEVT_WEBVIEW_CREATED, id, \
+                     wxWebViewEventHandler(fn))
 
 #define EVT_WEBVIEW_NAVIGATING(id, fn) \
     wx__DECLARE_EVT1(wxEVT_WEBVIEW_NAVIGATING, id, \

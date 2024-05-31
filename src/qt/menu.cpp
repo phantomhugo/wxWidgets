@@ -25,13 +25,12 @@ static void ApplyStyle( QMenu *qtMenu, long style )
 
 // wxQtActionGroup: an exclusive group which synchronizes QActions in
 // QActionGroup with their wx wrappers.
-class wxQtActionGroup : public QActionGroup, public wxQtSignalHandler
+class wxQtActionGroup : public QActionGroup
 {
 
 public:
     explicit wxQtActionGroup( wxMenu* handler )
-        : QActionGroup( handler->GetHandle() ),
-          wxQtSignalHandler( handler )
+        : QActionGroup( handler->GetHandle() )
     {
         setExclusive(true);
 
@@ -44,7 +43,16 @@ public:
     }
 
 private:
-    void triggered ( QAction* action );
+    void triggered ( QAction* action )
+    {
+        if ( action != m_activeAction )
+        {
+            if ( m_activeAction->isCheckable() )
+                m_activeAction->setChecked(false);
+
+            m_activeAction = action;
+        }
+    }
 
     QAction* m_activeAction;
 };
@@ -129,6 +137,7 @@ static void InsertMenuItemAction( const wxMenu *menu, const wxMenuItem *previous
             if ( wxIsStockID( id ) )
             {
                 itemAction->setText( wxQtConvertString( wxGetStockLabel( id ) ) );
+#if wxUSE_ACCEL
                 wxAcceleratorEntry accel = wxGetStockAccelerator( id );
                 QString shortcut;
                 if ( id == wxID_EXIT )
@@ -143,6 +152,7 @@ static void InsertMenuItemAction( const wxMenu *menu, const wxMenuItem *previous
                 {
                     itemAction->setShortcut( QKeySequence( shortcut ) );
                 }
+#endif // wxUSE_ACCEL
             }
             break;
         }
@@ -168,6 +178,8 @@ wxMenuItem *wxMenu::DoAppend(wxMenuItem *item)
     if ( wxMenuBase::DoAppend( item ) == nullptr )
         return nullptr;
 
+    item->QtCreateAction( this );
+
     InsertMenuItemAction( this, previousItem, item, successiveItem );
 
     return item;
@@ -184,6 +196,8 @@ wxMenuItem *wxMenu::DoInsert(size_t insertPosition, wxMenuItem *item)
 
     if ( wxMenuBase::DoInsert( insertPosition, item ) == nullptr )
         return nullptr;
+
+    item->QtCreateAction( this );
 
     InsertMenuItemAction( this, previousItem, item, successiveItem );
 
@@ -341,15 +355,4 @@ void wxMenuBar::Detach()
 QWidget *wxMenuBar::GetHandle() const
 {
     return m_qtMenuBar;
-}
-
-void wxQtActionGroup::triggered( QAction* action )
-{
-    if ( action != m_activeAction )
-    {
-        if ( m_activeAction->isCheckable() )
-            m_activeAction->setChecked(false);
-
-        m_activeAction = action;
-    }
 }

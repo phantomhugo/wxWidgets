@@ -416,41 +416,37 @@ public:
         moment).
 
         QueueEvent() can be used for inter-thread communication from the worker
-        threads to the main thread, it is safe in the sense that it uses
+        threads to the main thread. It is safe in the sense that it uses
         locking internally and avoids the problem mentioned in AddPendingEvent()
         documentation by ensuring that the @a event object is not used by the
-        calling thread any more. Care should still be taken to avoid that some
-        fields of this object are used by it, notably any wxString members of
-        the event object must not be shallow copies of another wxString object
-        as this would result in them still using the same string buffer behind
-        the scenes. For example:
+        calling thread any more.
+
+        Example:
         @code
             void FunctionInAWorkerThread(const wxString& str)
             {
                 wxCommandEvent* evt = new wxCommandEvent;
-
-                // NOT evt->SetString(str) as this would be a shallow copy
-                evt->SetString(str.c_str()); // make a deep copy
+                evt->SetString(str);
 
                 wxTheApp->QueueEvent( evt );
             }
         @endcode
 
-        Note that you can use wxThreadEvent instead of wxCommandEvent
-        to avoid this problem:
+        Note that if you want to pass more data than just a single string and/or
+        an integer carried by wxCommandEvent to the main thread, you may use
+        wxThreadEvent instead.
+
         @code
-            void FunctionInAWorkerThread(const wxString& str)
+            void FunctionInAWorkerThread(int val)
             {
                 wxThreadEvent evt;
-                evt.SetString(str);
+                evt.SetInt(val);
 
-                // wxThreadEvent::Clone() makes sure that the internal wxString
-                // member is not shared by other wxString instances:
                 wxTheApp->QueueEvent( evt.Clone() );
             }
         @endcode
 
-        Finally notice that this method automatically wakes up the event loop
+        Finally, notice that this method automatically wakes up the event loop
         if it is currently idle by calling ::wxWakeUpIdle() so there is no need
         to do it manually when using it.
 
@@ -1300,10 +1296,20 @@ enum wxKeyCategoryFlags
     /// home and end keys, on and off numeric keypads
     WXK_CATEGORY_JUMP,
 
-    /// tab key, on and off numeric keypads
+    /**
+        Tab key, on and off numeric keypads.
+
+        Note that while `Ctrl+I` and `TAB` keys generate the same key code,
+        only the latter is considered to be in this category.
+     */
     WXK_CATEGORY_TAB,
 
-    /// backspace and delete keys, on and off numeric keypads
+    /**
+        Backspace and delete keys, on and off numeric keypads.
+
+        Note that while `Ctrl+H` and `BACKSPACE` keys generate the same key
+        code, only the latter is considered to be in this category.
+     */
     WXK_CATEGORY_CUT,
 
     /// union of WXK_CATEGORY_ARROW, WXK_CATEGORY_PAGING, and WXK_CATEGORY_JUMP categories
@@ -4471,7 +4477,7 @@ public:
     This event class contains information about window and session close events.
 
     The handler function for EVT_CLOSE is called when the user has tried to close a
-    a frame or dialog box using the window manager (X) or system menu (Windows).
+    frame or dialog box using the window manager (X) or system menu (Windows).
     It can also be invoked by the application itself programmatically, for example by
     calling the wxWindow::Close function.
 

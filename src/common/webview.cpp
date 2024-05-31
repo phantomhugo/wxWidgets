@@ -45,6 +45,7 @@ extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendDefault[] = "wxWebVi
 wxIMPLEMENT_ABSTRACT_CLASS(wxWebView, wxControl);
 wxIMPLEMENT_DYNAMIC_CLASS(wxWebViewEvent, wxCommandEvent);
 
+wxDEFINE_EVENT( wxEVT_WEBVIEW_CREATED, wxWebViewEvent );
 wxDEFINE_EVENT( wxEVT_WEBVIEW_NAVIGATING, wxWebViewEvent );
 wxDEFINE_EVENT( wxEVT_WEBVIEW_NAVIGATED, wxWebViewEvent );
 wxDEFINE_EVENT( wxEVT_WEBVIEW_LOADED, wxWebViewEvent );
@@ -85,6 +86,11 @@ void wxWebViewConfiguration::SetDataPath(const wxString &path)
 wxString wxWebViewConfiguration::GetDataPath() const
 {
     return m_impl->GetDataPath();
+}
+
+bool wxWebViewConfiguration::EnablePersistentStorage(bool enable)
+{
+    return m_impl->EnablePersistentStorage(enable);
 }
 
 // wxWebViewWindowFeatures
@@ -446,6 +452,13 @@ wxWebView* wxWebView::New(wxWindow* parent, wxWindowID id, const wxString& url,
 
 }
 
+void wxWebView::NotifyWebViewCreated()
+{
+    GetEventHandler()->QueueEvent(
+        new wxWebViewEvent{*this, wxEVT_WEBVIEW_CREATED}
+    );
+}
+
 // static
 void wxWebView::RegisterFactory(const wxString& backend,
                                 wxSharedPtr<wxWebViewFactory> factory)
@@ -521,7 +534,7 @@ void wxWebView::InitFactoryMap()
         (new wxWebViewFactoryEdge));
 #endif
 
-#else
+#elif wxUSE_WEBVIEW_WEBKIT || wxUSE_WEBVIEW_WEBKIT2
     if(m_factoryMap.find(wxWebViewBackendWebKit) == m_factoryMap.end())
         RegisterFactory(wxWebViewBackendWebKit, wxSharedPtr<wxWebViewFactory>
                                                        (new wxWebViewFactoryWebKit));

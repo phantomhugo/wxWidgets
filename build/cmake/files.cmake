@@ -187,7 +187,6 @@ set(QT_WIN32_SRC
     src/msw/dialup.cpp
     src/msw/dib.cpp
     src/msw/joystick.cpp
-    src/qt/graphics.cpp
 )
 
 set(QT_WIN32_HDR
@@ -391,6 +390,8 @@ set(QT_SRC
     src/qt/datectrl.cpp
     src/qt/timectrl.cpp
     src/qt/overlay.cpp
+    src/qt/renderer.cpp
+    src/qt/graphics.cpp
 )
 
 set(MEDIA_QT_SRC
@@ -2518,6 +2519,7 @@ set(WEBVIEW_CMN_SRC
     src/common/webview.cpp
     src/common/webviewarchivehandler.cpp
     src/common/webviewfshandler.cpp
+    src/common/webview_chromium.cpp
 )
 
 set(WEBVIEW_MSW_HDR
@@ -2530,6 +2532,8 @@ set(WEBVIEW_CMN_HDR
     wx/webview.h
     wx/webviewarchivehandler.h
     wx/webviewfshandler.h
+    wx/webview_chromium.h
+    wx/webview_chromium_impl.h
 )
 
 set(WEBVIEW_OSX_SHARED_HDR
@@ -2539,6 +2543,7 @@ set(WEBVIEW_OSX_SHARED_HDR
 
 set(WEBVIEW_OSX_SHARED_SRC
     src/osx/webview_webkit.mm
+    src/osx/webview_chromium.mm
 )
 
 set(WEBVIEW_GTK_HDR
@@ -2556,6 +2561,17 @@ set(WEBVIEW2_GTK_SRC
 
 set(WEBVIEW_WEBKIT2_EXTENSION_SRC
     src/gtk/webview_webkit2_extension.cpp
+)
+
+set(WEBVIEWCHROMIUM_HDR
+    wx/webview.h
+    wx/webview_chromium.h
+)
+set(WEBVIEWCHROMIUM_SRC
+    src/common/webview_chromium.cpp
+)
+set(WEBVIEWCHROMIUM_OSX_SHARED_SRC
+    src/osx/webview_chromium.mm
 )
 
 set(XRC_SRC
@@ -2833,6 +2849,7 @@ set(PROPGRID_SRC
     src/propgrid/propgridiface.cpp
     src/propgrid/propgridpagestate.cpp
     src/propgrid/props.cpp
+    src/xrc/xh_propgrid.cpp
 )
 
 set(PROPGRID_HDR
@@ -2846,6 +2863,7 @@ set(PROPGRID_HDR
     wx/propgrid/propgridpagestate.h
     wx/propgrid/props.h
     wx/propgrid/private.h
+    wx/xrc/xh_propgrid.h
 )
 
 set(RICHTEXT_SRC

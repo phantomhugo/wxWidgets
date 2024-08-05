@@ -1283,6 +1283,7 @@ set(GTK_WIN32_HDR
     wx/msw/sound.h
     wx/msw/taskbar.h
     wx/msw/joystick.h
+    wx/msw/init.h
 )
 
 set(GTK_LOWLEVEL_SRC
@@ -1600,7 +1601,6 @@ set(MSW_LOWLEVEL_SRC
     src/msw/fontenum.cpp
     src/msw/fontutil.cpp
     src/msw/gdiimage.cpp
-    src/msw/gdiplus.cpp
     src/msw/graphics.cpp
     src/msw/graphicsd2d.cpp
     src/msw/icon.cpp

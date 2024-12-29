@@ -41,6 +41,10 @@ Changes in behaviour not resulting in compilation errors
   See wxCONFIG_USE_XDG and wxCONFIG_USE_HOME for how to customize this
   behaviour. You may also find wxFileConfig::MigrateLocalFile() useful.
 
+- Values of many colours in wxColourDatabase have been changed to use the
+  values from the CSS standard. Use wxColourDatabase::UseScheme() to revert to
+  using the traditional values if your application appearance depends on them.
+
 - As first mentioned in 3.0 release notes, the value of wxTHREAD_WAIT_DEFAULT,
   used by wxThread::Delete() and Wait() by default, has changed from
   wxTHREAD_WAIT_YIELD to wxTHREAD_WAIT_BLOCK for safety and consistency.
@@ -107,6 +111,21 @@ Changes in behaviour not resulting in compilation errors
   with .rtf extension, and not plain text any longer, by default for the
   platforms with RTF support. If you need to save/load plain text even for the
   files with the .rtf extension, specify wxTEXT_TYPE_PLAIN explicitly.
+
+- wxClientDC and wxPaintDC now correctly offset their origin by wxFrame
+  toolbar, if any. This is consistent with the behaviour of the other ports
+  but may require removing any compensation for not doing this before that may
+  be present in the application code.
+
+- Calling wxTextCtrl::SetLabel() now consistently does nothing and asserts
+  under all platforms instead of behaving as SetValue() under MSW and doing
+  nothing elsewhere.
+
+- The meaning of page index in wxAuiNotebook has changed if the pages have
+  been reordered (see wxAUI_NB_TAB_MOVE) and now always refers to the page
+  logical index, which is not affected by reordering. To get the position of
+  the page on screen, which doesn't make sense without reference to the tab
+  control containing it, use GetPagePosition() to retrieve both of them.
 
 
 Changes in behaviour which may result in build errors
@@ -185,6 +204,11 @@ Changes in behaviour which may result in build errors
   any code calling these functions keeps compiling and working, classes that
   override these functions must be updated to use the new argument type too.
   Simply replacing wxDC with wxReadOnlyDC should be sufficient.
+
+- wxSizer::Detach() takes wxWindowBase pointer now instead of wxWindow.
+  This only matters if you override this virtual function in your own classes
+  deriving from wxSizer, please change the function in the derived class to
+  take wxWindowBase pointer too in this case.
 
 
 3.3.0: (released 2022-??-??)

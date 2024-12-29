@@ -165,27 +165,32 @@ protected:
 
     virtual wxWebRequestBase& GetRequest() = 0;
 
-    // Check that the response is a JSON object containing a key "pi" with the
+    // Check that the response is a JSON object containing a specific key with the
     // expected value.
-    void CheckExpectedJSON(const wxString& response)
+    void CheckExpectedJSON(const wxString& response, const wxString& key,
+                           const wxString& value)
     {
         // We ought to really parse the returned JSON object, but to keep things as
         // simple as possible for now we just treat it as a string.
         INFO("Response: " << response);
 
-        const char* expectedKey = "\"pi\":";
+        wxString expectedKey = wxString::Format("\"%s\":", key);
         size_t pos = response.find(expectedKey);
         REQUIRE( pos != wxString::npos );
 
-        pos += strlen(expectedKey);
+        pos += expectedKey.size();
 
         // There may, or not, be a space after it.
         // And the value may be returned in an array.
-        while ( wxIsspace(response[pos]) || response[pos] == '[' )
-            pos++;
+        while ( wxIsspace(response[pos]) ||
+                response[pos] == '"' ||
+                response[pos] == '[' )
+        {
+            ++pos;
+        }
 
-        const char* expectedValue = "\"3.14159265358979323\"";
-        REQUIRE( response.compare(pos, strlen(expectedValue), expectedValue) == 0 );
+        wxString actualValue = response.substr(pos, value.size());
+        REQUIRE( actualValue == value );
     }
 
     // Special helper for "manual" tests taking the URL from the environment.
@@ -433,15 +438,38 @@ TEST_CASE_METHOD(RequestFixture,
 }
 
 TEST_CASE_METHOD(RequestFixture,
+    "WebRequest::Get::AllHeaderValues", "[net][webrequest][get]")
+{
+    if ( !InitBaseURL() )
+        return;
+
+    Create("response-headers?freeform=wxWidgets&freeform=works!");
+    Run();
+    std::vector<wxString> headers = request.GetResponse().GetAllHeaderValues("freeform");
+
+#if wxUSE_WEBREQUEST_URLSESSION
+    // The httpbin service concatenates the given parameters.
+    REQUIRE( headers.size() == 1 );
+    CHECK( headers[0] == "wxWidgets, works!" );
+#else
+    REQUIRE( headers.size() == 2 );
+    CHECK( (headers[0] == "wxWidgets" && headers[1] == "works!") );
+#endif
+}
+
+TEST_CASE_METHOD(RequestFixture,
                  "WebRequest::Get::Param", "[net][webrequest][get]")
 {
     if ( !InitBaseURL() )
         return;
 
-    Create("get?pi=3.14159265358979323");
+    wxString key = "pi";
+    wxString value = "3.14159265358979323";
+
+    Create(wxString::Format("get?%s=%s", key, value));
     Run();
 
-    CheckExpectedJSON( request.GetResponse().AsString() );
+    CheckExpectedJSON( request.GetResponse().AsString(), key, value );
 }
 
 TEST_CASE_METHOD(RequestFixture,
@@ -745,6 +773,21 @@ TEST_CASE_METHOD(RequestFixture,
     CHECK( responseStringFromEvent == "Still alive!" );
 }
 
+TEST_CASE_METHOD(RequestFixture, "WebRequest::LifeTime", "[net][webrequest]")
+{
+    if ( !InitBaseURL() )
+        return;
+
+    Create("status/200");
+    Run();
+
+    // Close the session before the request is destroyed: this shouldn't result
+    // in a crash.
+    wxWebSession::GetDefault().Close();
+
+    CHECK( request.GetResponse().GetStatus() == 200 );
+}
+
 class SyncRequestFixture : public BaseRequestFixture
 {
 public:
@@ -866,9 +909,12 @@ TEST_CASE_METHOD(SyncRequestFixture,
     if ( !InitBaseURL() )
         return;
 
-    REQUIRE( Execute("get?pi=3.14159265358979323") );
+    wxString key = "pi";
+    wxString value = "3.14159265358979323";
 
-    CheckExpectedJSON( response.AsString() );
+    REQUIRE( Execute(wxString::Format("get?%s=%s", key, value)) );
+
+    CheckExpectedJSON( response.AsString(), key, value );
 }
 
 TEST_CASE_METHOD(SyncRequestFixture,

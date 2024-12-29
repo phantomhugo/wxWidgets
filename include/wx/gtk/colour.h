@@ -17,7 +17,7 @@ typedef struct _GdkRGBA GdkRGBA;
 // wxColour
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxColour : public wxColourBase
+class WXDLLIMPEXP_CORE wxWARN_UNUSED wxColour : public wxColourBase
 {
 public:
     // constructors
@@ -48,8 +48,6 @@ public:
 protected:
     virtual void
     InitRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a) override;
-
-    virtual bool FromString(const wxString& str) override;
 
     wxDECLARE_DYNAMIC_CLASS(wxColour);
 };

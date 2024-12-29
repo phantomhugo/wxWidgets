@@ -434,6 +434,13 @@ wxString wxWebResponseURLSession::GetHeader(const wxString& name) const
         return wxString();
 }
 
+std::vector<wxString> wxWebResponseURLSession::GetAllHeaderValues(const wxString& name) const
+{
+    // TODO: URLSession does not support multiple headers with the same name.
+    //       Fall back to last header with given name.
+    return { GetHeader(name) };
+}
+
 int wxWebResponseURLSession::GetStatus() const
 {
     NSHTTPURLResponse* httpResp = (NSHTTPURLResponse*) m_task.response;

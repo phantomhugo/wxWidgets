@@ -270,7 +270,7 @@ enum wxEllipsizeMode
 // wxSize
 // ---------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxSize
+class WXDLLIMPEXP_CORE wxWARN_UNUSED wxSize
 {
 public:
     // members are public for compatibility, don't use them directly.
@@ -450,7 +450,7 @@ public:
 // Point classes: with real or integer coordinates
 // ---------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxRealPoint
+class WXDLLIMPEXP_CORE wxWARN_UNUSED wxRealPoint
 {
 public:
     double x;
@@ -600,7 +600,7 @@ public:
 // wxPoint: 2D point with integer coordinates
 // ----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxPoint
+class WXDLLIMPEXP_CORE wxWARN_UNUSED wxPoint
 {
 public:
     int x, y;
@@ -766,7 +766,7 @@ WX_DECLARE_LIST_WITH_DECL(wxPoint, wxPointList, class WXDLLIMPEXP_CORE);
 // wxRect
 // ---------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxRect
+class WXDLLIMPEXP_CORE wxWARN_UNUSED wxRect
 {
 public:
     wxRect()
@@ -961,6 +961,16 @@ public:
     wxColourDatabase();
     ~wxColourDatabase();
 
+    // use the given colour scheme: CSS one is the default since 3.3.0,
+    // Traditional is the legacy colour scheme used by wxWidgets before it.
+    enum Scheme
+    {
+        CSS,
+        Traditional
+    };
+
+    void UseScheme(Scheme scheme);
+
     // find colour by name or name for the given colour
     wxColour Find(const wxString& name) const;
     wxString FindName(const wxColour& colour) const;
@@ -977,6 +987,8 @@ private:
     void Initialize();
 
     wxStringToColourHashMap *m_map;
+
+    Scheme m_scheme;
 };
 
 #if WXWIN_COMPATIBILITY_3_2
@@ -1036,7 +1048,9 @@ public:
         COLOUR_CYAN,
         COLOUR_GREEN,
         COLOUR_YELLOW,
+        COLOUR_GREY,
         COLOUR_LIGHTGREY,
+        COLOUR_MEDIUMGREY,
         COLOUR_RED,
         COLOUR_WHITE,
         CURSOR_CROSS,

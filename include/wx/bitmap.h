@@ -331,7 +331,11 @@ protected:
     #define wxBITMAP_DEFAULT_TYPE    wxBITMAP_TYPE_PICT_RESOURCE
     #include "wx/osx/bitmap.h"
 #elif defined(__WXQT__)
-    #define wxBITMAP_DEFAULT_TYPE    wxBITMAP_TYPE_XPM
+    #ifdef __WINDOWS__
+        #define wxBITMAP_DEFAULT_TYPE    wxBITMAP_TYPE_BMP_RESOURCE
+    #else
+        #define wxBITMAP_DEFAULT_TYPE    wxBITMAP_TYPE_XPM
+    #endif
     #include "wx/qt/bitmap.h"
 #elif defined(__WXWASM__)
     #define wxBITMAP_DEFAULT_TYPE    wxBITMAP_TYPE_XPM

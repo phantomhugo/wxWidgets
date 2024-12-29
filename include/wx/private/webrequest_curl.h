@@ -21,6 +21,7 @@
 #include "curl/curl.h"
 
 #include <unordered_map>
+#include <vector>
 
 class wxWebRequestCURL;
 class wxWebResponseCURL;
@@ -131,6 +132,8 @@ public:
 
     wxString GetHeader(const wxString& name) const override;
 
+    std::vector<wxString> GetAllHeaderValues(const wxString& name) const override;
+
     int GetStatus() const override;
 
     wxString GetStatusText() const override { return m_statusText; }
@@ -142,7 +145,12 @@ public:
     int CURLOnProgress(curl_off_t);
 
 private:
-    wxWebRequestHeaderMap m_headers;
+    // We can receive multiple headers with the same name (classic example is
+    // "Set-Cookie:"), so we can't use wxWebRequestHeaderMap here and need to
+    // define our own "multi-map" for headers: it maps the header name to a
+    // collection of all its values, possibly from multiple header lines.
+    using AllHeadersMap = std::unordered_map<wxString, std::vector<wxString>>;
+    AllHeadersMap m_headers;
     wxString m_statusText;
     wxFileOffset m_knownDownloadSize;
 
@@ -204,7 +212,7 @@ private:
 };
 
 // Async session implementation uses libcurl "multi" API.
-class wxWebSessionCURL : public wxWebSessionBaseCURL, public wxEvtHandler
+class wxWebSessionCURL : public wxEvtHandler, public wxWebSessionBaseCURL
 {
 public:
     wxWebSessionCURL();

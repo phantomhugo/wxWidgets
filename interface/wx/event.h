@@ -2428,6 +2428,13 @@ public:
     void Check(bool check);
 
     /**
+        For wxCheckBox with wxCHK_3STATE:  Set the UI element state.
+
+        @since 3.3.0
+    */
+    void Set3StateValue(wxCheckBoxState check);
+
+    /**
         Enable or disable the UI element.
     */
     void Enable(bool enable);
@@ -2436,6 +2443,13 @@ public:
         Returns @true if the UI element should be checked.
     */
     bool GetChecked() const;
+
+    /**
+        Return the state a wxCheckBox with wxCHK_3STATE should display
+
+        @since 3.3.0
+    */
+    wxCheckBoxState Get3StateValue() const;
 
     /**
         Returns @true if the UI element should be enabled.
@@ -2463,6 +2477,28 @@ public:
     bool IsCheckable() const;
 
     /**
+        Returns @true if the UI element supports wxCheckboxState.
+
+        For the event handlers that can be used for multiple items, not all of
+        which support wxCheckboxState, this method can be useful to determine whether
+        to call Set3StateValue() on the event object or not, i.e. the main use case for
+        this method is:
+        @code
+        void MyWindow::OnUpdateUI(wxUpdateUIEvent& event)
+        {
+            ....
+            if ( event.Is3State() )
+                event.Set3StateValue(...some condition...);
+            else if ( event.IsCheckable() )
+                event.Check(...some condition...);
+        }
+        @endcode
+
+        @since 3.3.0
+    */
+    bool Is3State() const;
+
+    /**
         Static function returning a value specifying how wxWidgets will send update
         events: to all windows, or only to those which specify that they will process
         the events.
@@ -2472,7 +2508,7 @@ public:
     static wxUpdateUIMode GetMode();
 
     /**
-        Returns @true if the application has called Check().
+        Returns @true if the application has called Check() or SetSet3StateValue().
         For wxWidgets internal use only.
     */
     bool GetSetChecked() const;
@@ -4526,8 +4562,13 @@ public:
     that it could still be executed and exit()s the process itself, without
     waiting for being killed. If this behaviour is for some reason undesirable,
     make sure that you define a handler for this event in your wxApp-derived
-    class and do not call @c event.Skip() in it (but be aware that the system
-    will still kill your application).
+    class and do not call @c event.Skip() in it, but be aware that the system
+    will still kill your application. Because of this, it is usually better to
+    skip this event and let the default handling take place. Please also note
+    that this handler must not be using any UI functionality (such as modal
+    dialogs asking whether the changes should be saved) as it is not safe to do
+    it any more, but it could, for example, save the program state into a file
+    unconditionally in order to restore it during the next program execution.
 
     @beginEventTable{wxCloseEvent}
     @event{EVT_CLOSE(func)}

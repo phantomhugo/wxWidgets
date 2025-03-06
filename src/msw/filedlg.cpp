@@ -288,19 +288,6 @@ public:
     }
 };
 
-class wxFileDialogCustomControlImplFDC
-    : public wxFileDialogImplFDC<wxFileDialogCustomControlImpl>
-{
-public:
-    // All custom controls are identified by their ID in this implementation.
-    wxFileDialogCustomControlImplFDC(IFileDialogCustomize* fdc, DWORD id)
-        : wxFileDialogImplFDC<wxFileDialogCustomControlImpl>(fdc, id)
-    {
-    }
-
-    wxDECLARE_NO_COPY_CLASS(wxFileDialogCustomControlImplFDC);
-};
-
 class wxFileDialogButtonImplFDC
     : public wxFileDialogImplFDC<wxFileDialogButtonImpl>
 {
@@ -1397,8 +1384,8 @@ int wxFileDialog::ShowCommFileDialog(WXHWND hWndParent)
     dir.reserve(len);
     for ( i = 0; i < len; i++ )
     {
-        wxChar ch = m_dir[i];
-        switch ( ch )
+        wxUniChar ch = m_dir[i];
+        switch ( ch.GetValue() )
         {
             case wxT('/'):
                 // convert to backslash
@@ -1408,7 +1395,7 @@ int wxFileDialog::ShowCommFileDialog(WXHWND hWndParent)
             case wxT('\\'):
                 while ( i < len - 1 )
                 {
-                    wxChar chNext = m_dir[i + 1];
+                    wxUniChar chNext = m_dir[i + 1];
                     if ( chNext != wxT('\\') && chNext != wxT('/') )
                         break;
 
@@ -1740,8 +1727,9 @@ int wxFileDialog::ShowIFileDialog(WXHWND hWndParent)
         }
         else // Single selected file is in m_path.
         {
-            // Append the extension if necessary.
-            m_path = AppendExtension(m_path, wildFilters[m_filterIndex]);
+            // Note that we intentionally do not call AppendExtension() here
+            // because IFileDialog already does it if necessary and doing it
+            // again would be wrong, see the discussion in #24949.
 
             const wxFileName fn(m_path);
             m_dir = fn.GetPath();

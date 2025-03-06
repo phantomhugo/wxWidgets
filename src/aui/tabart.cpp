@@ -163,10 +163,119 @@ static const unsigned char list_bits[] = {
    0x0f, 0xf8, 0xff, 0xff, 0x0f, 0xf8, 0x1f, 0xfc, 0x3f, 0xfe, 0x7f, 0xff,
    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
+static const unsigned char pin_bits[] = {
+   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xbf, 0xff, 0x3f, 0xe0,
+   0xbf, 0xef, 0x87, 0xef, 0x3f, 0xe0, 0x3f, 0xe0, 0xbf, 0xff, 0xff, 0xff,
+   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+static const unsigned char unpin_bits[]={
+   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x1f, 0xfc, 0xdf, 0xfc, 0xdf, 0xfc,
+   0xdf, 0xfc, 0xdf, 0xfc, 0xdf, 0xfc, 0x0f, 0xf8, 0x7f, 0xff, 0x7f, 0xff,
+   0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 
+// wxAuiTabArt implementation
 
+int wxAuiTabArt::GetButtonRect(
+                         wxReadOnlyDC& WXUNUSED(dc),
+                         wxWindow* WXUNUSED(wnd),
+                         const wxRect& WXUNUSED(inRect),
+                         int WXUNUSED(bitmapId),
+                         int WXUNUSED(buttonState),
+                         int WXUNUSED(orientation),
+                         wxRect* WXUNUSED(outRect))
+{
+    wxFAIL_MSG("Should be implemented if wxAUI_NB_MULTILINE is used");
 
+    return 0;
+}
+
+void wxAuiTabArt::DrawTab(
+                         wxDC& WXUNUSED(dc),
+                         wxWindow* WXUNUSED(wnd),
+                         const wxAuiNotebookPage& WXUNUSED(pane),
+                         const wxRect& WXUNUSED(inRect),
+                         int WXUNUSED(closeButtonState),
+                         wxRect* WXUNUSED(outTabRect),
+                         wxRect* WXUNUSED(outButtonRect),
+                         int* WXUNUSED(xExtent))
+{
+    // This can only be called from the default implementation of
+    // DrawPageTab(), which means that that function is not overridden
+    // in the derived class -- but then this one must be.
+    wxFAIL_MSG("Did you forget to override DrawPageTab()?");
+}
+
+int wxAuiTabArt::DrawPageTab(
+                         wxDC& dc,
+                         wxWindow* wnd,
+                         wxAuiNotebookPage& page,
+                         const wxRect& rect)
+{
+    wxRect* closeRect = nullptr;
+    int closeState = wxAUI_BUTTON_STATE_HIDDEN;
+
+    for ( auto& button : page.buttons )
+    {
+        if ( button.id == wxAUI_BUTTON_CLOSE )
+        {
+            closeRect = &button.rect;
+            closeState = button.curState;
+        }
+        else
+        {
+            wxFAIL_MSG("Must be overridden if using buttons other than close");
+        }
+    }
+
+    int xExtent = 0;
+
+    DrawTab(dc, wnd, page, rect, closeState, &page.rect, closeRect, &xExtent);
+
+    return xExtent;
+}
+
+wxSize wxAuiTabArt::GetTabSize(
+                         wxReadOnlyDC& WXUNUSED(dc),
+                         wxWindow* WXUNUSED(wnd),
+                         const wxString& WXUNUSED(caption),
+                         const wxBitmapBundle& WXUNUSED(bitmap),
+                         bool WXUNUSED(active),
+                         int WXUNUSED(closeButtonState),
+                         int* WXUNUSED(xExtent))
+{
+    wxFAIL_MSG("Did you forget to override GetPageTabSize()?");
+
+    return wxSize{};
+}
+
+wxSize wxAuiTabArt::GetPageTabSize(
+                         wxReadOnlyDC& dc,
+                         wxWindow* wnd,
+                         const wxAuiNotebookPage& page,
+                         int* xExtent)
+{
+    int closeState = wxAUI_BUTTON_STATE_HIDDEN;
+
+    for ( const auto& button : page.buttons )
+    {
+        if ( button.id == wxAUI_BUTTON_CLOSE )
+        {
+            closeState = button.curState;
+        }
+        else
+        {
+            wxFAIL_MSG("Must be overridden if using buttons other than close");
+        }
+    }
+
+    // This function allows passing null pointer for the extent, but
+    // GetTabSize() doesn't, so give it something if necessary.
+    int dummyExtent;
+
+    return GetTabSize(dc, wnd, page.caption, page.bitmap, page.active,
+                      closeState, xExtent ? xExtent : &dummyExtent);
+}
 
 // -- wxAuiGenericTabArt class implementation --
 
@@ -219,6 +328,10 @@ void wxAuiGenericTabArt::UpdateColoursFromSystem()
     m_disabledRightBmp = wxAuiBitmapFromBits(right_bits, 16, 16, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     m_activeWindowListBmp = wxAuiBitmapFromBits(list_bits, 16, 16, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
     m_disabledWindowListBmp = wxAuiBitmapFromBits(list_bits, 16, 16, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    m_activePinBmp = wxAuiBitmapFromBits(pin_bits, 16, 16, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+    m_disabledPinBmp = wxAuiBitmapFromBits(pin_bits, 16, 16, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    m_activeUnpinBmp = wxAuiBitmapFromBits(unpin_bits, 16, 16, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+    m_disabledUnpinBmp = wxAuiBitmapFromBits(unpin_bits, 16, 16, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
 }
 
 wxAuiTabArt* wxAuiGenericTabArt::Clone()
@@ -265,6 +378,9 @@ void wxAuiGenericTabArt::SetSizingInfo(const wxSize& tab_ctrl_size,
 
     m_fixedTabWidth = wxMin(m_fixedTabWidth, wnd->FromDIP(220));
 
+    // We don't use this member variable ourselves any longer but keep it for
+    // compatibility with the existing code, deriving from this class and using
+    // it for its own purposes.
     m_tabCtrlHeight = tab_ctrl_size.y;
 }
 
@@ -334,23 +450,39 @@ void wxAuiGenericTabArt::DrawBackground(wxDC& dc,
 }
 
 
-// DrawTab() draws an individual tab.
-//
-// dc       - output dc
-// in_rect  - rectangle the tab should be confined to
-// caption  - tab's caption
-// active   - whether or not the tab is active
-// out_rect - actual output rectangle
-// x_extent - the advance x; where the next tab should start
+const wxBitmapBundle*
+wxAuiGenericTabArt::GetButtonBitmapBundle(const wxAuiTabContainerButton& button) const
+{
+    if (button.curState & wxAUI_BUTTON_STATE_HIDDEN)
+        return nullptr;
 
-void wxAuiGenericTabArt::DrawTab(wxDC& dc,
+    const auto active = button.curState & (wxAUI_BUTTON_STATE_HOVER |
+                                           wxAUI_BUTTON_STATE_PRESSED);
+
+    switch (button.id)
+    {
+        case wxAUI_BUTTON_CLOSE:
+            return active ? &m_activeCloseBmp : &m_disabledCloseBmp;
+
+        case wxAUI_BUTTON_PIN:
+            return button.curState & wxAUI_BUTTON_STATE_CHECKED
+                    ? (active ? &m_activeUnpinBmp : &m_disabledUnpinBmp)
+                    : (active ? &m_activePinBmp : &m_disabledPinBmp);
+    }
+
+    return nullptr;
+}
+
+// DrawPageTab() draws the tab for the given page.
+//
+// It updates the page rectangle and returns the amount to advance by to the
+// start of the next tab.
+
+int wxAuiGenericTabArt::DrawPageTab(
+                                 wxDC& dc,
                                  wxWindow* wnd,
-                                 const wxAuiNotebookPage& page,
-                                 const wxRect& in_rect,
-                                 int close_button_state,
-                                 wxRect* out_tab_rect,
-                                 wxRect* out_button_rect,
-                                 int* x_extent)
+                                 wxAuiNotebookPage& page,
+                                 const wxRect& in_rect)
 {
     wxCoord normal_textx, normal_texty;
     wxCoord selected_textx, selected_texty;
@@ -368,15 +500,10 @@ void wxAuiGenericTabArt::DrawTab(wxDC& dc,
     dc.GetTextExtent(caption, &normal_textx, &normal_texty);
 
     // figure out the size of the tab
-    wxSize tab_size = GetTabSize(dc,
-                                 wnd,
-                                 page.caption,
-                                 page.bitmap,
-                                 page.active,
-                                 close_button_state,
-                                 x_extent);
+    int xExtent = 0;
+    wxSize tab_size = GetPageTabSize(dc, wnd, page, &xExtent);
 
-    wxCoord tab_height = m_tabCtrlHeight - 3;
+    wxCoord tab_height = in_rect.height - 3;
     wxCoord tab_width = tab_size.x;
     wxCoord tab_x = in_rect.x;
     wxCoord tab_y = in_rect.y + in_rect.height - tab_height;
@@ -405,25 +532,7 @@ void wxAuiGenericTabArt::DrawTab(wxDC& dc,
     if (tab_x + clip_width > in_rect.x + in_rect.width)
         clip_width = (in_rect.x + in_rect.width) - tab_x;
 
-/*
-    wxPoint clip_points[6];
-    clip_points[0] = wxPoint(tab_x,              tab_y+tab_height-3);
-    clip_points[1] = wxPoint(tab_x,              tab_y+2);
-    clip_points[2] = wxPoint(tab_x+2,            tab_y);
-    clip_points[3] = wxPoint(tab_x+clip_width-1, tab_y);
-    clip_points[4] = wxPoint(tab_x+clip_width+1, tab_y+2);
-    clip_points[5] = wxPoint(tab_x+clip_width+1, tab_y+tab_height-3);
-
-    // FIXME: these ports don't provide wxRegion ctor from array of points
-#if !defined(__WXDFB__)
-    // set the clipping region for the tab --
-    wxRegion clipping_region(WXSIZEOF(clip_points), clip_points);
-    dc.SetClippingRegion(clipping_region);
-#endif // !wxDFB && !wxCocoa
-*/
-    // since the above code above doesn't play well with WXDFB or WXCOCOA,
-    // we'll just use a rectangle for the clipping region for now --
-    dc.SetClippingRegion(tab_x, tab_y, clip_width+1, tab_height-3);
+    wxDCClipper clip(dc, tab_x, tab_y, clip_width+1, tab_height-3);
 
 
     wxPoint border_points[6];
@@ -574,39 +683,49 @@ void wxAuiGenericTabArt::DrawTab(wxDC& dc,
         text_offset = tab_x + wnd->FromDIP(8);
     }
 
-    // draw close button if necessary
-    int close_button_width = 0;
-    if (close_button_state != wxAUI_BUTTON_STATE_HIDDEN)
+    // draw buttons: start by computing their total width (note that we don't
+    // use any padding between them currently because the current bitmaps don't
+    // need it)
+    int buttonsWidth = 0;
+    for (auto& button : page.buttons)
     {
-        wxBitmapBundle bb = m_disabledCloseBmp;
+        const wxBitmapBundle* const bb = GetButtonBitmapBundle(button);
+        if (!bb)
+            continue;
 
-        if (close_button_state == wxAUI_BUTTON_STATE_HOVER ||
-            close_button_state == wxAUI_BUTTON_STATE_PRESSED)
-        {
-            bb = m_activeCloseBmp;
-        }
+        const wxBitmap bmp = bb->GetBitmapFor(wnd);
+        buttonsWidth += bmp.GetLogicalWidth();
+    }
 
-        const wxBitmap bmp = bb.GetBitmapFor(wnd);
+    // now draw them
+    int buttonX = tab_x + tab_width - buttonsWidth - wnd->FromDIP(1);
+    for (auto& button : page.buttons)
+    {
+        const wxBitmapBundle* const bb = GetButtonBitmapBundle(button);
+        if (!bb)
+            continue;
+
+        const wxBitmap bmp = bb->GetBitmapFor(wnd);
 
         int offsetY = tab_y-1;
         if (m_flags & wxAUI_NB_BOTTOM)
             offsetY = 1;
 
-        wxRect rect(tab_x + tab_width - bmp.GetLogicalWidth() - wnd->FromDIP(1),
+        wxRect rect(buttonX,
                     offsetY + (tab_height/2) - (bmp.GetLogicalHeight()/2),
                     bmp.GetLogicalWidth(),
                     tab_height);
 
-        IndentPressedBitmap(wnd->FromDIP(wxSize(1, 1)), &rect, close_button_state);
+        IndentPressedBitmap(wnd->FromDIP(wxSize(1, 1)), &rect, button.curState);
         dc.DrawBitmap(bmp, rect.x, rect.y, true);
 
-        *out_button_rect = rect;
-        close_button_width = bmp.GetLogicalWidth();
+        button.rect = rect;
+        buttonX += bmp.GetLogicalWidth();
     }
 
     wxString draw_text = wxAuiChopText(dc,
                           caption,
-                          tab_width - (text_offset-tab_x) - close_button_width);
+                          tab_width - (text_offset-tab_x) - buttonsWidth);
 
     // draw tab text
     wxColor sys_color = wxSystemSettings::GetColour(
@@ -649,9 +768,9 @@ void wxAuiGenericTabArt::DrawTab(wxDC& dc,
     }
 #endif // !__WXOSX__
 
-    *out_tab_rect = wxRect(tab_x, tab_y, tab_width, tab_height);
+    page.rect = wxRect(tab_x, tab_y, tab_width, tab_height);
 
-    dc.DestroyClippingRegion();
+    return xExtent;
 }
 
 int wxAuiGenericTabArt::GetIndentSize()
@@ -666,7 +785,7 @@ int wxAuiGenericTabArt::GetBorderWidth(wxWindow* wnd)
     {
         wxAuiDockArt* art = mgr->GetArtProvider();
         if (art)
-            return wnd->FromDIP(art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
+            return art->GetMetricForWindow(wxAUI_DOCKART_PANE_BORDER_SIZE, wnd);
     }
     return 1;
 }
@@ -676,18 +795,16 @@ int wxAuiGenericTabArt::GetAdditionalBorderSpace(wxWindow* WXUNUSED(wnd))
     return 0;
 }
 
-wxSize wxAuiGenericTabArt::GetTabSize(wxReadOnlyDC& dc,
+wxSize wxAuiGenericTabArt::GetPageTabSize(
+                                      wxReadOnlyDC& dc,
                                       wxWindow* wnd,
-                                      const wxString& caption,
-                                      const wxBitmapBundle& bitmap,
-                                      bool WXUNUSED(active),
-                                      int close_button_state,
+                                      const wxAuiNotebookPage& page,
                                       int* x_extent)
 {
     wxCoord measured_textx, measured_texty, tmp;
 
     dc.SetFont(m_measuringFont);
-    dc.GetTextExtent(caption, &measured_textx, &measured_texty);
+    dc.GetTextExtent(page.caption, &measured_textx, &measured_texty);
 
     dc.GetTextExtent(wxT("ABCDEFXj"), &tmp, &measured_texty);
 
@@ -695,19 +812,21 @@ wxSize wxAuiGenericTabArt::GetTabSize(wxReadOnlyDC& dc,
     wxCoord tab_width = measured_textx;
     wxCoord tab_height = measured_texty;
 
-    // if the close button is showing, add space for it
-    if (close_button_state != wxAUI_BUTTON_STATE_HIDDEN)
+    // add space for the buttons, if any
+    for (const auto& button : page.buttons)
     {
-        // increase by button size plus the padding
-        tab_width += m_activeCloseBmp.GetBitmapFor(wnd).GetLogicalWidth() + wnd->FromDIP(3);
+        if (const wxBitmapBundle* bmp = GetButtonBitmapBundle(button))
+        {
+            tab_width += bmp->GetBitmapFor(wnd).GetLogicalWidth() + wnd->FromDIP(3);
+        }
     }
 
     // if there's a bitmap, add space for it
-    if (bitmap.IsOk())
+    if (page.bitmap.IsOk())
     {
         // we need the correct size of the bitmap to be used on this window in
         // logical dimensions for drawing
-        const wxSize bitmapSize = bitmap.GetPreferredLogicalSizeFor(wnd);
+        const wxSize bitmapSize = page.bitmap.GetPreferredLogicalSizeFor(wnd);
 
         // increase by bitmap plus right side bitmap padding
         tab_width += bitmapSize.x + wnd->FromDIP(3);
@@ -724,19 +843,20 @@ wxSize wxAuiGenericTabArt::GetTabSize(wxReadOnlyDC& dc,
         tab_width = m_fixedTabWidth;
     }
 
-    *x_extent = tab_width;
+    if (x_extent)
+        *x_extent = tab_width;
 
     return wxSize(tab_width, tab_height);
 }
 
 
-void wxAuiGenericTabArt::DrawButton(wxDC& dc,
-                                    wxWindow* wnd,
-                                    const wxRect& in_rect,
-                                    int bitmap_id,
-                                    int button_state,
-                                    int orientation,
-                                    wxRect* out_rect)
+bool wxAuiGenericTabArt::DoGetButtonRectAndBitmap(wxWindow* wnd,
+                                                  const wxRect& in_rect,
+                                                  int bitmap_id,
+                                                  int button_state,
+                                                  int orientation,
+                                                  wxRect* outRect,
+                                                  wxBitmap* outBitmap)
 {
     wxBitmapBundle bb;
     wxRect rect;
@@ -771,7 +891,7 @@ void wxAuiGenericTabArt::DrawButton(wxDC& dc,
 
 
     if (!bb.IsOk())
-        return;
+        return false;
 
     const wxBitmap bmp = bb.GetBitmapFor(wnd);
 
@@ -781,8 +901,7 @@ void wxAuiGenericTabArt::DrawButton(wxDC& dc,
     {
         rect.SetX(in_rect.x);
         rect.SetY(((in_rect.y + in_rect.height)/2) - (bmp.GetLogicalHeight()/2));
-        rect.SetWidth(bmp.GetLogicalWidth());
-        rect.SetHeight(bmp.GetLogicalHeight());
+        rect.SetSize(bmp.GetLogicalSize());
     }
     else
     {
@@ -792,9 +911,52 @@ void wxAuiGenericTabArt::DrawButton(wxDC& dc,
     }
 
     IndentPressedBitmap(wnd->FromDIP(wxSize(1, 1)), &rect, button_state);
+
+    if ( outRect )
+        *outRect = rect;
+    if ( outBitmap )
+        *outBitmap = bmp;
+
+    return true;
+}
+
+void wxAuiGenericTabArt::DrawButton(wxDC& dc,
+                                    wxWindow* wnd,
+                                    const wxRect& in_rect,
+                                    int bitmap_id,
+                                    int button_state,
+                                    int orientation,
+                                    wxRect* out_rect)
+{
+    wxRect rect;
+    wxBitmap bmp;
+
+    if ( !DoGetButtonRectAndBitmap(wnd, in_rect,
+                                   bitmap_id, button_state, orientation,
+                                   &rect, &bmp) )
+        return;
+
     dc.DrawBitmap(bmp, rect.x, rect.y, true);
 
     *out_rect = rect;
+}
+
+int wxAuiGenericTabArt::GetButtonRect(wxReadOnlyDC& WXUNUSED(dc),
+                                      wxWindow* wnd,
+                                      const wxRect& inRect,
+                                      int bitmapId,
+                                      int buttonState,
+                                      int orientation,
+                                      wxRect* outRect)
+{
+    wxRect rect;
+    DoGetButtonRectAndBitmap(wnd, inRect,
+                             bitmapId, buttonState, orientation,
+                             &rect);
+    if ( outRect )
+        *outRect = rect;
+
+    return rect.width;
 }
 
 int wxAuiGenericTabArt::ShowDropDown(wxWindow* wnd,
@@ -860,31 +1022,27 @@ int wxAuiGenericTabArt::GetBestTabCtrlSize(wxWindow* wnd,
                            requiredBmp_size.y);
     }
 
+    // we don't use the caption text because we don't
+    // want tab heights to be different in the case
+    // of a very short piece of text on one tab and a very
+    // tall piece of text on another tab
+    const wxString measureText(wxT("ABCDEFGHIj"));
 
     int max_y = 0;
     size_t i, page_count = pages.GetCount();
     for (i = 0; i < page_count; ++i)
     {
-        wxAuiNotebookPage& page = pages.Item(i);
+        // Make a copy of the page as we modify it below.
+        wxAuiNotebookPage page = pages.Item(i);
 
         wxBitmapBundle bmp;
         if (measureBmp.IsOk())
-            bmp = measureBmp;
-        else
-            bmp = page.bitmap;
+            page.bitmap = measureBmp;
 
-        // we don't use the caption text because we don't
-        // want tab heights to be different in the case
-        // of a very short piece of text on one tab and a very
-        // tall piece of text on another tab
-        int x_ext = 0;
-        wxSize s = GetTabSize(dc,
-                              wnd,
-                              wxT("ABCDEFGHIj"),
-                              bmp,
-                              true,
-                              wxAUI_BUTTON_STATE_HIDDEN,
-                              &x_ext);
+        page.caption = measureText;
+        page.active = true;
+
+        wxSize s = GetPageTabSize(dc, wnd, page);
 
         max_y = wxMax(max_y, s.y);
     }
@@ -1137,7 +1295,7 @@ void wxAuiSimpleTabArt::DrawTab(wxDC& dc,
     points[5].y = tab_y + tab_height - 1;
     points[6] = points[0];
 
-    dc.SetClippingRegion(in_rect);
+    wxDCClipper clip(dc, in_rect);
 
     dc.DrawPolygon(WXSIZEOF(points) - 1, points);
 
@@ -1187,17 +1345,16 @@ void wxAuiSimpleTabArt::DrawTab(wxDC& dc,
     wxColor font_color = wxAuiHasSufficientContrast(back_color, sys_color) ? sys_color
         : wxAuiGetBetterContrastColour(back_color, *wxWHITE, *wxBLACK);
     dc.SetTextForeground(font_color);
-    dc.DrawText(draw_text,
-                 text_offset,
-                 (tab_y + tab_height)/2 - (texty/2) + 1);
+
+    const auto textY = tab_y + (tab_height - texty) / 2 + 1;
+    dc.DrawText(draw_text, text_offset, textY);
 
 
     // draw focus rectangle except under macOS where it looks out of place
 #ifndef __WXOSX__
     if (page.active && (wnd->FindFocus() == wnd))
     {
-        wxRect focusRect(text_offset, ((tab_y + tab_height)/2 - (texty/2) + 1),
-            selected_textx, selected_texty);
+        wxRect focusRect(text_offset, textY, selected_textx, selected_texty);
 
         focusRect.Inflate(2, 2);
 
@@ -1206,8 +1363,6 @@ void wxAuiSimpleTabArt::DrawTab(wxDC& dc,
 #endif // !__WXOSX__
 
     *out_tab_rect = wxRect(tab_x, tab_y, tab_width, tab_height);
-
-    dc.DestroyClippingRegion();
 }
 
 int wxAuiSimpleTabArt::GetIndentSize()
@@ -1222,7 +1377,7 @@ int wxAuiSimpleTabArt::GetBorderWidth(wxWindow* wnd)
     {
        wxAuiDockArt*  art = mgr->GetArtProvider();
         if (art)
-            return wnd->FromDIP(art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
+            return art->GetMetricForWindow(wxAUI_DOCKART_PANE_BORDER_SIZE, wnd);
     }
     return 1;
 }
@@ -1265,13 +1420,13 @@ wxSize wxAuiSimpleTabArt::GetTabSize(wxReadOnlyDC& dc,
 }
 
 
-void wxAuiSimpleTabArt::DrawButton(wxDC& dc,
-                                   wxWindow* wnd,
-                                   const wxRect& in_rect,
-                                   int bitmap_id,
-                                   int button_state,
-                                   int orientation,
-                                   wxRect* out_rect)
+bool wxAuiSimpleTabArt::DoGetButtonRectAndBitmap(wxWindow* wnd,
+                                                 const wxRect& in_rect,
+                                                 int bitmap_id,
+                                                 int button_state,
+                                                 int orientation,
+                                                 wxRect* outRect,
+                                                 wxBitmap* outBitmap)
 {
     wxBitmapBundle bb;
     wxRect rect;
@@ -1305,7 +1460,7 @@ void wxAuiSimpleTabArt::DrawButton(wxDC& dc,
     }
 
     if (!bb.IsOk())
-        return;
+        return false;
 
     const wxBitmap bmp = bb.GetBitmapFor(wnd);
 
@@ -1315,8 +1470,7 @@ void wxAuiSimpleTabArt::DrawButton(wxDC& dc,
     {
         rect.SetX(in_rect.x);
         rect.SetY(((in_rect.y + in_rect.height)/2) - (bmp.GetLogicalHeight()/2));
-        rect.SetWidth(bmp.GetLogicalWidth());
-        rect.SetHeight(bmp.GetLogicalHeight());
+        rect.SetSize(bmp.GetLogicalSize());
     }
     else
     {
@@ -1325,10 +1479,51 @@ void wxAuiSimpleTabArt::DrawButton(wxDC& dc,
                       bmp.GetLogicalWidth(), bmp.GetLogicalHeight());
     }
 
+    if ( outRect )
+        *outRect = rect;
+    if ( outBitmap )
+        *outBitmap = bmp;
+
+    return true;
+}
+
+void wxAuiSimpleTabArt::DrawButton(wxDC& dc,
+                                   wxWindow* wnd,
+                                   const wxRect& in_rect,
+                                   int bitmap_id,
+                                   int button_state,
+                                   int orientation,
+                                   wxRect* out_rect)
+{
+    wxRect rect;
+    wxBitmap bmp;
+
+    if ( !DoGetButtonRectAndBitmap(wnd, in_rect,
+                                   bitmap_id, button_state, orientation,
+                                   &rect, &bmp) )
+        return;
 
     DrawButtons(dc, wnd->FromDIP(wxSize(1, 1)), rect, bmp, *wxWHITE, button_state);
 
     *out_rect = rect;
+}
+
+int wxAuiSimpleTabArt::GetButtonRect(wxReadOnlyDC& WXUNUSED(dc),
+                                     wxWindow* wnd,
+                                     const wxRect& inRect,
+                                     int bitmapId,
+                                     int buttonState,
+                                     int orientation,
+                                     wxRect* outRect)
+{
+    wxRect rect;
+    DoGetButtonRectAndBitmap(wnd, inRect,
+                             bitmapId, buttonState, orientation,
+                             &rect);
+    if ( outRect )
+        *outRect = rect;
+
+    return rect.width;
 }
 
 int wxAuiSimpleTabArt::ShowDropDown(wxWindow* wnd,

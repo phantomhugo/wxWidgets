@@ -465,8 +465,10 @@ public:
 ///@{
 
 /**
-    This macro is identical to _() but for the plural variant of
+    This macro is similar to _() but for the plural variant of
     wxGetTranslation().
+
+    The string arguments must be @em string @em literals.
 
     @return A const wxString.
 
@@ -479,6 +481,8 @@ public:
 
     See the description of @c context argument of wxGetTranslation().
 
+    The arguments must be @em string @em literals.
+
     @see wxGETTEXT_IN_CONTEXT_PLURAL()
 
     @since 3.1.1
@@ -487,6 +491,8 @@ public:
 
 /**
     Similar to wxPLURAL() but translates the string in the given context.
+
+    The string arguments must be @em string @em literals.
 
     See the description of @c context argument of wxGetTranslation().
 
@@ -567,7 +573,8 @@ public:
     If @a domain is specified then only that domain/catalog is searched for a
     matching string.  As this function is used very often, an alternative (and
     also common in Unix world) syntax is provided: the _() macro is defined to
-    do the same thing as wxGetTranslation().
+    do nearly the same thing as wxGetTranslation(), with the exception that
+    the argument to _() must be a string literal.
 
     If @a context is not empty (notice that this argument is only available
     starting from wxWidgets 3.1.1), item translation is looked up in the
@@ -581,12 +588,12 @@ public:
 
     This function is thread-safe.
 
-    @note This function is not suitable for literal strings using wxT() macro
-          since this macro is not recognised by @c xgettext, and so such
-          strings are not extracted to the message catalog. Instead, use the
-          _() and wxPLURAL() macro for all literal strings.
+    @note If you want literal strings inside of this function to be translated,
+          you need to use `-kwxGetTranslation` with @c xgettext.
+          Also, don't use wxT() inside of this function with string literals,
+          as @c xgettext won't be able to extract them.
 
-    @see wxGetTranslation(const wxString&, const wxString&, unsigned, const wxString&)
+    @see wxGetTranslation(const wxString&, const wxString&, unsigned, const wxString&, const wxString&)
 
     @header{wx/intl.h}
 */
@@ -596,12 +603,12 @@ const wxString& wxGetTranslation(const wxString& string,
 
 /**
     This is an overloaded version of
-    wxGetTranslation(const wxString&, const wxString&), please see its
+    wxGetTranslation(const wxString&, const wxString&, const wxString&), please see its
     documentation for general information.
 
     This version is used when retrieving translation of string that has
     different singular and plural forms in English or different plural forms in
-    some other language. Like wxGetTranslation(const wxString&,const wxString&),
+    some other language. Like wxGetTranslation(const wxString&,const wxString&, const wxString&),
     the @a string parameter must contain the singular form of the string to be
     converted and is used as the key for the search in the catalog. The
     @a plural parameter is the plural form (in English). The parameter @a n is
@@ -633,7 +640,7 @@ const wxString& wxGetTranslation(const wxString& string,
 
     @header{wx/intl.h}
 */
-const wxString& _(const wxString& string);
+#define _(string)
 
 ///@}
 

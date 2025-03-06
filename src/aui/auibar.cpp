@@ -23,6 +23,7 @@
 
 #include "wx/statline.h"
 #include "wx/dcbuffer.h"
+#include "wx/frame.h"
 #include "wx/sizer.h"
 #include "wx/image.h"
 #include "wx/settings.h"
@@ -129,6 +130,12 @@ wxBitmap wxAuiToolBarItem::GetCurrentBitmapFor(wxWindow* wnd) const
     return m_bitmap.GetBitmapFor(wnd);
 }
 
+int
+wxAuiToolBarArt::GetElementSizeForWindow(int elementId, const wxWindow* window)
+{
+    return wxWindow::FromDIP(GetElementSize(elementId), window);
+}
+
 wxAuiGenericToolBarArt::wxAuiGenericToolBarArt()
 {
     UpdateColoursFromSystem();
@@ -136,10 +143,11 @@ wxAuiGenericToolBarArt::wxAuiGenericToolBarArt()
     m_flags = 0;
     m_textOrientation = wxAUI_TBTOOL_TEXT_BOTTOM;
 
-    m_separatorSize = wxWindow::FromDIP( 7, nullptr);
-    m_gripperSize   = wxWindow::FromDIP( 7, nullptr);
-    m_overflowSize  = wxWindow::FromDIP(16, nullptr);
-    m_dropdownSize  = wxWindow::FromDIP(10, nullptr);
+    // Note that these values are intentionally in DIPs.
+    m_separatorSize =  7;
+    m_gripperSize   =  7;
+    m_overflowSize  = 16;
+    m_dropdownSize  = 10;
 
 
     m_font = *wxNORMAL_FONT;
@@ -264,13 +272,12 @@ void wxAuiGenericToolBarArt::DrawLabel(
     // set the clipping region
     wxRect clipRect = rect;
     clipRect.width -= 1;
-    dc.SetClippingRegion(clipRect);
+    wxDCClipper clipper(dc, clipRect);
 
     int textX, textY;
     textX = rect.x + 1;
     textY = rect.y + (rect.height-textHeight)/2;
     dc.DrawText(item.GetLabel(), textX, textY);
-    dc.DestroyClippingRegion();
 }
 
 
@@ -380,7 +387,7 @@ void wxAuiGenericToolBarArt::DrawDropDownButton(
                                     const wxAuiToolBarItem& item,
                                     const wxRect& rect)
 {
-    int dropdownWidth = GetElementSize(wxAUI_TBART_DROPDOWN_SIZE);
+    int dropdownWidth = GetElementSizeForWindow(wxAUI_TBART_DROPDOWN_SIZE, wnd);
     int textWidth = 0, textHeight = 0, textX = 0, textY = 0;
     int bmpX = 0, bmpY = 0, dropBmpX = 0, dropBmpY = 0;
 
@@ -615,7 +622,7 @@ wxSize wxAuiGenericToolBarArt::GetToolSize(
     // and add some extra space in front of the drop down button
     if (item.HasDropDown())
     {
-        int dropdownWidth = GetElementSize(wxAUI_TBART_DROPDOWN_SIZE);
+        int dropdownWidth = GetElementSizeForWindow(wxAUI_TBART_DROPDOWN_SIZE, wnd);
         width += dropdownWidth + wnd->FromDIP(4);
     }
 
@@ -1333,7 +1340,7 @@ void wxAuiToolBar::SetToolSeparation(int separation)
 int wxAuiToolBar::GetToolSeparation() const
 {
     if (m_art)
-        return m_art->GetElementSize(wxAUI_TBART_SEPARATOR_SIZE);
+        return m_art->GetElementSizeForWindow(wxAUI_TBART_SEPARATOR_SIZE, this);
     else
         return FromDIP(5);
 }
@@ -1497,6 +1504,16 @@ bool wxAuiToolBar::SetFont(const wxFont& font)
 
 void wxAuiToolBar::SetHoverItem(wxAuiToolBarItem* pitem)
 {
+    if ( wxFrame* frame = wxDynamicCast(wxGetTopLevelParent(this), wxFrame) )
+    {
+        wxString help;
+        if (pitem)
+        {
+            help = pitem->GetLongHelp();
+        }
+        frame->DoGiveHelp(help, pitem);
+    }
+
     if (pitem && (pitem->m_state & wxAUI_BUTTON_STATE_DISABLED))
         pitem = nullptr;
 
@@ -1951,8 +1968,8 @@ wxSize wxAuiToolBar::RealizeHelper(wxReadOnlyDC& dc, wxOrientation orientation)
     wxBoxSizer* sizer = new wxBoxSizer(orientation);
 
     // add gripper area
-    int separatorSize = m_art->GetElementSize(wxAUI_TBART_SEPARATOR_SIZE);
-    int gripperSize = m_art->GetElementSize(wxAUI_TBART_GRIPPER_SIZE);
+    int separatorSize = m_art->GetElementSizeForWindow(wxAUI_TBART_SEPARATOR_SIZE, this);
+    int gripperSize = m_art->GetElementSizeForWindow(wxAUI_TBART_GRIPPER_SIZE, this);
     if (gripperSize > 0 && m_gripperVisible)
     {
         m_gripperSizerItem = sizer->AddSpacer(gripperSize);
@@ -2088,7 +2105,7 @@ wxSize wxAuiToolBar::RealizeHelper(wxReadOnlyDC& dc, wxOrientation orientation)
 
     if (m_windowStyle & wxAUI_TB_OVERFLOW)
     {
-        int overflow_size = m_art->GetElementSize(wxAUI_TBART_OVERFLOW_SIZE);
+        int overflow_size = m_art->GetElementSizeForWindow(wxAUI_TBART_OVERFLOW_SIZE, this);
         if (overflow_size > 0 && m_overflowVisible)
         {
             m_overflowSizerItem = sizer->AddSpacer(overflow_size);
@@ -2159,7 +2176,7 @@ wxRect wxAuiToolBar::GetOverflowRect() const
 {
     wxRect cli_rect(wxPoint(0,0), GetClientSize());
     wxRect overflow_rect = m_overflowSizerItem->GetRect();
-    int overflow_size = m_art->GetElementSize(wxAUI_TBART_OVERFLOW_SIZE);
+    int overflow_size = m_art->GetElementSizeForWindow(wxAUI_TBART_OVERFLOW_SIZE, this);
 
     if (m_orientation == wxVERTICAL)
     {
@@ -2462,8 +2479,8 @@ void wxAuiToolBar::OnPaint(wxPaintEvent& WXUNUSED(evt))
 
     bool horizontal = m_orientation == wxHORIZONTAL;
 
-    int gripperSize = m_art->GetElementSize(wxAUI_TBART_GRIPPER_SIZE);
-    int overflowSize = m_art->GetElementSize(wxAUI_TBART_OVERFLOW_SIZE);
+    int gripperSize = m_art->GetElementSizeForWindow(wxAUI_TBART_GRIPPER_SIZE, this);
+    int overflowSize = m_art->GetElementSizeForWindow(wxAUI_TBART_OVERFLOW_SIZE, this);
 
     // paint the gripper
     if (gripperSize > 0 && m_gripperSizerItem)
@@ -2645,7 +2662,7 @@ void wxAuiToolBar::OnLeftDown(wxMouseEvent& evt)
 
         int mouse_x = evt.GetX();
         wxRect rect = m_actionItem->m_sizerItem->GetRect();
-        int dropdownWidth = m_art->GetElementSize(wxAUI_TBART_DROPDOWN_SIZE);
+        int dropdownWidth = m_art->GetElementSizeForWindow(wxAUI_TBART_DROPDOWN_SIZE, this);
         const bool dropDownHit = m_actionItem->m_dropDown &&
                                  mouse_x >= (rect.x+rect.width-dropdownWidth) &&
                                  mouse_x < (rect.x+rect.width);
@@ -2755,7 +2772,7 @@ void wxAuiToolBar::OnRightDown(wxMouseEvent& evt)
 
     if (m_overflowSizerItem && m_art)
     {
-        int overflowSize = m_art->GetElementSize(wxAUI_TBART_OVERFLOW_SIZE);
+        int overflowSize = m_art->GetElementSizeForWindow(wxAUI_TBART_OVERFLOW_SIZE, this);
         if (overflowSize > 0 &&
             evt.m_x > cli_rect.width - overflowSize &&
             evt.m_y >= 0 &&
@@ -2827,7 +2844,7 @@ void wxAuiToolBar::OnMiddleDown(wxMouseEvent& evt)
 
     if (m_overflowSizerItem && m_art)
     {
-        int overflowSize = m_art->GetElementSize(wxAUI_TBART_OVERFLOW_SIZE);
+        int overflowSize = m_art->GetElementSizeForWindow(wxAUI_TBART_OVERFLOW_SIZE, this);
         if (overflowSize > 0 &&
             evt.m_x > cli_rect.width - overflowSize &&
             evt.m_y >= 0 &&

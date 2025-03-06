@@ -2534,7 +2534,6 @@ void wxDataViewMainWindow::OnPaint( wxPaintEvent &WXUNUSED(event) )
 
     // prepare the DC
     GetOwner()->PrepareDC( dc );
-    dc.SetFont( GetFont() );
 
     wxRect update = GetUpdateRegion().GetBox();
     m_owner->CalcUnscrolledPosition( update.x, update.y, &update.x, &update.y );
@@ -7001,7 +7000,9 @@ wxAccStatus wxDataViewCtrlAccessible::GetDescription(int childId, wxString* desc
     if ( childId == wxACC_SELF )
     {
         wxDataViewMainWindow* dvWnd = wxDynamicCast(dvCtrl->GetMainWindow(), wxDataViewMainWindow);
-        *description = wxString::Format(_("%s (%d items)"),
+        *description = wxString::Format(
+                                        // TRANSLATORS: Name of data view control and number of rows
+                                        _("%s (%d items)"),
                                         dvCtrl->GetName().c_str(), dvWnd->GetRowCount());
     }
     else

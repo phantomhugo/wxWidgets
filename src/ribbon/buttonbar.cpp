@@ -70,7 +70,7 @@ wxBitmap MakeResizedBitmap(const wxBitmap& original, wxSize size)
         scale = 2.0;
 
     wxImage img(original.ConvertToImage());
-    img.Rescale(int(scale * size.GetWidth()), int(scale * size.GetHeight()), wxIMAGE_QUALITY_HIGH);
+    img.Rescale(scale * size, wxIMAGE_QUALITY_HIGH);
     return wxBitmap(img, -1, scale);
 }
 
@@ -1428,6 +1428,7 @@ void wxRibbonButtonBar::OnMouseEnter(wxMouseEvent& evt)
 {
     if(m_active_button && !evt.LeftIsDown())
     {
+        m_active_button->base->state &= ~wxRIBBON_BUTTONBAR_BUTTON_ACTIVE_MASK;
         m_active_button = nullptr;
     }
 }

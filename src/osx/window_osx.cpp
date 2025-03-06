@@ -1799,10 +1799,13 @@ bool wxWindowMac::MacSetupCursor( const wxPoint& pt )
             // it - this is a way to say that our cursor shouldn't be used for this
             // point
             if ( !processedEvtSetCursor && m_cursor.IsOk() )
+            {
                 cursor = m_cursor ;
-
-            if ( !wxIsBusy() && !GetParent() )
+            }
+            else if ( !wxIsBusy() && !GetParent() )
+            {
                 cursor = *wxSTANDARD_CURSOR ;
+            }
         }
 
         if ( cursor.IsOk() )
@@ -2302,26 +2305,6 @@ long wxWindowMac::MacGetBottomBorderSize() const
 long wxWindowMac::MacRemoveBordersFromStyle( long style )
 {
     return style & ~wxBORDER_MASK ;
-}
-
-// Find the wxWindowMac at the current mouse position, returning the mouse
-// position.
-wxWindow * wxFindWindowAtPointer( wxPoint& pt )
-{
-    pt = wxGetMousePosition();
-    wxWindowMac* found = wxFindWindowAtPoint(pt);
-
-    return (wxWindow*) found;
-}
-
-// Get the current mouse position.
-wxPoint wxGetMousePosition()
-{
-    int x, y;
-
-    wxGetMousePosition( &x, &y );
-
-    return wxPoint(x, y);
 }
 
 void wxWindowMac::OnMouseEvent( wxMouseEvent &event )

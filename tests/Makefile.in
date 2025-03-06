@@ -251,6 +251,7 @@ TEST_GUI_OBJECTS =  \
 	test_gui_windowtest.o \
 	test_gui_dialogtest.o \
 	test_gui_clone.o \
+	test_gui_enterleave.o \
 	test_gui_evtlooptest.o \
 	test_gui_propagation.o \
 	test_gui_keyboard.o \
@@ -268,6 +269,7 @@ TEST_GUI_OBJECTS =  \
 	test_gui_garbage.o \
 	test_gui_safearrayconverttest.o \
 	test_gui_settings.o \
+	test_gui_textwrap.o \
 	test_gui_socket.o \
 	test_gui_tlw.o \
 	test_gui_dataview.o \
@@ -516,10 +518,10 @@ test$(EXEEXT): $(TEST_OBJECTS) $(__test___win32rc)
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	sed -e "s/\$${MACOSX_BUNDLE_GUI_IDENTIFIER}/org.wxwidgets.test_gui/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_EXECUTABLE_NAME}/test_gui/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_BUNDLE_NAME}/test_gui/" \
-@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_COPYRIGHT}/Copyright 2002-2024 wxWidgets/" \
+@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_COPYRIGHT}/Copyright 2002-2025 wxWidgets/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_BUNDLE_VERSION}/$(WX_VERSION)/" \
-@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_INFO_STRING}/test_gui version $(WX_VERSION), (c) 2002-2024 wxWidgets/" \
-@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_LONG_VERSION_STRING}/$(WX_VERSION), (c) 2002-2024 wxWidgets/" \
+@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_INFO_STRING}/test_gui version $(WX_VERSION), (c) 2002-2025 wxWidgets/" \
+@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_LONG_VERSION_STRING}/$(WX_VERSION), (c) 2002-2025 wxWidgets/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_SHORT_VERSION_STRING}/$(WX_RELEASE)/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	$(top_srcdir)/src/osx/carbon/Info.plist.in >test_gui.app/Contents/Info.plist
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	
@@ -550,10 +552,10 @@ test$(EXEEXT): $(TEST_OBJECTS) $(__test___win32rc)
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	sed -e "s/\$${MACOSX_BUNDLE_GUI_IDENTIFIER}/org.wxwidgets.test_allheaders/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_EXECUTABLE_NAME}/test_allheaders/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_BUNDLE_NAME}/test_allheaders/" \
-@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_COPYRIGHT}/Copyright 2002-2024 wxWidgets/" \
+@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_COPYRIGHT}/Copyright 2002-2025 wxWidgets/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_BUNDLE_VERSION}/$(WX_VERSION)/" \
-@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_INFO_STRING}/test_allheaders version $(WX_VERSION), (c) 2002-2024 wxWidgets/" \
-@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_LONG_VERSION_STRING}/$(WX_VERSION), (c) 2002-2024 wxWidgets/" \
+@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_INFO_STRING}/test_allheaders version $(WX_VERSION), (c) 2002-2025 wxWidgets/" \
+@COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_LONG_VERSION_STRING}/$(WX_VERSION), (c) 2002-2025 wxWidgets/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	-e "s/\$${MACOSX_BUNDLE_SHORT_VERSION_STRING}/$(WX_RELEASE)/" \
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	$(top_srcdir)/src/osx/carbon/Info.plist.in >test_allheaders.app/Contents/Info.plist
 @COND_PLATFORM_MACOSX_1_USE_GUI_1@	
@@ -597,7 +599,7 @@ data-image-sample:
 
 data-images: 
 	@mkdir -p image
-	@for f in bitfields.bmp bitfields-alpha.bmp 8bpp-colorsused-large.bmp 8bpp-colorsused-negative.bmp 32bpp_rgb.bmp 32bpp_rgb.ico 32bpp_rgb_a0.ico badrle4.bmp rgb16-3103.bmp rle4-delta-320x240.bmp rle8-delta-320x240.bmp rle8-delta-320x240-expected.bmp horse_grey.bmp horse_grey_flipped.bmp horse_rle4.bmp horse_rle4_flipped.bmp horse_rle8.bmp horse_rle8_flipped.bmp horse_bicubic_50x50.png horse_bicubic_100x100.png horse_bicubic_150x150.png horse_bicubic_300x300.png horse_bilinear_50x50.png horse_bilinear_100x100.png horse_bilinear_150x150.png horse_bilinear_300x300.png horse_box_average_50x50.png horse_box_average_100x100.png horse_box_average_150x150.png horse_box_average_300x300.png cross_bicubic_256x256.png cross_bilinear_256x256.png cross_box_average_256x256.png cross_nearest_neighb_256x256.png paste_input_background.png paste_input_black.png paste_input_overlay_transparent_border_opaque_square.png paste_input_overlay_transparent_border_semitransparent_circle.png paste_input_overlay_transparent_border_semitransparent_square.png paste_result_background_plus_circle_plus_square.png paste_result_background_plus_overlay_transparent_border_opaque_square.png paste_result_background_plus_overlay_transparent_border_semitransparent_square.png paste_result_no_background_square_over_circle.png wx.png toucan.png toucan_hue_0.538.png toucan_sat_-0.41.png toucan_bright_-0.259.png toucan_hsv_0.538_-0.41_-0.259.png toucan_light_46.png toucan_dis_240.png toucan_grey.png toucan_mono_255_255_255.png width-times-height-overflow.bmp width_height_32_bit_overflow.pgm bad_truncated.gif; do \
+	@for f in bitfields.bmp bitfields-alpha.bmp 8bpp-colorsused-large.bmp 8bpp-colorsused-negative.bmp 32bpp_rgb.bmp 32bpp_rgb.ico 32bpp_rgb_a0.ico badrle4.bmp rgb16-3103.bmp rgb32-7187.bmp rgb32bf.bmp rgba32.bmp rle4-delta-320x240.bmp rle8-delta-320x240.bmp rle8-delta-320x240-expected.bmp horse_grey.bmp horse_grey_flipped.bmp horse_rle4.bmp horse_rle4_flipped.bmp horse_rle8.bmp horse_rle8_flipped.bmp horse_bicubic_50x50.png horse_bicubic_100x100.png horse_bicubic_150x150.png horse_bicubic_300x300.png horse_bilinear_50x50.png horse_bilinear_100x100.png horse_bilinear_150x150.png horse_bilinear_300x300.png horse_box_average_50x50.png horse_box_average_100x100.png horse_box_average_150x150.png horse_box_average_300x300.png cross_bicubic_256x256.png cross_bilinear_256x256.png cross_box_average_256x256.png cross_nearest_neighb_256x256.png paste_input_background.png paste_input_black.png paste_input_overlay_transparent_border_opaque_square.png paste_input_overlay_transparent_border_semitransparent_circle.png paste_input_overlay_transparent_border_semitransparent_square.png paste_result_background_plus_circle_plus_square.png paste_result_background_plus_overlay_transparent_border_opaque_square.png paste_result_background_plus_overlay_transparent_border_semitransparent_square.png paste_result_no_background_square_over_circle.png wx.png toucan.png toucan_hue_0.538.png toucan_sat_-0.41.png toucan_bright_-0.259.png toucan_hsv_0.538_-0.41_-0.259.png toucan_light_46.png toucan_dis_240.png toucan_grey.png toucan_mono_255_255_255.png width-times-height-overflow.bmp width_height_32_bit_overflow.pgm bad_truncated.gif; do \
 	if test ! -f image/$$f -a ! -d image/$$f ; \
 	then x=yep ; \
 	else x=`find $(srcdir)/image/$$f -newer image/$$f -print` ; \
@@ -1165,6 +1167,9 @@ test_gui_dialogtest.o: $(srcdir)/controls/dialogtest.cpp $(TEST_GUI_ODEP)
 test_gui_clone.o: $(srcdir)/events/clone.cpp $(TEST_GUI_ODEP)
 	$(CXXC) -c -o $@ $(TEST_GUI_CXXFLAGS) $(srcdir)/events/clone.cpp
 
+test_gui_enterleave.o: $(srcdir)/events/enterleave.cpp $(TEST_GUI_ODEP)
+	$(CXXC) -c -o $@ $(TEST_GUI_CXXFLAGS) $(srcdir)/events/enterleave.cpp
+
 test_gui_evtlooptest.o: $(srcdir)/events/evtlooptest.cpp $(TEST_GUI_ODEP)
 	$(CXXC) -c -o $@ $(TEST_GUI_CXXFLAGS) $(srcdir)/events/evtlooptest.cpp
 
@@ -1215,6 +1220,9 @@ test_gui_safearrayconverttest.o: $(srcdir)/misc/safearrayconverttest.cpp $(TEST_
 
 test_gui_settings.o: $(srcdir)/misc/settings.cpp $(TEST_GUI_ODEP)
 	$(CXXC) -c -o $@ $(TEST_GUI_CXXFLAGS) $(srcdir)/misc/settings.cpp
+
+test_gui_textwrap.o: $(srcdir)/misc/textwrap.cpp $(TEST_GUI_ODEP)
+	$(CXXC) -c -o $@ $(TEST_GUI_CXXFLAGS) $(srcdir)/misc/textwrap.cpp
 
 test_gui_socket.o: $(srcdir)/net/socket.cpp $(TEST_GUI_ODEP)
 	$(CXXC) -c -o $@ $(TEST_GUI_CXXFLAGS) $(srcdir)/net/socket.cpp
@@ -1271,7 +1279,7 @@ test_allheaders_testableframe.o: $(srcdir)/testableframe.cpp $(TEST_ALLHEADERS_O
 	$(CXXC) -c -o $@ $(TEST_ALLHEADERS_CXXFLAGS) $(srcdir)/testableframe.cpp
 
 
-failtest: failtest_combobox failtest_evthandler failtest_weakref failtest_allheaders
+failtest: failtest_combobox failtest_evthandler failtest_msgid failtest_weakref failtest_allheaders
 
 failtest_combobox:
 	@$(RM) test_gui_comboboxtest.o
@@ -1291,6 +1299,13 @@ failtest_evthandler:
 	done; \
 	exit 0
 
+failtest_msgid:
+	@$(RM) test_intltest.o
+	if $(MAKE) CPPFLAGS=-DTEST_INVALID_MSGID test_intltest.o 2>/dev/null; then \
+	    echo "*** Compilation with TEST_INVALID_MSGID unexpectedly succeeded.">&2; \
+	    exit 1; \
+	fi;
+
 failtest_weakref:
 	@$(RM) test_weakref.o
 	if $(MAKE) CPPFLAGS=-DTEST_INVALID_INCOMPLETE_WEAKREF test_weakref.o 2>/dev/null; then \
@@ -1307,7 +1322,18 @@ failtest_allheaders:
 	fi; \
 	exit 0
 
-.PHONY: failtest failtest_combobox failtest_evthandler failtest_weakref failtest_allheaders
+.PHONY: failtest failtest_combobox failtest_evthandler failtest_msgid failtest_weakref failtest_allheaders
+
+allheaders_selfcontained:
+	@if [ -z "$$check_headers" ]; then \
+	    check_headers=`sed -ne '/BEGIN STANDALONE CHECK/,/END STANDALONE CHECK/s/#include <\(.\+\)>$$/\1/p' $(top_srcdir)/tests/allheaders.h`; \
+	fi; \
+	for h in $$check_headers; do \
+	    if ! $(CXX) -fsyntax-only -Wall -Werror -x c++ $(TEST_ALLHEADERS_CXXFLAGS) $(top_srcdir)/include/$$h; then \
+		echo "*** Checking $$h failed.">&2; \
+		exit 1; \
+	    fi; \
+	done
 
 # Include dependency info, if present:
 @IF_GNU_MAKE@-include ./.deps/*.d

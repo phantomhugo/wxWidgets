@@ -48,6 +48,7 @@ public:
     virtual wxTextCtrlHitTestResult HitTest(const wxPoint& pt, long *pos) const = 0;
     virtual void WriteText( const wxString &text ) = 0;
     virtual void SetMaxLength(unsigned long len) = 0;
+    virtual wxTextSearchResult SearchText(const wxTextSearch& search) const = 0;
     virtual void MarkDirty() = 0;
     virtual void DiscardEdits() = 0;
     virtual void blockSignals(bool block) = 0;
@@ -262,7 +263,7 @@ public:
     virtual wxTextCtrlHitTestResult
     HitTest(const wxPoint& pt, long* pos) const override
     {
-        auto qtEdit = static_cast<wxQtTextEdit*>(m_edit);
+        const auto qtEdit = static_cast<wxQtTextEdit*>(m_edit);
 
         auto cursor  = qtEdit->cursorForPosition( wxQtConvertPoint(pt) );
         auto curRect = qtEdit->cursorRect(cursor);
@@ -289,6 +290,44 @@ public:
     virtual void SetMaxLength(unsigned long WXUNUSED(len)) override
     {
         wxMISSING_IMPLEMENTATION("not implemented for multiline control");
+    }
+
+    virtual wxTextSearchResult SearchText(const wxTextSearch& search) const override
+    {
+        // set up the flags
+        QTextDocument::FindFlags options;
+
+        if ( search.m_direction == wxTextSearch::Direction::Up )
+        {
+            options |= QTextDocument::FindBackward;
+        }
+        if ( search.m_wholeWord )
+        {
+            options |= QTextDocument::FindWholeWords;
+        }
+        if ( search.m_matchCase )
+        {
+            options |= QTextDocument::FindCaseSensitively;
+        }
+
+        const auto searchValue = wxQtConvertString(search.m_searchValue);
+        const auto startPos = search.m_startingPosition != -1
+                            ? search.m_startingPosition // user-provided start
+                            : (search.m_direction == wxTextSearch::Direction::Down) ?
+                                // if going down, then start from 0; otherwise, start from end
+                                0 : m_edit->document()->characterCount()-1;
+
+        const auto cursor = m_edit->document()->find(searchValue, startPos, options);
+
+        wxTextSearchResult result;
+
+        if ( !cursor.isNull() )
+        {
+            result.m_start = cursor.selectionStart();
+            result.m_end = cursor.selectionEnd();
+        }
+
+        return result;
     }
 
     virtual void MarkDirty() override
@@ -475,6 +514,11 @@ public:
         m_edit->setMaxLength(len);
     }
 
+    virtual wxTextSearchResult SearchText(const wxTextSearch& WXUNUSED(search)) const override
+    {
+        return {};
+    }
+
     virtual void MarkDirty() override
     {
         return m_edit->setModified( true );
@@ -545,7 +589,7 @@ public:
     virtual wxTextCtrlHitTestResult
     HitTest(const wxPoint& pt, long *pos) const override
     {
-        auto qtEdit  = static_cast<wxQtLineEdit*>(m_edit);
+        const auto qtEdit = static_cast<wxQtLineEdit*>(m_edit);
         auto curPos  = qtEdit->cursorPositionAt( wxQtConvertPoint(pt) );
         auto curRect = qtEdit->cursorRect();
 
@@ -901,6 +945,11 @@ void wxTextCtrl::DoSetValue( const wxString &text, int flags )
         if ( flags & SetValue_SendEvent )
             SendTextUpdatedEventIfAllowed();
     }
+}
+
+wxTextSearchResult wxTextCtrl::SearchText(const wxTextSearch& search) const
+{
+    return m_qtEdit->SearchText(search);
 }
 
 #endif // wxUSE_TEXTCTRL

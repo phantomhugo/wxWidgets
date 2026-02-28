@@ -47,6 +47,9 @@ public:
     virtual void AddChild( wxWindowBase *child ) override;
     virtual void RemoveChild( wxWindowBase *child ) override;
 
+    // Obtener el ID del contenedor de contenido del frame (para DOM)
+    wxString GetContentContainerId() const;
+
 protected:
     virtual void DoGetClientSize(int *width, int *height) const override;
     virtual void DoSetClientSize(int width, int height) override;
@@ -55,12 +58,7 @@ private:
     // Common part of all ctors.
     void Init()
     {
-        m_qtToolBar = NULL;
     }
-
-
-    // Currently active native toolbar.
-    class QToolBar* m_qtToolBar;
 
     wxDECLARE_DYNAMIC_CLASS( wxFrame );
 };

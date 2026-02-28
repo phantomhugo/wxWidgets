@@ -12,6 +12,7 @@
 #ifndef WX_PRECOMP
     #include "wx/menu.h"
     #include "wx/toolbar.h"
+    #include "wx/statusbr.h"
 #endif // WX_PRECOMP
 
 #include "wx/frame.h"
@@ -31,13 +32,15 @@ bool wxFrame::Create( wxWindow *parent, wxWindowID id, const wxString& title,
                 //We change the className because this is an specialized class
                 const currentFrame=document.getElementById($0);
                 currentFrame.className="wxFrame";
+                
+                // Crear contenedor para el contenido del frame
                 const frameContent=document.createElement("div");
-                frameContent.id= "wxFrame_content";
+                frameContent.id= "wxFrame_content_" + $0;
                 frameContent.className="wxFrame_content";
-                frameContent.style.height="100%";
-                frameContent.style.width="100%";
-                frameContent.style.clear="both";
-                frameContent.style.position="absolute";
+                frameContent.style.flex="1";
+                frameContent.style.position="relative";
+                frameContent.style.overflow="auto";
+                
                 currentFrame.append(frameContent);
                 return 1;
             },
@@ -49,77 +52,77 @@ bool wxFrame::Create( wxWindow *parent, wxWindowID id, const wxString& title,
 
 void wxFrame::SetMenuBar( wxMenuBar *menuBar )
 {
+    wxFrameBase::SetMenuBar( menuBar );
+    
     if ( menuBar )
     {
         EM_ASM_INT(
             {
                 const currentFrame=document.getElementById($0);
                 const menuBar=document.getElementById($1);
-                currentFrame.prepend(menuBar);
+                if (currentFrame && menuBar) {
+                    // Insertar al principio
+                    currentFrame.insertBefore(menuBar, currentFrame.firstChild);
+                    menuBar.style.display = 'flex';
+                }
                 return 1;
             },
             GetId(),
             menuBar->GetId()
         );
     }
-    else
-    {
-        EM_ASM_INT(
-            {
-                const currentParentless=document.getElementById("wxParentlessTags");
-                const menuBar=document.getElementById($1);
-                currentParentless.append(menuBar);
-                return 1;
-            },
-            GetId(),
-            menuBar->GetId()
-        );
-    }
-    wxFrameBase::SetMenuBar( menuBar );
 }
 
 void wxFrame::SetStatusBar( wxStatusBar *statusBar )
 {
-    if ( statusBar != nullptr )
+    wxStatusBar* oldStatusBar = GetStatusBar();
+    
+    // Si hay un status bar anterior, moverlo a parentless
+    if (oldStatusBar && oldStatusBar != statusBar)
+    {
+        EM_ASM_INT(
+            {
+                const currentParentless=document.getElementById("wxParentlessTags");
+                const oldStatusBar=document.getElementById($0);
+                if (currentParentless && oldStatusBar) {
+                    currentParentless.appendChild(oldStatusBar);
+                    oldStatusBar.style.display = 'none';
+                }
+                return 1;
+            },
+            oldStatusBar->GetId()
+        );
+    }
+    
+    wxFrameBase::SetStatusBar( statusBar );
+    
+    if ( statusBar )
     {
         EM_ASM_INT(
             {
                 const currentFrame=document.getElementById($0);
                 const statusBar=document.getElementById($1);
-                currentFrame.append(statusBar);
+                if (currentFrame && statusBar) {
+                    currentFrame.appendChild(statusBar);
+                    statusBar.style.display = 'flex';
+                }
                 return 1;
             },
             GetId(),
             statusBar->GetId()
         );
     }
-    else
-    {
-        EM_ASM_INT(
-            {
-                const currentParentless=document.getElementById("wxParentlessTags");
-                const statusBar=document.getElementById($1);
-                currentParentless.append(statusBar);
-                return 1;
-            },
-            GetId(),
-            statusBar->GetId()
-        );
-    }
-    wxFrameBase::SetStatusBar( statusBar );
 }
 
 void wxFrame::SetToolBar(wxToolBar *toolbar)
 {
+    wxFrameBase::SetToolBar( toolbar );
+    
     if ( toolbar != nullptr )
     {
-
+        // TODO: Implementar toolbar en el DOM
+        // Debería ir entre el menú y el contenido
     }
-    else if ( m_frameToolBar != nullptr )
-    {
-
-    }
-    wxFrameBase::SetToolBar( toolbar );
 }
 
 void wxFrame::SetWindowStyleFlag( long style )
@@ -139,14 +142,17 @@ void wxFrame::RemoveChild( wxWindowBase *child )
 
 void wxFrame::DoGetClientSize(int *width, int *height) const
 {
+    // El tamaño del cliente debe excluir menú y status bar
     wxWindow::DoGetClientSize(width, height);
 }
 
 void wxFrame::DoSetClientSize(int width, int height)
 {
     wxWindow::DoSetClientSize(width, height);
+}
 
-    int adjustedWidth, adjustedHeight;
-    DoGetClientSize(&adjustedWidth, &adjustedHeight);
-
+// Método auxiliar para obtener el contenedor de contenido del frame
+wxString wxFrame::GetContentContainerId() const
+{
+    return wxString::Format(wxT("wxFrame_content_%d"), GetId());
 }

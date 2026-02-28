@@ -10,6 +10,7 @@
 
 #include "wx/app.h"
 #include "wx/apptrait.h"
+#include "wx/wasm/cssstyles.h"
 
 #include <emscripten.h>
 
@@ -39,6 +40,9 @@ bool wxApp::Initialize( int &argc, wxChar **argv )
             document.body.append(newTopLevelWindow);
             return 1;
     );
+
+    // Inyectar estilos CSS por defecto (GTK3-like)
+    wxWasmCSSManager::InjectDefaultStyles();
 
     WakeUpIdle();
 

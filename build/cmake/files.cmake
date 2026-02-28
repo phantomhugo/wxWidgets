@@ -3013,6 +3013,7 @@ set(WASM_SRC
     src/wasm/app.cpp
     src/wasm/apptraits.cpp
     src/wasm/bitmap.cpp
+    src/wasm/cssstyles.cpp
     src/wasm/bmpbuttn.cpp
     src/wasm/brush.cpp
     src/wasm/button.cpp

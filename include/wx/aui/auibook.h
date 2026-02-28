@@ -77,7 +77,7 @@ public:
     {
         m_dragSource = nullptr;
     }
-    wxEvent *Clone() const override { return new wxAuiNotebookEvent(*this); }
+    wxNODISCARD wxEvent *Clone() const override { return new wxAuiNotebookEvent(*this); }
 
     void SetDragSource(wxAuiNotebook* s) { m_dragSource = s; }
     wxAuiNotebook* GetDragSource() const { return m_dragSource; }
@@ -180,7 +180,7 @@ public:
     bool MovePage(size_t oldIdx, size_t newIdx);
     bool RemovePage(wxWindow* page);
     void RemovePageAt(size_t idx);
-    bool SetActivePage(wxWindow* page);
+    bool SetActivePage(const wxWindow* page);
     bool SetActivePage(size_t page);
     void SetNoneActive();
     int GetActivePage() const;
@@ -339,16 +339,18 @@ private:
 
 
 
+// This class is internal and can only be used outside of the library as a
+// pointer to an opaque object, i.e. "wxAuiTabCtrl*" returned by wxAuiNotebook
+// functions can be compared with each other and passed to wxAuiNotebook
+// functions taking them, but not otherwise.
+
 class WXDLLIMPEXP_AUI wxAuiTabCtrl : public wxControl,
                                      public wxAuiTabContainer
 {
 public:
-
-    wxAuiTabCtrl(wxWindow* parent,
-                 wxWindowID id = wxID_ANY,
-                 const wxPoint& pos = wxDefaultPosition,
-                 const wxSize& size = wxDefaultSize,
-                 long style = 0);
+    // This constructor is only used internally by the library, applications
+    // never create objects of this type.
+    wxAuiTabCtrl(wxAuiNotebook* parent, wxWindowID id);
 
     ~wxAuiTabCtrl();
 
@@ -366,12 +368,18 @@ public:
     // Also updates rowEnd for all pages in m_pages when using multiple rows.
     void DoApplyRect(const wxRect& rect, int tabCtrlHeight);
 
+    // Another internal helper: return the hint rectangle corresponding to this
+    // tab control in screen coordinates.
+    wxRect GetHintScreenRect() const;
+
+    // Get parent notebook (always valid).
+    wxAuiNotebook* GetBook() const;
+
 protected:
     // choose the default border for this window
     virtual wxBorder GetDefaultBorder() const override { return wxBORDER_NONE; }
 
     void OnPaint(wxPaintEvent& evt);
-    void OnEraseBackground(wxEraseEvent& evt);
     void OnSize(wxSizeEvent& evt);
     void OnLeftDown(wxMouseEvent& evt);
     void OnLeftDClick(wxMouseEvent& evt);
@@ -382,7 +390,6 @@ protected:
     void OnRightUp(wxMouseEvent& evt);
     void OnMotion(wxMouseEvent& evt);
     void OnLeaveWindow(wxMouseEvent& evt);
-    void OnButton(wxAuiNotebookEvent& evt);
     void OnSetFocus(wxFocusEvent& event);
     void OnKillFocus(wxFocusEvent& event);
     void OnChar(wxKeyEvent& event);
@@ -396,19 +403,57 @@ protected:
     wxWindow* m_clickTab = nullptr;
     bool m_isDragging = false;
 
-    wxAuiTabContainerButton* m_hoverButton = nullptr;
-    wxAuiTabContainerButton* m_pressedButton = nullptr;
-
     void SetHoverTab(wxWindow* wnd);
 
 private:
     // Reset dragging-related fields above to their initial values.
     void DoEndDragging();
 
+    // Find button with the given state, which is assumed to be set on one
+    // button at most, may return nullptr if none.
+    wxAuiTabContainerButton* FindButtonIn(wxAuiPaneButtonState state) const;
+
+    wxAuiTabContainerButton* FindPressedButton() const
+    {
+        return FindButtonIn(wxAUI_BUTTON_STATE_PRESSED);
+    }
+
+    wxAuiTabContainerButton* FindHoverButton() const
+    {
+        return FindButtonIn(wxAUI_BUTTON_STATE_HOVER);
+    }
+
+    // Switch on or off the given button state for the given button and refresh
+    // the window if the state has actually changed.
+    //
+    // Return true if the state was changed.
+    bool UpdateButtonStateAndRefresh(wxAuiTabContainerButton& button,
+                                     wxAuiPaneButtonState state,
+                                     bool on);
+
+    // More readable helpers for button state changes.
+    bool
+    SetButtonState(wxAuiTabContainerButton& button, wxAuiPaneButtonState state)
+    {
+        return UpdateButtonStateAndRefresh(button, state, true);
+    }
+
+    bool
+    ClearButtonState(wxAuiTabContainerButton& button, wxAuiPaneButtonState state)
+    {
+        return UpdateButtonStateAndRefresh(button, state, false);
+    }
+
+    void OnButton(int tabIdx, int button);
+
 #ifndef SWIG
     wxDECLARE_CLASS(wxAuiTabCtrl);
     wxDECLARE_EVENT_TABLE();
 #endif
+
+    // Rectangle corresponding to the full tab control area, including both
+    // tabs (which is this window) and the page area.
+    wxRect m_fullRect;
 };
 
 
@@ -610,20 +655,30 @@ protected:
     void OnChildFocusNotebook(wxChildFocusEvent& evt);
     void OnRender(wxAuiManagerEvent& evt);
     void OnSize(wxSizeEvent& evt);
-    void OnTabClicked(wxAuiNotebookEvent& evt);
-    void OnTabBeginDrag(wxAuiNotebookEvent& evt);
-    void OnTabDragMotion(wxAuiNotebookEvent& evt);
-    void OnTabEndDrag(wxAuiNotebookEvent& evt);
-    void OnTabCancelDrag(wxAuiNotebookEvent& evt);
-    void OnTabButton(wxAuiNotebookEvent& evt);
-    void OnTabMiddleDown(wxAuiNotebookEvent& evt);
-    void OnTabMiddleUp(wxAuiNotebookEvent& evt);
-    void OnTabRightDown(wxAuiNotebookEvent& evt);
-    void OnTabRightUp(wxAuiNotebookEvent& evt);
-    void OnTabBgDClick(wxAuiNotebookEvent& evt);
     void OnNavigationKeyNotebook(wxNavigationKeyEvent& event);
     void OnSysColourChanged(wxSysColourChangedEvent& event);
     void OnDpiChanged(wxDPIChangedEvent& event);
+
+    // The functions below are called by wxAuiTabCtrl via wxAuiTabEventSource.
+    //
+    // They all take the control which generated the event (never null) and all
+    // but one take the position of the tab associated with the event in this
+    // control: notice that this is _not_ the same as the index of the page, in
+    // general, m_tabs.GetIdxFromWindow(wxAuiTabCtrl::GetWindowFromIdx()) must
+    // be used to get it.
+    friend class wxAuiTabEventSource;
+
+    void OnTabClicked(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabBeginDrag(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabDragMotion(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabEndDrag(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabCancelDrag(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabButton(wxAuiTabCtrl* ctrl, int tabIdx, int button_id);
+    void OnTabMiddleDown(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabMiddleUp(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabRightDown(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabRightUp(wxAuiTabCtrl* ctrl, int tabIdx);
+    void OnTabBgDClick(wxAuiTabCtrl* ctrl);
 
     // set selection to the given window (which must be non-null and be one of
     // our pages, otherwise an assert is raised)

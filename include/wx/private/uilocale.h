@@ -10,6 +10,8 @@
 #ifndef _WX_PRIVATE_UILOCALE_H_
 #define _WX_PRIVATE_UILOCALE_H_
 
+#if wxUSE_INTL
+
 #include "wx/localedefs.h"
 #include "wx/object.h"
 #include "wx/string.h"
@@ -96,6 +98,14 @@ public:
 #endif // wxUSE_DATETIME
 
     virtual wxLayoutDirection GetLayoutDirection() const = 0;
+
+    virtual wxLocaleNumberFormatting GetNumberFormatting() const = 0;
+    virtual wxString GetCurrencySymbol() const = 0;
+    virtual wxString GetCurrencyCode() const = 0;
+    virtual wxCurrencySymbolPosition GetCurrencySymbolPosition() const = 0;
+    virtual wxLocaleCurrencyInfo GetCurrencyInfo() const = 0;
+    virtual wxMeasurementSystem UsesMetricSystem() const = 0;
+
     virtual int CompareStrings(const wxString& lhs, const wxString& rhs,
                                int flags) const = 0;
 
@@ -136,5 +146,7 @@ public:
     static int GetMatchDistance(const wxString& desired, const wxString& supported);
     static bool SameRegionGroup(const wxString& language, const wxString& desiredRegion, const wxString& supportedRegion);
 };
+
+#endif // wxUSE_INTL
 
 #endif // _WX_PRIVATE_UILOCALE_H_

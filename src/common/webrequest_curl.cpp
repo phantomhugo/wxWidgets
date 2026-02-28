@@ -23,7 +23,7 @@
 #endif
 
 #include "wx/uri.h"
-#include "wx/private/socket.h"
+#include "wx/private/sockettype.h"
 #include "wx/evtloop.h"
 
 #ifdef __WINDOWS__
@@ -49,6 +49,13 @@
 #ifndef CURLOPT_ACCEPT_ENCODING
     #define CURLOPT_ACCEPT_ENCODING CURLOPT_ENCODING
 #endif
+
+#if wxUSE_LOG_TRACE
+constexpr const char* TRACE_CURL = "curl";
+#endif
+
+// Define libcurl timeout constants
+static constexpr int LIBCURL_DEFAULT_CONNECT_TIMEOUT = 300000; // 5m in ms.
 
 //
 // wxWebResponseCURL
@@ -157,6 +164,35 @@ void wxCURLSetOpt(CURL* handle, CURLoption option, const char* value)
 void wxCURLSetOpt(CURL* handle, CURLoption option, const wxString& value)
 {
     wxCURLSetOpt(handle, option, value.utf8_str().data());
+}
+
+// Define wrapper function for initializing CURL handles.
+CURL* wxCURLEasyInit()
+{
+    CURL* handle = curl_easy_init();
+    if ( !handle )
+    {
+        wxLogDebug("curl_easy_init() failed");
+        return nullptr;
+    }
+
+    // Honour the same environment variables that curl tool itself uses for
+    // customizing the certificates locations.
+    wxString path;
+    if ( wxGetEnv("CURL_CA_BUNDLE", &path) )
+    {
+        wxCURLSetOpt(handle, CURLOPT_CAINFO, path);
+    }
+    else // CURL_CA_BUNDLE overrides SSL_CERT_XXX
+    {
+        if ( wxGetEnv("SSL_CERT_DIR", &path) )
+            wxCURLSetOpt(handle, CURLOPT_CAPATH, path);
+
+        if ( wxGetEnv("SSL_CERT_FILE", &path) )
+            wxCURLSetOpt(handle, CURLOPT_CAINFO, path);
+    }
+
+    return handle;
 }
 
 } // anonymous namespace
@@ -303,6 +339,96 @@ static size_t wxCURLRead(char *buffer, size_t size, size_t nitems, void *userdat
     return static_cast<wxWebRequestCURL*>(userdata)->CURLOnRead(buffer, size * nitems);
 }
 
+static int wxCURLSeek(void* userdata, curl_off_t offset, int origin)
+{
+    wxCHECK_MSG( userdata, CURL_SEEKFUNC_CANTSEEK, "invalid curl seek callback data" );
+
+    return static_cast<wxWebRequestCURL*>(userdata)->CURLOnSeek(offset, origin);
+}
+
+static int
+wxCURLDebugFunction(CURL* WXUNUSED(handle),
+                    curl_infotype type,
+                    char* data,
+                    size_t size,
+                    void* userdata)
+{
+    wxCHECK_MSG( userdata, 0, "invalid curl debug function data" );
+
+    auto* const logger = static_cast<wxWebRequestDebugLogger*>(userdata);
+    wxString text;
+    switch ( type )
+    {
+        case CURLINFO_TEXT:
+        case CURLINFO_HEADER_IN:
+        case CURLINFO_HEADER_OUT:
+            text = wxString::FromUTF8(data, size);
+            break;
+
+        case CURLINFO_DATA_IN:
+        case CURLINFO_SSL_DATA_IN:
+            logger->OnDataReceived(data, size);
+            break;
+
+        case CURLINFO_DATA_OUT:
+        case CURLINFO_SSL_DATA_OUT:
+            logger->OnDataSent(data, size);
+            break;
+
+        case CURLINFO_END:
+            wxFAIL_MSG("Unexpected CURLINFO_END info type in debug function");
+            break;
+    }
+
+    if ( !text.empty() )
+    {
+        // Remove trailing newline added by libcurl.
+        text.Trim();
+
+        if ( type == CURLINFO_TEXT )
+        {
+            // Informational messages are always on single line, so we don't
+            // need to do anything else with them.
+            logger->OnInfo(text);
+        }
+        else // Header or similar.
+        {
+            // We may have multiple lines and each of them may be either a
+            // header or a request/status line as libcurl reports both of them
+            // in the same way.
+            for ( auto const& line: wxSplit(text, '\n') )
+            {
+                wxString value;
+                auto const name = line.BeforeFirst(':', &value);
+
+                // A correct "start line" (from RFC 7230) can't include a colon
+                // before a space, so this is a simple way to distinguish it
+                // from a header field.
+                if ( value.empty() || name.find(' ') != wxString::npos )
+                {
+                    if ( type == CURLINFO_HEADER_IN )
+                        logger->OnResponseReceived(line);
+                    else // CURLINFO_HEADER_OUT
+                        logger->OnRequestSent(line);
+                }
+                else
+                {
+                    // Remove leading space, if any.
+                    value.Trim(false);
+
+                    if ( type == CURLINFO_HEADER_IN )
+                        logger->OnHeaderReceived(name, value);
+                    else // CURLINFO_HEADER_OUT
+                        logger->OnHeaderSent(name, value);
+                }
+            }
+        }
+    }
+
+    // We must always return 0 according to libcurl documentation.
+    return 0;
+}
+
 wxWebRequestCURL::wxWebRequestCURL(wxWebSession & session,
                                    wxWebSessionCURL& sessionImpl,
                                    wxEvtHandler* handler,
@@ -310,7 +436,7 @@ wxWebRequestCURL::wxWebRequestCURL(wxWebSession & session,
                                    int id):
     wxWebRequestImpl(session, sessionImpl, handler, id),
     m_sessionCURL(&sessionImpl),
-    m_handle(curl_easy_init())
+    m_handle(wxCURLEasyInit())
 {
 
     DoStartPrepare(url);
@@ -345,6 +471,8 @@ void wxWebRequestCURL::DoStartPrepare(const wxString& url)
     wxCURLSetOpt(m_handle, CURLOPT_HEADERFUNCTION, wxCURLHeader);
     wxCURLSetOpt(m_handle, CURLOPT_READFUNCTION, wxCURLRead);
     wxCURLSetOpt(m_handle, CURLOPT_READDATA, this);
+    wxCURLSetOpt(m_handle, CURLOPT_SEEKFUNCTION, wxCURLSeek);
+    wxCURLSetOpt(m_handle, CURLOPT_SEEKDATA, this);
     // Enable gzip, etc decompression
     wxCURLSetOpt(m_handle, CURLOPT_ACCEPT_ENCODING, "");
     // Enable redirection handling
@@ -387,8 +515,9 @@ void wxWebRequestCURL::DoStartPrepare(const wxString& url)
             break;
     }
 
-    // Enable all supported authentication methods
-    wxCURLSetOpt(m_handle, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+    // Enable all supported authentication methods for proxy if we're using it,
+    // but wait until we know whether we're using basic authentication for HTTP
+    // in DoFinishPrepare() before enabling it for HTTP as well.
     if ( usingProxy )
         wxCURLSetOpt(m_handle, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
 }
@@ -408,6 +537,22 @@ wxWebRequestCURL::~wxWebRequestCURL()
 
 wxWebRequest::Result wxWebRequestCURL::DoFinishPrepare()
 {
+    // Force using basic authentication if necessary.
+    auto httpAuthMethod = CURLAUTH_ANY;
+    auto const& basicAuthCred = GetBasicAuthCredentials();
+    if ( basicAuthCred.IsOk() )
+    {
+        httpAuthMethod = CURLAUTH_BASIC;
+
+        wxCURLSetOpt(m_handle, CURLOPT_USERNAME,
+                     basicAuthCred.GetUser());
+        wxCURLSetOpt(m_handle, CURLOPT_PASSWORD,
+                     basicAuthCred.GetPassword().GetAsString());
+    }
+
+    wxCURLSetOpt(m_handle, CURLOPT_HTTPAUTH, httpAuthMethod);
+
+
     m_response.reset(new wxWebResponseCURL(*this));
 
     const auto result = m_response->InitFileStorage();
@@ -467,6 +612,15 @@ wxWebRequest::Result wxWebRequestCURL::DoFinishPrepare()
     if ( securityFlags & wxWebRequest::Ignore_Host )
         wxCURLSetOpt(m_handle, CURLOPT_SSL_VERIFYHOST, 0);
 
+
+    // Enable debug logging if requested.
+    if ( auto const* logger = GetSessionImpl().GetDebugLogger() )
+    {
+        wxCURLSetOpt(m_handle, CURLOPT_DEBUGDATA, logger);
+        wxCURLSetOpt(m_handle, CURLOPT_DEBUGFUNCTION, wxCURLDebugFunction);
+        wxCURLSetOpt(m_handle, CURLOPT_VERBOSE, 1L);
+    }
+
     return Result::Ok();
 }
 
@@ -493,6 +647,32 @@ void wxWebRequestCURL::Start()
         return;
 
     StartRequest();
+}
+
+void wxWebRequestCURL::SetTimeouts(long connectionTimeoutMs,
+                                   long dataTimeoutMs)
+{
+    if ( connectionTimeoutMs == wxWebRequest::Timeout_Default )
+        connectionTimeoutMs = LIBCURL_DEFAULT_CONNECT_TIMEOUT;
+
+    if ( connectionTimeoutMs == wxWebRequest::Timeout_Infinite )
+        connectionTimeoutMs = LONG_MAX;
+
+    wxCURLSetOpt(m_handle, CURLOPT_CONNECTTIMEOUT_MS, connectionTimeoutMs);
+
+    // Don't set full request timeout if not specified.
+    if ( dataTimeoutMs == wxWebRequest::Timeout_Infinite ||
+         dataTimeoutMs == wxWebRequest::Timeout_Default )
+    {
+        return;
+    }
+
+    // Check that connectionTimeoutMs + dataTimeoutMs doesn't overflow.
+    const long overflowDiff = LONG_MAX - connectionTimeoutMs;
+    wxCHECK_RET( dataTimeoutMs <= overflowDiff, "Timeout values overflow" );
+
+    const long fullTimeoutMs = connectionTimeoutMs + dataTimeoutMs;
+    wxCURLSetOpt(m_handle, CURLOPT_TIMEOUT_MS, fullTimeoutMs);
 }
 
 bool wxWebRequestCURL::StartRequest()
@@ -558,6 +738,34 @@ size_t wxWebRequestCURL::CURLOnRead(char* buffer, size_t size)
     }
     else
         return 0;
+}
+
+int wxWebRequestCURL::CURLOnSeek(curl_off_t offset, int origin)
+{
+    wxSeekMode mode = wxFromStart;
+    switch ( origin )
+    {
+        case SEEK_SET:
+            mode = wxFromStart;
+            break;
+
+        case SEEK_CUR:
+            mode = wxFromCurrent;
+            break;
+
+        case SEEK_END:
+            mode = wxFromEnd;
+            break;
+
+        default:
+            wxLogTrace(TRACE_CURL, "Seek function: unknown origin %d", origin);
+            return CURL_SEEKFUNC_CANTSEEK;
+    }
+
+    if ( m_dataStream->SeekI(offset, mode) == wxInvalidOffset )
+        return CURL_SEEKFUNC_CANTSEEK;
+
+    return CURL_SEEKFUNC_OK;
 }
 
 wxFileOffset wxWebRequestCURL::GetBytesSent() const
@@ -758,7 +966,7 @@ LRESULT CALLBACK WinSock1SocketPoller::MsgProc(WXHWND hwnd, WXUINT uMsg,
 
     if ( uMsg == SOCKET_MESSAGE )
     {
-        // Extract the result any any errors from lParam.
+        // Extract the result and any errors from lParam.
         int winResult = LOWORD(lParam);
         int error = HIWORD(lParam);
 
@@ -816,8 +1024,6 @@ LRESULT CALLBACK WinSock1SocketPoller::MsgProc(WXHWND hwnd, WXUINT uMsg,
 using SocketPollerBase = WinSock1SocketPoller;
 
 #else
-
-constexpr const char* TRACE_CURL = "curl";
 
 // SocketPollerSourceHandler - a source handler used by the SocketPoller class.
 
@@ -1114,7 +1320,7 @@ wxWebSessionSyncCURL::CreateRequestSync(wxWebSessionSync& WXUNUSED(session),
     if ( !m_handle )
     {
         // Allocate it the first time we need it and keep it later.
-        m_handle = curl_easy_init();
+        m_handle = wxCURLEasyInit();
     }
     else
     {

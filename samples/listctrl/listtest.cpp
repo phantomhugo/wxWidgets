@@ -861,7 +861,7 @@ void MyFrame::OnGetColOrder(wxCommandEvent& WXUNUSED(event))
                                 n, m_listCtrl->GetColumnIndexFromOrder(n));
     }
 
-    wxLogMessage("%s", msg);
+    wxLogMessage(msg);
 }
 
 #endif // wxHAS_LISTCTRL_COLUMN_ORDER
@@ -1491,6 +1491,7 @@ void MyListCtrl::OnRightClick(wxMouseEvent& event)
         case wxLIST_HITTEST_NOWHERE: where = "nowhere near"; break;
         case wxLIST_HITTEST_ONITEMICON: where = "on icon of"; break;
         case wxLIST_HITTEST_ONITEMLABEL: where = "on label of"; break;
+        case wxLIST_HITTEST_ONITEMSTATEICON: where = "on checkbox of"; break;
         case wxLIST_HITTEST_TOLEFT: where = "to the left of"; break;
         case wxLIST_HITTEST_TORIGHT: where = "to the right of"; break;
         default: where = "not clear exactly where on"; break;

@@ -24,10 +24,6 @@
 #  include "wx/stream.h"
 #endif
 
-// on some systems (Unixware 7.x) index is defined as a macro in the headers
-// which breaks the compilation below
-#undef index
-
 #define wxIMAGE_OPTION_QUALITY               wxString(wxS("quality"))
 #define wxIMAGE_OPTION_FILENAME              wxString(wxS("FileName"))
 
@@ -111,6 +107,12 @@ class WXDLLIMPEXP_CORE wxImageHandler: public wxObject
 public:
     wxImageHandler()
         : m_name(wxEmptyString), m_extension(wxEmptyString), m_mime(), m_type(wxBITMAP_TYPE_INVALID)
+        { }
+    wxImageHandler(const wxString& name,
+                   const wxString& ext,
+                   wxBitmapType type,
+                   const wxString& mime)
+        : m_name(name), m_extension(ext), m_mime(mime), m_type(type)
         { }
 
 #if wxUSE_STREAMS
@@ -439,8 +441,8 @@ public:
     // This method converts an image where the original alpha
     // information is only available as a shades of a colour
     // (actually shades of grey) typically when you draw anti-
-    // aliased text into a bitmap. The DC drawinf routines
-    // draw grey values on the black background although they
+    // aliased text into a bitmap. The DC drawing routines
+    // draw grey values on the black background, although they
     // actually mean to draw white with different alpha values.
     // This method reverses it, assuming a black (!) background
     // and white text (actually only the red channel is read).
@@ -506,6 +508,7 @@ public:
     unsigned char *GetData() const;
     void SetData( unsigned char *data, bool static_data=false );
     void SetData( unsigned char *data, int new_width, int new_height, bool static_data=false );
+    void SetDataRGBA(const unsigned char* data);
 
     unsigned char *GetAlpha() const;    // may return nullptr!
     bool HasAlpha() const { return GetAlpha() != nullptr; }
@@ -608,7 +611,7 @@ protected:
     long XYToIndex(int x, int y) const;
 
     virtual wxObjectRefData* CreateRefData() const override;
-    virtual wxObjectRefData* CloneRefData(const wxObjectRefData* data) const override;
+    wxNODISCARD virtual wxObjectRefData* CloneRefData(const wxObjectRefData* data) const override;
 
 private:
     friend class WXDLLIMPEXP_FWD_CORE wxImageHandler;
@@ -667,6 +670,7 @@ extern WXDLLIMPEXP_DATA_CORE(wxImage)    wxNullImage;
 #include "wx/imagtiff.h"
 #include "wx/imagpnm.h"
 #include "wx/imagxpm.h"
+#include "wx/imagwebp.h"
 #include "wx/imagiff.h"
 
 #endif // wxUSE_IMAGE

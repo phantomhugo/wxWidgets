@@ -88,90 +88,6 @@ wxButtonCocoaImpl::wxButtonCocoaImpl(wxWindowMac *wxpeer, wxNSButton *v)
     SetNeedsFrame(false);
 }
 
-void wxButtonCocoaImpl::SetBitmap(const wxBitmapBundle& bitmap)
-{
-    // switch bezel style for plain pushbuttons
-    if ( bitmap.IsOk() )
-    {
-        if ([GetNSButton() bezelStyle] == NSRoundedBezelStyle)
-            [GetNSButton() setBezelStyle:NSRegularSquareBezelStyle];
-    }
-    else
-    {
-        [GetNSButton() setBezelStyle:NSRoundedBezelStyle];
-    }
-    
-    wxWidgetCocoaImpl::SetBitmap(bitmap);
-}
-
-#if wxUSE_MARKUP
-void wxButtonCocoaImpl::SetLabelMarkup(const wxString& markup)
-{
-    wxMarkupToAttrString toAttr(GetWXPeer()->GetFont(), markup);
-    NSMutableAttributedString *attrString = toAttr.GetNSAttributedString();
-    
-    // Button text is always centered.
-    NSMutableParagraphStyle *
-    paragraphStyle = [[NSMutableParagraphStyle alloc] init];
-    [paragraphStyle setAlignment: NSCenterTextAlignment];
-    [attrString addAttribute:NSParagraphStyleAttributeName
-                       value:paragraphStyle
-                       range:NSMakeRange(0, [attrString length])];
-    [paragraphStyle release];
-    
-    [GetNSButton() setAttributedTitle:attrString];
-}
-#endif // wxUSE_MARKUP
-
-void wxButtonCocoaImpl::SetPressedBitmap( const wxBitmapBundle& bitmap )
-{
-    NSButton* button = GetNSButton();
-    [button setAlternateImage: wxOSXGetImageFromBundle(bitmap)];
-#if wxUSE_TOGGLEBTN
-    if ( GetWXPeer()->IsKindOf(wxCLASSINFO(wxToggleButton)) )
-    {
-        [button setButtonType:NSToggleButton];
-    }
-    else
-#endif
-    {
-        [button setButtonType:NSMomentaryChangeButton];
-    }
-}
-
-void wxButtonCocoaImpl::SetAcceleratorFromLabel(const wxString& label)
-{
-    const int accelPos = wxControl::FindAccelIndex(label);
-    if ( accelPos != wxNOT_FOUND )
-    {
-        wxString accelstring(label[accelPos + 1]); // Skip '&' itself
-        accelstring.MakeLower();
-        // Avoid Cmd+C closing dialog on Mac.
-        if (accelstring == "c" && GetWXPeer()->GetId() == wxID_CANCEL)
-        {
-            [GetNSButton() setKeyEquivalent:@""];
-        }
-        else
-        {
-            wxString cancelLabel(_("&Cancel"));
-            wxCFStringRef cfText(accelstring);
-            [GetNSButton() setKeyEquivalent:cfText.AsNSString()];
-            [GetNSButton() setKeyEquivalentModifierMask:NSCommandKeyMask];
-        }
-    }
-    else
-    {
-        [GetNSButton() setKeyEquivalent:@""];
-    }
-}
-
-NSButton *wxButtonCocoaImpl::GetNSButton() const
-{
-    wxASSERT( [m_osxView isKindOfClass:[NSButton class]] );
-    
-    return static_cast<NSButton *>(m_osxView);
-}
-
 // Set bezel style depending on the wxBORDER_XXX flags specified by the style
 // and also accounting for the label (bezels are different for multiline
 // buttons and normal ones) and the ID (special bezel is used for help button).
@@ -227,12 +143,92 @@ SetBezelStyleFromBorderFlags(NSButton *v,
             case wxBORDER_RAISED:
             case wxBORDER_THEME:
                 bezel = isSimpleText ? NSRoundedBezelStyle
-                                     : NSSmallSquareBezelStyle;
+                                     : NSRegularSquareBezelStyle;
                 break;
         }
 
         [v setBezelStyle:bezel];
     }
+}
+
+void wxButtonCocoaImpl::SetBitmap(const wxBitmapBundle& bitmap)
+{
+    // Update the bezel style as may be necessary if our new label is multi
+    // line while the old one wasn't (or vice versa).
+    SetBezelStyleFromBorderFlags(GetNSButton(),
+                                 GetWXPeer()->GetWindowStyle(),
+                                 GetWXPeer()->GetId(),
+                                 GetWXPeer()->GetLabel(),
+                                 bitmap );
+
+    wxWidgetCocoaImpl::SetBitmap(bitmap);
+}
+
+#if wxUSE_MARKUP
+void wxButtonCocoaImpl::SetLabelMarkup(const wxString& markup)
+{
+    wxMarkupToAttrString toAttr(GetWXPeer()->GetFont(), markup);
+    NSMutableAttributedString *attrString = toAttr.GetNSAttributedString();
+
+    // Button text is always centered.
+    NSMutableParagraphStyle *
+    paragraphStyle = [[NSMutableParagraphStyle alloc] init];
+    [paragraphStyle setAlignment: NSCenterTextAlignment];
+    [attrString addAttribute:NSParagraphStyleAttributeName
+                       value:paragraphStyle
+                       range:NSMakeRange(0, [attrString length])];
+    [paragraphStyle release];
+
+    [GetNSButton() setAttributedTitle:attrString];
+}
+#endif // wxUSE_MARKUP
+
+void wxButtonCocoaImpl::SetPressedBitmap( const wxBitmapBundle& bitmap )
+{
+    NSButton* button = GetNSButton();
+    [button setAlternateImage: wxOSXGetImageFromBundle(bitmap)];
+#if wxUSE_TOGGLEBTN
+    if ( GetWXPeer()->IsKindOf(wxCLASSINFO(wxToggleButton)) )
+    {
+        [button setButtonType:NSToggleButton];
+    }
+    else
+#endif
+    {
+        [button setButtonType:NSMomentaryChangeButton];
+    }
+}
+
+void wxButtonCocoaImpl::SetAcceleratorFromLabel(const wxString& label)
+{
+    const int accelPos = wxControl::FindAccelIndex(label);
+    if ( accelPos != wxNOT_FOUND )
+    {
+        wxString accelstring(label[accelPos + 1]); // Skip '&' itself
+        accelstring.MakeLower();
+        // Avoid Cmd+C closing dialog on Mac.
+        if (accelstring == "c" && (GetWXPeer()->GetId() == wxID_CANCEL || GetWXPeer()->GetId() == wxID_CLOSE))
+        {
+            [GetNSButton() setKeyEquivalent:@""];
+        }
+        else
+        {
+            wxCFStringRef cfText(accelstring);
+            [GetNSButton() setKeyEquivalent:cfText.AsNSString()];
+            [GetNSButton() setKeyEquivalentModifierMask:NSCommandKeyMask];
+        }
+    }
+    else
+    {
+        [GetNSButton() setKeyEquivalent:@""];
+    }
+}
+
+NSButton *wxButtonCocoaImpl::GetNSButton() const
+{
+    wxASSERT( [m_osxView isKindOfClass:[NSButton class]] );
+
+    return static_cast<NSButton *>(m_osxView);
 }
 
 // Set the keyboard accelerator key from the label (e.g. "Click &Me")
@@ -245,7 +241,8 @@ void wxButton::OSXUpdateAfterLabelChange(const wxString& label)
     SetBezelStyleFromBorderFlags(impl->GetNSButton(),
                                  GetWindowStyle(),
                                  GetId(),
-                                 label);
+                                 label,
+                                 GetBitmap() );
 
 
     // Skip setting the accelerator for the default buttons as this would

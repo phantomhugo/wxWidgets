@@ -25,6 +25,7 @@
 #include "wx/imaglist.h"
 #include "wx/recguard.h"
 
+#include "wx/qt/private/compat.h"
 #include "wx/qt/private/winevent.h"
 #include "wx/qt/private/treeitemfactory.h"
 
@@ -159,14 +160,14 @@ public:
         if ( parent.isValid() )
             return 0;
 
-        return static_cast<int>(m_rows.size());
+        return wxSsize(m_rows);
     }
     int columnCount(const QModelIndex& parent = QModelIndex()) const override
     {
         if ( parent.isValid() )
             return 0;
 
-        return static_cast<int>(m_headers.size());
+        return wxSsize(m_headers);
     }
 
     QVariant data(const QModelIndex &index, int role) const override
@@ -252,12 +253,12 @@ public:
         const int col = index.column();
 
         wxCHECK_MSG(
-            row >= 0 && static_cast<size_t>(row) < m_rows.size(),
+            row >= 0 && row < wxSsize(m_rows),
             false,
             "Invalid row index"
         );
         wxCHECK_MSG(
-            col >= 0 && static_cast<size_t>(col) < m_rows[row].m_columns.size(),
+            col >= 0 && col < wxSsize(m_rows[row].m_columns),
             false,
             "Invalid column index"
         );
@@ -295,7 +296,7 @@ public:
         if ( orientation == Qt::Vertical )
             return QVariant();
 
-        wxCHECK_MSG(static_cast<size_t>(section) < m_headers.size(),
+        wxCHECK_MSG(section < wxSsize(m_headers),
             QVariant(), "Invalid header index");
 
         const ColumnItem& header = m_headers[section];
@@ -366,7 +367,7 @@ public:
 
         eraseFromContainer(m_headers, column, count);
 
-        const int nRows = this->m_rows.size();
+        const int nRows = wxSsize(m_rows);
         for ( int i = 0; i < nRows; ++i )
         {
             eraseFromContainer(m_rows[i].m_columns, column, count);
@@ -378,8 +379,7 @@ public:
 
     bool GetColumn(int index, wxListItem &info) const
     {
-        wxCHECK_MSG(static_cast<size_t>(index) < m_headers.size(),
-            false, "Invalid column");
+        wxCHECK_MSG(index < wxSsize(m_headers), false, "Invalid column");
 
         const ColumnItem &column = m_headers[index];
         info.SetText(wxQtConvertString(column.m_label));
@@ -390,8 +390,7 @@ public:
 
     bool SetColumn(int index, const wxListItem& info)
     {
-        wxCHECK_MSG(static_cast<size_t>(index) < m_headers.size(),
-            false, "Invalid column");
+        wxCHECK_MSG(index < wxSsize(m_headers), false, "Invalid column");
 
         ColumnItem &column = m_headers[index];
 
@@ -413,13 +412,13 @@ public:
         const int col = info.m_col;
 
         wxCHECK_MSG(
-            row >= 0 && static_cast<size_t>(row) < m_rows.size(),
+            row >= 0 && row < wxSsize(m_rows),
             false,
             "Invalid row"
         );
 
         wxCHECK_MSG(
-            col >= 0 && static_cast<size_t>(col) < m_rows[row].m_columns.size(),
+            col >= 0 && col < wxSsize(m_rows[row].m_columns),
             false,
             "Invalid col"
         );
@@ -454,7 +453,9 @@ public:
 
         const QModelIndex modelIndex = index(row, col);
 
-        if ( info.m_mask & wxLIST_MASK_STATE )
+        // For consistency with the other ports, don't generate wxEVT_LIST_ITEM_SELECTED
+        // event when the list control is shown for the first time.
+        if ( m_view->isVisible() && info.m_mask & wxLIST_MASK_STATE )
         {
             if ( (info.m_stateMask & wxLIST_STATE_FOCUSED) &&
                 (info.m_state & wxLIST_STATE_FOCUSED) )
@@ -535,7 +536,7 @@ public:
 
     wxColour GetItemTextColour(long item)
     {
-        wxCHECK_MSG(item >= 0 && static_cast<size_t>(item) < m_rows.size(),
+        wxCHECK_MSG(item >= 0 && item < wxSsize(m_rows),
             wxNullColour, "Invalid row");
 
         wxCHECK_MSG(!m_rows[item].m_columns.empty(),
@@ -546,7 +547,7 @@ public:
 
     wxColour GetItemBackgroundColour(long item)
     {
-        wxCHECK_MSG(item >= 0 && static_cast<size_t>(item) < m_rows.size(),
+        wxCHECK_MSG(item >= 0 && item < wxSsize(m_rows),
             wxNullColour, "Invalid row");
         wxCHECK_MSG(!m_headers.empty(),
             wxNullColour, "No columns in model");
@@ -556,7 +557,7 @@ public:
 
     wxFont GetItemFont(long item)
     {
-        wxCHECK_MSG(item >= 0 && static_cast<size_t>(item) < m_rows.size(),
+        wxCHECK_MSG(item >= 0 && item < wxSsize(m_rows),
             wxNullFont, "Invalid row");
 
         wxCHECK_MSG(!m_headers.empty(),
@@ -572,8 +573,8 @@ public:
 
         const QString strUpper = str.toUpper();
 
-        const long numberOfRows = m_rows.size();
-        const long numberOfColumns = m_headers.size();
+        const long numberOfRows = wxSsize(m_rows);
+        const long numberOfColumns = wxSsize(m_headers);
 
         if ( partial )
         {
@@ -624,16 +625,16 @@ public:
         const int column = info.GetColumn();
         wxCHECK_MSG(column >= 0, -1, "Invalid column index");
 
-        if ( static_cast<size_t>(column) >= m_headers.size() )
+        if ( column >= wxSsize(m_headers) )
         {
-            beginInsertColumns(QModelIndex(), m_headers.size(), column);
+            beginInsertColumns(QModelIndex(), wxSsize(m_headers), column);
 
             const ColumnItem emptyColumn;
 
-            for ( int c = m_headers.size(); c <= column; ++c )
+            for ( int c = wxSsize(m_headers); c <= column; ++c )
             {
                 m_headers.push_back(emptyColumn);
-                for ( size_t r = 0; r < m_rows.size(); ++r )
+                for ( int r = 0; r < wxSsize(m_rows); ++r )
                 {
                     m_rows[r].m_columns.push_back(emptyColumn);
                 }
@@ -645,7 +646,7 @@ public:
         const long row = info.GetId();
         long newRowIndex;
 
-        if ( row == -1 || static_cast<size_t>(row) >= m_rows.size() )
+        if ( row == -1 || row >= wxSsize(m_rows) )
         {
             size_t colCount = m_headers.size();
             RowItem rowItem(colCount);
@@ -693,7 +694,7 @@ public:
         }
         newColumn.m_label = wxQtConvertString(info.GetText());
 
-        if ( col == -1 || static_cast<size_t>(col) >= m_headers.size() )
+        if ( col == -1 || col >= wxSsize(m_headers) )
         {
             newColumnIndex = m_headers.empty() ? 0 : m_headers.size();
         }
@@ -734,16 +735,14 @@ public:
 
     bool IsItemChecked(long item) const
     {
-        wxCHECK_MSG(item >= 0 && static_cast<size_t>(item) <= m_rows.size(),
-            false, "Invalid row");
+        wxCHECK_MSG(item >= 0 && item <= wxSsize(m_rows), false, "Invalid row");
 
         return m_rows[item].m_checked;
     }
 
     void CheckItem(long item, bool check)
     {
-        wxCHECK_RET(item >= 0 && static_cast<size_t>(item) <= m_rows.size(),
-            "Invalid row");
+        wxCHECK_RET(item >= 0 && item <= wxSsize(m_rows), "Invalid row");
 
         m_rows[item].m_checked = check;
 
@@ -1138,8 +1137,8 @@ protected:
             {
                 m_isDragging = false;
 
-                const ListEventData eventData { m_parent->columnAt(event->x()), -1 };
-
+                const QPoint pos = wxQtGetEventPosition(event);
+                const ListEventData eventData { m_parent->columnAt(pos.x()), -1 };
                 m_parent->EmitListEvent(wxEVT_LIST_COL_END_DRAG, QModelIndex(), &eventData);
             }
 

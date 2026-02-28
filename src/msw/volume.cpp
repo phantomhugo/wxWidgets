@@ -323,7 +323,7 @@ static int CompareFcn(const wxString& first, const wxString& second)
 //=============================================================================
 // Function: BuildRemoteList
 // Purpose: Append Network Neighborhood items to the list.
-// Notes: - Mounted gets transalated into Connected.  FilteredAdd is told
+// Notes: - Mounted gets translated into Connected.  FilteredAdd is told
 //          to ignore the Mounted flag since we need to handle it in a weird
 //          way manually.
 //        - The resulting list is sorted alphabetically.
@@ -565,11 +565,6 @@ int wxFSVolumeBase::GetFlags() const
 
 #if wxUSE_GUI
 
-void wxFSVolume::InitIcons()
-{
-    m_icons.resize(wxFS_VOL_ICO_MAX);
-}
-
 //=============================================================================
 // Function: GetIcon
 // Purpose: return the requested icon.
@@ -577,6 +572,14 @@ void wxFSVolume::InitIcons()
 
 wxIcon wxFSVolume::GetIcon(wxFSIconType type) const
 {
+    auto* const self = const_cast<wxFSVolume*>(this);
+
+    if ( m_icons.empty() )
+    {
+        // Allocate on first access.
+        self->m_icons.resize(wxFS_VOL_ICO_MAX);
+    }
+
     wxCHECK_MSG( type >= 0 && (size_t)type < m_icons.size(), wxNullIcon,
                  wxT("wxFSIconType::GetIcon(): invalid icon index") );
 
@@ -616,7 +619,7 @@ wxIcon wxFSVolume::GetIcon(wxFSIconType type) const
         }
         else
         {
-            const_cast<wxIcon&>(m_icons[type]).CreateFromHICON((WXHICON)fi.hIcon);
+            self->m_icons[type].CreateFromHICON((WXHICON)fi.hIcon);
         }
     }
 

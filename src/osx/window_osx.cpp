@@ -217,6 +217,10 @@ void wxWindowMac::Init()
     m_clipChildren = false ;
     m_cachedClippedRectValid = false ;
     m_isNativeWindowWrapper = false;
+#ifdef __WXOSX_IPHONE__
+    m_scrollTargetWindow = this;
+    m_scrollOwnerWindow = this;
+#endif
 }
 
 wxWindowMac::~wxWindowMac()
@@ -235,7 +239,7 @@ wxWindowMac::~wxWindowMac()
                 wxLogLastError(wxT("UnregisterHotKey"));
             }
         }
-    }    
+    }
 #endif
 
     MacInvalidateBorders() ;
@@ -261,6 +265,13 @@ wxWindowMac::~wxWindowMac()
     delete GetPeer() ;
 }
 
+void wxWindowMac::MacClipsToBounds( bool clip )
+{
+    if ( m_peer )
+        m_peer->ClipsToBounds(clip);
+}
+
+
 void wxWindowMac::MacSetClipChildren()
 {
     m_clipChildren = true ;
@@ -275,8 +286,8 @@ WXWidget wxWindowMac::GetHandle() const
     return nullptr;
 }
 
-wxOSXWidgetImpl* wxWindowMac::GetPeer() const 
-{ 
+wxOSXWidgetImpl* wxWindowMac::GetPeer() const
+{
     return m_peer == kOSXNoWidgetImpl ? nullptr : m_peer ;
 }
 
@@ -291,7 +302,7 @@ void wxWindowMac::DontCreatePeer()
 }
 
 void wxWindowMac::SetWrappingPeer(wxOSXWidgetImpl* wrapper)
-{ 
+{
     wxOSXWidgetImpl* inner = GetPeer();
     wxASSERT_MSG( inner != nullptr && inner->IsOk(), "missing or incomplete inner peer" );
     wxASSERT_MSG( wrapper != nullptr && wrapper->IsOk(), "missing or incomplete wrapper" );
@@ -345,8 +356,8 @@ void wxWindowMac::SetPeer(wxOSXWidgetImpl* peer)
     }
 }
 
-bool wxWindowMac::MacIsUserPane() const 
-{ 
+bool wxWindowMac::MacIsUserPane() const
+{
     return GetPeer() == nullptr || GetPeer()->IsUserPane();
 }
 
@@ -388,6 +399,8 @@ bool wxWindowMac::Create(wxWindowMac *parent,
 
     m_hScrollBarAlwaysShown =
     m_vScrollBarAlwaysShown = HasFlag(wxALWAYS_SHOW_SB);
+    if ( HasTransparentBackground())
+        m_backgroundStyle = wxBG_STYLE_TRANSPARENT;
 
     if ( m_peer != kOSXNoWidgetImpl )
     {
@@ -837,29 +850,14 @@ void wxWindowMac::DoGetClientSize( int *x, int *y ) const
     }
 }
 
-bool wxWindowMac::SetCursor(const wxCursor& cursor)
+void wxWindowMac::WXUpdateCursor()
 {
-    if (m_cursor.IsSameAs(cursor))
-        return false;
-
-    if (!cursor.IsOk())
-    {
-        if ( ! wxWindowBase::SetCursor( *wxSTANDARD_CURSOR ) )
-            return false ;
-    }
-    else
-    {
-        if ( ! wxWindowBase::SetCursor( cursor ) )
-            return false ;
-    }
-
-    wxASSERT_MSG( m_cursor.IsOk(),
-        wxT("cursor must be valid after call to the base version"));
+    wxWindowBase::WXUpdateCursor();
 
     if ( GetPeer() != nullptr )
-        GetPeer()->SetCursor( m_cursor );
-
-    return true ;
+    {
+        GetPeer()->SetCursor( m_cursor.IsOk() ? m_cursor : *wxSTANDARD_CURSOR ) ;
+    }
 }
 
 #if wxUSE_MENUS
@@ -1055,13 +1053,6 @@ wxSize wxWindowMac::DoGetBestSize() const
             }
             else
 #endif
-#if wxUSE_SPINBTN
-            if ( IsKindOf( CLASSINFO( wxSpinButton ) ) )
-            {
-                r.height = 24 ;
-            }
-            else
-#endif
             {
                 // return wxWindowBase::DoGetBestSize() ;
             }
@@ -1183,7 +1174,7 @@ void wxWindowMac::DoSetClientSize(int clientwidth, int clientheight)
     }
 }
 
-double wxWindowMac::GetContentScaleFactor() const 
+double wxWindowMac::GetContentScaleFactor() const
 {
     return GetPeer()->GetContentScaleFactor();
 }
@@ -1412,8 +1403,25 @@ bool wxWindowMac::EnableTouchEvents(int eventsMask)
     return GetPeer() ? GetPeer()->EnableTouchEvents(eventsMask) : false;
 }
 
+#ifdef __WXOSX_IPHONE__
+void wxWindowMac::OSXSetScrollOwnerWindow( wxWindow *owner )
+{
+    m_scrollOwnerWindow = owner;
+}
+
+void wxWindowMac::OSXSetScrollTargetWindow( wxWindow *target )
+{
+    m_scrollTargetWindow = target;
+    target->OSXSetScrollOwnerWindow( this );
+}
+#endif
+
 int wxWindowMac::GetScrollPos(int orient) const
 {
+#ifdef __WXOSX_IPHONE__
+    const wxWidgetImpl *impl = (const wxWidgetImpl*) OSXGetScrollTargetWindow()->GetPeer();
+    return impl->GetScrollPos( orient );
+#endif
 #if wxUSE_SCROLLBAR
     if ( orient == wxHORIZONTAL )
     {
@@ -1467,6 +1475,10 @@ int wxWindowMac::GetScrollThumb(int orient) const
 
 void wxWindowMac::SetScrollPos(int orient, int pos, bool WXUNUSED(refresh))
 {
+#ifdef __WXOSX_IPHONE__
+    wxWidgetImpl *impl = (wxWidgetImpl*) OSXGetScrollTargetWindow()->GetPeer();
+    impl->SetScrollPos( orient, pos );
+#endif
 #if wxUSE_SCROLLBAR
     if ( orient == wxHORIZONTAL )
     {
@@ -1673,6 +1685,10 @@ void wxWindowMac::SetScrollbar(int orient, int pos, int thumb,
 
     DoUpdateScrollbarVisibility();
 #endif
+#ifdef __WXOSX_IPHONE__
+    wxWidgetImpl *impl = (wxWidgetImpl*) OSXGetScrollTargetWindow()->GetPeer();
+    impl->SetScrollbar( orient, pos, thumb, range, refresh );
+#endif
 }
 
 // Does a physical scroll
@@ -1680,6 +1696,11 @@ void wxWindowMac::ScrollWindow(int dx, int dy, const wxRect *rect)
 {
     if ( dx == 0 && dy == 0 )
         return ;
+
+#ifdef __WXOSX_IPHONE__
+    GetPeer()->ScrollWindow( dx, dy, rect );
+    return;
+#endif
 
     int width , height ;
     GetClientSize( &width , &height ) ;
@@ -1910,8 +1931,11 @@ void wxWindowMac::MacUpdateClippedRects() const
 bool wxWindowMac::MacDoRedraw( long time )
 {
     bool handled = false ;
+#ifndef __WXOSX_IPHONE__
+    // iOS draws before the window is visible, I assume into off-screen buffer
     if ( !IsShownOnScreen() )
         return handled;
+#endif
 
     wxRegion formerUpdateRgn = m_updateRegion;
     wxRegion clientUpdateRgn = formerUpdateRgn;
@@ -1944,6 +1968,9 @@ bool wxWindowMac::MacDoRedraw( long time )
                     eevent.SetEventObject( this );
                     if ( ProcessWindowEvent( eevent ) )
                         break;
+
+                    if (!UseBgCol())
+                        dc.Clear();
                 }
 
                 if ( UseBgCol() )
@@ -2421,7 +2448,7 @@ wxHotKeyHandler(EventHandlerCallRef WXUNUSED(nextHandler),
 
             wxKeyEvent wxevent(wxEVT_HOTKEY);
             wxevent.SetId(hotKeyId.id);
-            wxTheApp->MacCreateKeyEvent( wxevent, s_hotkeys[i].window , keymessage , 
+            wxTheApp->MacCreateKeyEvent( wxevent, s_hotkeys[i].window , keymessage ,
                                         modifiers , when , 0 ) ;
 
             s_hotkeys[i].window->HandleWindowEvent(wxevent);
@@ -2504,7 +2531,7 @@ bool wxWindowMac::UnregisterHotKey(int hotkeyId)
 
                 return false;
             }
-            else 
+            else
                 return true;
         }
     }
@@ -2649,7 +2676,7 @@ wxIMPLEMENT_ABSTRACT_CLASS(wxWidgetImpl, wxObject);
 
 wxWidgetImpl::wxWidgetImpl( wxWindowMac* peer , int flags )
 {
-    Init();    
+    Init();
     m_isRootControl = flags & Widget_IsRoot;
     m_isUserPane = flags & Widget_IsUserPane;
     m_wantsUserKey = m_isUserPane || (flags & Widget_UserKeyEvents);
@@ -2685,6 +2712,7 @@ void wxWidgetImpl::Init()
     m_wantsUserMouse = false;
     m_wxPeer = nullptr;
     m_needsFrame = true;
+    m_deviceLocalOrigin = wxPoint(0, 0);
 }
 
 void wxWidgetImpl::SetNeedsFrame( bool needs )
@@ -2698,6 +2726,10 @@ bool wxWidgetImpl::NeedsFrame() const
 }
 
 void wxWidgetImpl::SetDrawingEnabled(bool WXUNUSED(enabled))
+{
+}
+
+void wxWidgetImpl::ClipsToBounds(bool WXUNUSED(clip))
 {
 }
 

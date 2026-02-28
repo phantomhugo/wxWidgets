@@ -49,7 +49,7 @@ public:
         if ( !m_images.empty() )
         {
             // Cast is safe, we don't risk having more than INT_MAX images.
-            return static_cast<int>(m_images.size());
+            return wxSsize(m_images);
         }
 
         return m_imageList ? m_imageList->GetImageCount() : 0;
@@ -262,6 +262,15 @@ public:
     }
 
 protected:
+    // This is the same as HasImages() for all controls except for wxTreeCtrl
+    // which has a special "state image list" in addition to the normal one and
+    // this function takes it into account, unlike HasImages() itself, which
+    // doesn't and can't be modified to do so for compatibility reasons.
+    virtual bool HasAnyImages() const
+    {
+        return HasImages();
+    }
+
     // This function is called when the images associated with the control
     // change, due to either SetImages() or SetImageList() being called.
     //
@@ -274,7 +283,7 @@ protected:
     // and simply calls OnImagesChanged() to refresh the images when it happens.
     void WXHandleDPIChanged(wxDPIChangedEvent& event)
     {
-        if ( HasImages() )
+        if ( HasAnyImages() )
             OnImagesChanged();
 
         event.Skip();

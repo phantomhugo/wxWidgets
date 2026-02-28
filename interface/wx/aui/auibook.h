@@ -110,13 +110,13 @@ struct wxAuiNotebookPosition
     splitter configurations, and toggle through different themes to customize
     the control's look and feel.
 
-    The default theme depends on the platform and styles used: in wxMSW port
-    native-like theme is used provided that none of ::wxAUI_NB_BOTTOM,
-    ::wxAUI_NB_PIN_ON_ACTIVE_TAB and ::wxAUI_NB_UNPIN_ON_ALL_PINNED styles is
-    used, because the native theme doesn't support them. In the other ports, or
-    when these styles are used with wxMSW, wxAuiDefaultTabArt, providing a
-    glossy-looking appearance, is used.
-    The theme can be changed by calling wxAuiNotebook::SetArtProvider.
+    The default theme since wxWidgets 3.3.0 is wxAuiFlatTabArt. If you would
+    prefer to use the theme which used to be default in the previous versions,
+    you can call wxAuiNotebook::SetArtProvider() with wxAuiNativeTabArt as the
+    argument. Notice that wxAuiNativeTabArt may be not compatible with
+    ::wxAUI_NB_BOTTOM, ::wxAUI_NB_PIN_ON_ACTIVE_TAB and
+    ::wxAUI_NB_UNPIN_ON_ALL_PINNED styles, so using it is not recommended if
+    you use any of them.
 
     @section auibook_tabs Multiple Tab Controls
 
@@ -578,11 +578,11 @@ public:
         ones are simply ignored, so it is always possible to reuse the same
         flags for the main wxAuiManager and the one used by the notebook.
 
-        Example of using this function to disable the fade effect for the
-        notebook:
+        Example of using this function to enable the Venetian blinds effect for
+        the notebook:
         @code
             auiNotebook->SetManagerFlags(
-                wxAuiManager::GetManager()->GetFlags() & ~wxAUI_MGR_HINT_FADE
+                wxAuiManager::GetManager()->GetFlags() | ~wxAUI_MGR_VENETIAN_BLINDS_HINT
             );
         @endcode
 
@@ -793,6 +793,18 @@ public:
         @since 3.1.4
     */
     bool FindTab(wxWindow* page, wxAuiTabCtrl** ctrl, int* idx);
+
+protected:
+    /**
+        Called to determine the size of a new split tab control.
+
+        This function may be overridden to customize the initial size of the
+        newly created tab control when the user drags a tab out of the main one
+        (if ::wxAUI_NB_TAB_SPLIT style is used) or when Split() is called.
+
+        The default implementation calls wxAuiManager::CalculateNewSplitSize().
+     */
+    virtual wxSize CalculateNewSplitSize();
 };
 
 /**
@@ -927,9 +939,6 @@ class wxAuiTabContainerButtonArray : public std::vector<wxAuiTabContainerButton>
     the wxAuiNotebook, where it is disadvantageous to have separate
     windows for each tab control in the case of "docked tabs".
 
-    A derived class, wxAuiTabCtrl, is an actual wxWindow - derived window
-    which can be used as a tab control in the normal sense.
-
     @library{wxaui}
     @category{aui}
 */
@@ -965,7 +974,7 @@ public:
     bool MovePage(wxWindow* page, size_t newIdx);
     bool RemovePage(wxWindow* page);
     void RemovePageAt(size_t idx);
-    bool SetActivePage(wxWindow* page);
+    bool SetActivePage(const wxWindow* page);
     bool SetActivePage(size_t page);
     void SetNoneActive();
     int GetActivePage() const;
@@ -1026,6 +1035,21 @@ protected:
     unsigned int m_flags;
 };
 
+/**
+    @class wxAuiTabCtrl
+
+    Only used internally by wxAUI framework.
+
+    Objects of this class are used by wxAuiNotebook to manage tabs. They can't
+    be created by the application and shouldn't be used directly by it: all
+    pointers to wxAuiTabCtrl should be handled as pointers to an opaque object,
+    i.e. they can be compared with other pointers of the same type or passed to
+    wxAuiNotebook::GetPagesInDisplayOrder() but not otherwise.
+ */
+class WXDLLIMPEXP_AUI wxAuiTabCtrl : public wxControl,
+                                     public wxAuiTabContainer
+{
+};
 
 
 /**
@@ -1035,10 +1059,10 @@ protected:
 
     This allows the wxAuiNotebook to have a pluggable look-and-feel.
 
-    By default, a wxAuiNotebook uses an instance of this class called
-    wxAuiDefaultTabArt which provides bitmap art and a colour scheme that is
-    adapted to the major platforms' look. You can either derive from that class
-    to alter its behaviour or write a completely new tab art class.
+    By default, a wxAuiNotebook uses an instance of class wxAuiDefaultTabArt,
+    derived from this class, which provides bitmaps and a colour scheme that
+    is adapted to the major platforms' look. You can either derive from that
+    class to alter its behaviour or write a completely new tab art class.
 
     Another example of creating a new wxAuiNotebook tab bar is wxAuiSimpleTabArt.
 
@@ -1248,6 +1272,36 @@ public:
 };
 
 /**
+    wxAuiNativeTabArt is an alias for either the art provider providing
+    native-like appearance or wxAuiGenericTabArt if not available.
+
+    Currently wxAuiNativeTabArt uses platform-specific implementation in wxMSW
+    and wxGTK2 ports and wxAuiGenericTabArt elsewhere. The preprocessor symbol
+    @c wxHAS_NATIVE_TABART is defined if the native implementation is available
+    (but note that at least under MSW even the native implementation falls back
+    to wxAuiGenericTabArt if dark mode or any wxAuiNotebook styles not
+    supported by it are used).
+
+    This art provided used to be the default tab art provider in wxAuiNotebook
+    before wxWidgets 3.3.0.
+
+    @library{wxaui}
+    @category{aui}
+
+    @since 3.3.0
+*/
+using wxAuiNativeTabArt = wxAuiGenericTabArt;
+
+/**
+    wxAuiDefaultTabArt is an alias for the tab art provider used by
+    wxAuiNotebook by default.
+
+    Since wxWidgets 3.3.0, this is wxAuiFlatTabArt under all platforms. In the
+    previous versions, this was wxAuiNativeTabArt.
+ */
+using wxAuiDefaultTabArt = wxAuiFlatTabArt;
+
+/**
     @class wxAuiNotebookEvent
 
     This class is used by the events generated by wxAuiNotebook.
@@ -1325,22 +1379,42 @@ wxEventType wxEVT_AUINOTEBOOK_DRAG_DONE;
 wxEventType wxEVT_AUINOTEBOOK_BG_DCLICK;
 
 /**
-    Default art provider for wxAuiNotebook.
+    An art provider for wxAuiNotebook implementing "flat" look.
+
+    This art provider is currently used as the default art provider.
+
+    @library{wxaui}
+    @category{aui}
+
+    @since 3.3.0
+ */
+class wxAuiFlatTabArt : public wxAuiTabArt
+{
+public:
+    /// Default constructor.
+    wxAuiFlatTabArt();
+};
+
+/**
+    An art provider for wxAuiNotebook implementing "glossy" look.
+
+    This art provider is used as fallback art provider for wxAuiNativeTabArt if
+    there is no native tab art provider, but may also be used directly.
 
     @see wxAuiTabArt
 
-    @genericAppearance{auidefaulttabart}
+    @genericAppearance{auigenerictabart}
 
     @library{wxaui}
     @category{aui}
 */
 
-class wxAuiDefaultTabArt : public wxAuiTabArt
+class wxAuiGenericTabArt : public wxAuiTabArt
 {
 public:
 
-    wxAuiDefaultTabArt();
-    virtual ~wxAuiDefaultTabArt();
+    wxAuiGenericTabArt();
+    virtual ~wxAuiGenericTabArt();
 
     wxAuiTabArt* Clone();
     void SetFlags(unsigned int flags);

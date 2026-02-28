@@ -37,7 +37,7 @@ public:
     wxAuiDockArt() = default;
     virtual ~wxAuiDockArt() = default;
 
-    virtual wxAuiDockArt* Clone() = 0;
+    wxNODISCARD virtual wxAuiDockArt* Clone() = 0;
 
     // This function should be used for querying metrics in the new code, as it
     // will scale them by the DPI of the provided window if necessary. The
@@ -102,7 +102,7 @@ public:
 
     wxAuiDefaultDockArt();
 
-    wxAuiDockArt* Clone() override;
+    wxNODISCARD wxAuiDockArt* Clone() override;
     int GetMetric(int metricId) override;
     void SetMetric(int metricId, int newVal) override;
     wxColour GetColour(int id) override;
@@ -161,6 +161,10 @@ protected:
 
     void InitBitmaps();
 
+    // Preferred function for bitmap access: use it rather than wxBitmapBundle
+    // member variables directly.
+    wxBitmapBundle GetPaneButtonBitmap(int button, const wxAuiPaneInfo& pane);
+
 protected:
 
     wxPen m_borderPen;
@@ -192,6 +196,11 @@ protected:
     int m_buttonSize;
     int m_gripperSize;
     int m_gradientType;
+
+private:
+    // Allocated on demand, use only via GetPaneButtonBitmap().
+    wxBitmapBundle m_inactiveMinimizeBitmap;
+    wxBitmapBundle m_activeMinimizeBitmap;
 };
 
 

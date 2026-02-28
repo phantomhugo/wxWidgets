@@ -97,6 +97,9 @@ public:
 
     void Start() override;
 
+    void SetTimeouts(long connectionTimeoutMs, long dataTimeoutMs) override;
+
+
     wxWebResponseImplPtr GetResponse() const override
         { return m_response; }
 
@@ -188,9 +191,9 @@ public:
 private:
     WX_NSURLSession m_session = nullptr;
     WX_wxWebSessionDelegate m_delegate;
-#if !wxOSX_USE_IPHONE
+#ifdef __WXDARWIN_OSX__
     WX_NSURLComponents m_proxyURL = nullptr;
-#endif // !wxOSX_USE_IPHONE
+#endif // __WXDARWIN_OSX__
     bool m_persistentStorageEnabled = false;
 
     wxDECLARE_NO_COPY_CLASS(wxWebSessionURLSession);

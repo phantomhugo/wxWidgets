@@ -634,8 +634,14 @@ wxPrintPageRange wxPrintout::GetPagesInfo(wxPrintPageRanges& ranges)
 
     GetPageInfo(&minPage, &maxPage, &fromPage, &toPage);
 
-    if ( fromPage > 0 && toPage >= fromPage )
-        ranges.push_back({fromPage, toPage});
+    // We intentionally ignore fromPage and toPage here as we want to keep
+    // using the page ranges as they were set by the user in the print dialog
+    // but existing code dating from before support for multiple print ranges
+    // always returns something from its GetPageInfo() -- which is incompatible
+    // with multiple pages ranges selection (in fact, it's not even compatible
+    // with a single range selection because the values returned in these
+    // parameters used to be ignored in at least wxMSW anyhow).
+    wxUnusedVar(ranges);
 
     return { minPage, maxPage };
 }
@@ -1722,10 +1728,6 @@ wxFrame(parent, wxID_ANY, title, pos, size, style, name),
     m_initialSize(size)
 {
     m_printPreview = preview;
-    m_controlBar = nullptr;
-    m_previewCanvas = nullptr;
-    m_windowDisabler = nullptr;
-    m_modalityKind = wxPreviewFrame_NonModal;
 
     // Give the application icon
 #ifdef __WXMSW__
@@ -1752,24 +1754,6 @@ wxPreviewFrame::~wxPreviewFrame()
 
 void wxPreviewFrame::OnCloseWindow(wxCloseEvent& WXUNUSED(event))
 {
-    // Reenable any windows we disabled by undoing whatever we did in our
-    // Initialize().
-    switch ( m_modalityKind )
-    {
-        case wxPreviewFrame_AppModal:
-            delete m_windowDisabler;
-            m_windowDisabler = nullptr;
-            break;
-
-        case wxPreviewFrame_WindowModal:
-            if ( GetParent() )
-                GetParent()->Enable();
-            break;
-
-        case wxPreviewFrame_NonModal:
-            break;
-    }
-
     Destroy();
 }
 
@@ -1807,32 +1791,7 @@ void wxPreviewFrame::InitializeWithModality(wxPreviewFrameModalityKind kind)
     // vertically is also quite reasonable.
     SetSizeHints(ClientToWindowSize(m_controlBar->GetBestSize()));
 
-    m_modalityKind = kind;
-    switch ( m_modalityKind )
-    {
-        case wxPreviewFrame_AppModal:
-            // Disable everything.
-            m_windowDisabler = new wxWindowDisabler( this );
-            break;
-
-        case wxPreviewFrame_WindowModal:
-            // Disable our parent if we have one.
-            if ( GetParent() )
-                GetParent()->Disable();
-            break;
-
-        case wxPreviewFrame_NonModal:
-            // Nothing to do, we don't need to disable any windows.
-            break;
-    }
-
-    if ( m_modalityKind != wxPreviewFrame_NonModal )
-    {
-        // Behave like modal dialogs, don't show in taskbar. This implies
-        // removing the minimize box, because minimizing windows without
-        // taskbar entry is confusing.
-        SetWindowStyle((GetWindowStyle() & ~wxMINIMIZE_BOX) | wxFRAME_NO_TASKBAR);
-    }
+    SetWindowModality(kind);
 
     m_printPreview->AdjustScrollbars(m_previewCanvas);
     m_previewCanvas->SetFocus();
@@ -2185,8 +2144,7 @@ void wxPrintPreviewBase::SetZoom(int percent)
     if (m_previewCanvas)
     {
         AdjustScrollbars(m_previewCanvas);
-        ((wxScrolledWindow *) m_previewCanvas)->Scroll(0, 0);
-        m_previewCanvas->ClearBackground();
+        m_previewCanvas->Scroll(0, 0);
         m_previewCanvas->Refresh();
         m_previewCanvas->SetFocus();
     }

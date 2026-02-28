@@ -88,7 +88,7 @@ bool wxSystemAppearance::IsDark() const
 wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
 {
     wxOSXEffectiveAppearanceSetter helper;
-    
+
     NSColor* sysColor = nil;
     switch( index )
     {
@@ -112,6 +112,9 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         break;
     case wxSYS_COLOUR_WINDOW:
         sysColor = [NSColor controlBackgroundColor];
+        break;
+    case wxSYS_COLOUR_GRIDLINES:
+        sysColor = [NSColor gridColor];
         break;
     case wxSYS_COLOUR_BTNFACE:
         if ( WX_IS_MACOS_AVAILABLE(10, 14 ) )
@@ -152,6 +155,18 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         break;
     case wxSYS_COLOUR_LISTBOXHIGHLIGHTTEXT:
         sysColor = [NSColor alternateSelectedControlTextColor];
+        break;
+    case wxSYS_COLOUR_LISTBOXHIGHLIGHT:
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+        if ( WX_IS_MACOS_AVAILABLE(10, 14) )
+        {
+            sysColor = [NSColor selectedContentBackgroundColor];
+        }
+        else
+#endif
+        {
+            sysColor = [NSColor selectedTextBackgroundColor];
+        }
         break;
     case wxSYS_COLOUR_INFOBK:
         // tooltip (bogus)
@@ -255,9 +270,9 @@ int wxSystemSettingsNative::GetMetric(wxSystemMetric index, const wxWindow* WXUN
         // TODO case wxSYS_EDGE_Y:
 
         case wxSYS_CURSOR_X:
-            return wxRound([[[NSCursor arrowCursor] image] size].width * GetCursorScale());
+            return wxRound(float([[[NSCursor arrowCursor] image] size].width) * GetCursorScale());
         case wxSYS_CURSOR_Y:
-            return wxRound([[[NSCursor arrowCursor] image] size].height * GetCursorScale());
+            return wxRound(float([[[NSCursor arrowCursor] image] size].height) * GetCursorScale());
 
         case wxSYS_HSCROLL_ARROW_X:
             return 16;
@@ -341,9 +356,9 @@ int wxSystemSettingsNative::GetMetric(wxSystemMetric index, const wxWindow* WXUN
              return -1;
 
         default:
-            return -1;  // unsupported metric
+            break;
     }
-    return 0;
+    return -1;  // unsupported metric
 }
 
 bool wxSystemSettingsNative::HasFeature(wxSystemFeature index)

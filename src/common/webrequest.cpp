@@ -13,6 +13,8 @@
 #if wxUSE_WEBREQUEST
 
 #include "wx/webrequest.h"
+
+#include "wx/base64.h"
 #include "wx/mstream.h"
 #include "wx/module.h"
 #include "wx/uri.h"
@@ -182,6 +184,22 @@ wxWebRequestImpl::SetData(std::unique_ptr<wxInputStream> dataStream,
     SetHeader("Content-Type", contentType);
 
     return true;
+}
+
+void wxWebRequestImpl::AddBasicAuthHeaderIfNecessary()
+{
+    if ( !m_basicAuthCred.IsOk() )
+        return;
+
+    const auto authInfo = wxString::Format("%s:%s",
+        m_basicAuthCred.GetUser(),
+        m_basicAuthCred.GetPassword().GetAsString()
+    );
+
+    const auto buf = authInfo.utf8_str();
+
+    SetHeader("Authorization",
+              "Basic " + wxBase64Encode(buf.data(), buf.length()));
 }
 
 wxFileOffset wxWebRequestImpl::GetBytesReceived() const
@@ -468,6 +486,20 @@ void wxWebRequestBase::SetStorage(Storage storage)
     wxCHECK_IMPL_VOID();
 
     m_impl->SetStorage(storage);
+}
+
+void wxWebRequestBase::SetTimeouts(long connectionTimeoutMs, long dataTimeoutMs)
+{
+    wxCHECK_IMPL_VOID();
+
+    m_impl->SetTimeouts(connectionTimeoutMs, dataTimeoutMs);
+}
+
+void wxWebRequestBase::UseBasicAuth(const wxWebCredentials& cred)
+{
+    wxCHECK_IMPL_VOID();
+
+    m_impl->UseBasicAuth(cred);
 }
 
 wxWebRequestBase::Storage wxWebRequestBase::GetStorage() const
@@ -1117,10 +1149,11 @@ wxString wxWebSessionBase::GetFullURL(const wxString& url) const
     wxURI absURL(url);
     absURL.Resolve(*baseURL);
 
-    wxLogTrace(wxTRACE_WEBREQUEST, "Relative URL: %s -> %s",
-               url, absURL.BuildURI());
+    wxString fullURL = absURL.BuildURI();
+    if ( fullURL != url )
+        wxLogTrace(wxTRACE_WEBREQUEST, "Relative URL: %s -> %s", url, fullURL);
 
-    return absURL.BuildURI();
+    return fullURL;
 }
 
 wxWebRequest
@@ -1201,6 +1234,14 @@ bool wxWebSessionBase::EnablePersistentStorage(bool enable)
     wxCHECK_IMPL( false );
 
     return m_impl->EnablePersistentStorage(enable);
+}
+
+void
+wxWebSessionBase::SetDebugLogger(std::unique_ptr<wxWebRequestDebugLogger> logger)
+{
+    wxCHECK_IMPL_VOID();
+
+    m_impl->SetDebugLogger(std::move(logger));
 }
 
 // ----------------------------------------------------------------------------

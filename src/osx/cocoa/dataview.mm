@@ -42,8 +42,6 @@
 // Constants used locally
 // ============================================================================
 
-#define DataViewPboardType @"OutlineViewItem"
-
 static const int MINIMUM_NATIVE_ROW_HEIGHT = 17;
 
 
@@ -339,7 +337,7 @@ wxDateTime ObjectToDate(NSObject *object)
 
     // get the number of seconds since 1970-01-01 UTC and this is the only
     // way to convert a double to a wxLongLong
-    const wxLongLong seconds = [((NSDate*) object) timeIntervalSince1970];
+    const wxLongLong seconds((long long)[((NSDate*) object) timeIntervalSince1970]);
 
     wxDateTime dt(1, wxDateTime::Jan, 1970);
     dt.Add(wxTimeSpan(0,0,seconds));
@@ -1988,11 +1986,12 @@ wxCocoaDataViewControl::wxCocoaDataViewControl(wxWindow* peer,
     // initialize scrollview (the outline view is part of a scrollview):
     NSScrollView* scrollview = (NSScrollView*) GetWXWidget();
 
-    [scrollview setBorderType:NSNoBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setHasHorizontalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
     [scrollview setDocumentView:m_OutlineView];
+
+    ApplyScrollViewBorderType();
 
     // initialize the native control itself too
     InitOutlineView(style);
@@ -2020,7 +2019,7 @@ void wxCocoaDataViewControl::InitOutlineView(long style)
     NSTableHeaderView* header = nil;
     if ( !(style & wxDV_NO_HEADER) )
     {
-        header = [[wxDVCNSHeaderView alloc] initWithDVC:GetDataViewCtrl()];
+        header = [[[wxDVCNSHeaderView alloc] initWithDVC:GetDataViewCtrl()] autorelease];
     }
 
     [m_OutlineView setHeaderView:header];
@@ -2034,8 +2033,8 @@ wxCocoaDataViewControl::~wxCocoaDataViewControl()
 
 void wxCocoaDataViewControl::keyEvent(WX_NSEvent event, WXWidget slf, void *_cmd)
 {
-    if( [event type] == NSKeyDown && [[event charactersIgnoringModifiers]
-         characterAtIndex: 0] == NSCarriageReturnCharacter )
+    NSString* c = [event type] == NSKeyDown ? [event charactersIgnoringModifiers] : nil;
+    if( c != nil && [c length] >= 1 && [c characterAtIndex: 0] == NSCarriageReturnCharacter )
     {
         wxDataViewCtrl* const dvc = GetDataViewCtrl();
         const wxDataViewItem item = wxDataViewItem( [[m_OutlineView itemAtRow:[m_OutlineView selectedRow]] pointer]);
@@ -2177,7 +2176,7 @@ void wxCocoaDataViewControl::FitColumnWidthToContent(unsigned int pos)
         void UpdateWithRow(int row)
         {
             NSCell *cell = [m_view preparedCellAtColumn:m_column row:row];
-            unsigned cellWidth = ceil([cell cellSize].width);
+            unsigned cellWidth = unsigned(ceil([cell cellSize].width));
 
             if ( m_indent )
                 cellWidth += m_indent * [m_view levelForRow:row];
@@ -2185,7 +2184,7 @@ void wxCocoaDataViewControl::FitColumnWidthToContent(unsigned int pos)
             if ( m_expander == -1 && m_tableColumn == [m_view outlineTableColumn] )
             {
                 NSRect rc = [m_view frameOfOutlineCellAtRow:row];
-                m_expander = ceil(rc.origin.x + rc.size.width);
+                m_expander = int(ceil(rc.origin.x + rc.size.width));
             }
 
             m_width = wxMax(m_width, cellWidth);
@@ -2207,7 +2206,7 @@ void wxCocoaDataViewControl::FitColumnWidthToContent(unsigned int pos)
 
     if ( [column headerCell] )
     {
-        calculator.UpdateWithWidth(ceil([[column headerCell] cellSize].width));
+        calculator.UpdateWithWidth(int(ceil([[column headerCell] cellSize].width)));
     }
 
     // The code below deserves some explanation. For very large controls, we
@@ -2851,7 +2850,7 @@ void wxDataViewRenderer::SetAttr(const wxDataViewItemAttr& attr)
                     data->SaveOriginalTextColour([(id)cell textColor]);
                 }
 
-                colText = attr.GetColour().OSXGetNSColor();
+                colText = attr.GetColour().OSXGetWXColor();
             }
         }
 
@@ -2864,7 +2863,7 @@ void wxDataViewRenderer::SetAttr(const wxDataViewItemAttr& attr)
                 if ( !data->GetOriginalBackgroundColour() )
                     data->SaveOriginalBackgroundColour([(id)cell backgroundColor]);
 
-                colBack = attr.GetBackgroundColour().OSXGetNSColor();
+                colBack = attr.GetBackgroundColour().OSXGetWXColor();
             }
         }
     }
@@ -3287,8 +3286,7 @@ bool wxDataViewIconTextRenderer::MacRender()
 
     cell = (wxImageTextCell*) GetNativeData()->GetItemCell();
     iconText << GetValue();
-    const wxDataViewCtrl* const dvc = GetOwner()->GetOwner();
-    [cell setImage:iconText.GetBitmapBundle().GetBitmapFor(dvc).GetNSImage()];
+    [cell setImage:wxOSXGetImageFromBundle(iconText.GetBitmapBundle())];
     [cell setStringValue:wxCFStringRef(iconText.GetText()).AsNSString()];
     return true;
 }
@@ -3402,7 +3400,7 @@ bool wxDataViewCheckIconTextRenderer::MacRender()
     {
         wxNSTextAttachmentCellWithBaseline* const attachmentCell =
             [[wxNSTextAttachmentCellWithBaseline alloc]
-             initImageCell: icon.GetBitmapFor(GetOwner()->GetOwner()).GetNSImage()];
+             initImageCell: wxOSXGetImageFromBundle(icon)];
         NSTextAttachment* const attachment = [NSTextAttachment new];
         [attachment setAttachmentCell: attachmentCell];
 
@@ -3462,6 +3460,7 @@ void wxDataViewCheckIconTextRenderer::OSXOnCellChanged(NSObject *value,
             break;
 
         case 0:
+        default:
             checkedState = wxCHK_UNCHECKED;
             break;
 
@@ -3649,12 +3648,7 @@ void wxDataViewColumn::SetBitmap(const wxBitmapBundle& bitmap)
     // the title is removed:
     m_title.clear();
     wxDataViewColumnBase::SetBitmap(bitmap);
-    wxBitmap bmp = m_owner ? bitmap.GetBitmapFor(m_owner) : bitmap.GetBitmap(
-        bitmap.GetPreferredBitmapSizeAtScale(
-            wxOSXGetMainScreenContentScaleFactor()
-        )
-    );
-    [[m_NativeDataPtr->GetNativeColumnPtr() headerCell] setImage:bmp.GetNSImage()];
+    [[m_NativeDataPtr->GetNativeColumnPtr() headerCell] setImage:wxOSXGetImageFromBundle(bitmap)];
 }
 
 void wxDataViewColumn::SetMaxWidth(int maxWidth)

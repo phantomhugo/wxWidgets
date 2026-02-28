@@ -226,6 +226,16 @@ public:
 
     T *get() const { return m_ptr; }
 
+    bool operator==(const wxObjectDataPtr<T>& other) const
+    {
+        return m_ptr == other.m_ptr;
+    }
+
+    bool operator!=(const wxObjectDataPtr<T>& other) const
+    {
+        return !(*this == other);
+    }
+
     // test for pointer validity: defining conversion to unspecified_bool_type
     // and not more obvious bool to avoid implicit conversions to integer types
     typedef T *(wxObjectDataPtr<T>::*unspecified_bool_type)() const;
@@ -395,7 +405,7 @@ protected:
     virtual wxObjectRefData *CreateRefData() const;
 
     // create a new m_refData initialized with the given one
-    virtual wxObjectRefData *CloneRefData(const wxObjectRefData *data) const;
+    wxNODISCARD virtual wxObjectRefData *CloneRefData(const wxObjectRefData *data) const;
 
     wxObjectRefData *m_refData;
 };
@@ -403,6 +413,15 @@ protected:
 inline wxObject *wxCheckDynamicCast(wxObject *obj, wxClassInfo *classInfo)
 {
     return obj && obj->GetClassInfo()->IsKindOf(classInfo) ? obj : nullptr;
+}
+
+// ensure that an object that should be a particular type is what it should be,
+// then static cast it
+template <class T>
+inline T* wxCheckedStaticCast(wxObject* obj)
+{
+    wxCHECK_MSG(wxDynamicCast(obj, T), nullptr, "Pointer of wrong type?");
+    return static_cast<T*>(obj);
 }
 
 #include "wx/xti2.h"

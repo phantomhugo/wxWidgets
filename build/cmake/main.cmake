@@ -18,8 +18,8 @@ include(build/cmake/toolkit.cmake)          # Platform/toolkit settings
 include(build/cmake/options.cmake)          # User options
 include(build/cmake/init.cmake)             # Init various global build vars
 include(build/cmake/pch.cmake)              # Precompiled header support
-include(build/cmake/locale.cmake)           # Locale files
 
+add_subdirectory(build/cmake/locale locale)
 add_subdirectory(build/cmake/lib libs)
 add_subdirectory(build/cmake/utils utils)
 
@@ -47,9 +47,7 @@ endif()
 
 if(WIN32_MSVC_NAMING)
     include(build/cmake/build_cfg.cmake)
-endif()
-
-if(NOT MSVC)
+else()
     # Write wx-config
     include(build/cmake/config.cmake)
 endif()
@@ -72,6 +70,20 @@ endif()
 
 # Print configuration summary
 wx_print_thirdparty_library_summary()
+
+# Avoid printing out the message if we're being reconfigured and nothing has
+# changed since the previous run, so check if the current summary differs from
+# the cached value.
+set(wxSUMMARY_NOW
+    "${CMAKE_SYSTEM_NAME}-${wxVERSION}-${wxREQUIRED_OS_DESC}-"
+    "${wxBUILD_TOOLKIT}-${wxTOOLKIT_VERSION}-${wxTOOLKIT_EXTRA}-"
+    "${wxBUILD_MONOLITHIC}-${wxBUILD_SHARED}-${wxBUILD_COMPATIBILITY}-"
+)
+if("${wxSUMMARY_NOW}" STREQUAL "${wxSUMMARY}")
+  return()
+endif()
+
+set(wxSUMMARY ${wxSUMMARY_NOW} CACHE INTERNAL "internal summary of wxWidgets build options")
 
 if(wxTOOLKIT_EXTRA)
     string(REPLACE ";" ", " wxTOOLKIT_DESC "${wxTOOLKIT_EXTRA}")

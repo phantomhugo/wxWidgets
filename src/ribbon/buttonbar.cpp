@@ -99,6 +99,8 @@ public:
                     wxBitmap bitmap_small,
                     wxBitmap bitmap_small_disabled)
     {
+        wxCHECK_RET(ribbon, "Ribbon bar not set; can't register button images yet!");
+
         if(!bitmap_large.IsOk())
         {
             bitmap_large = MakeResizedBitmap(bitmap_small, bitmap_size_large);
@@ -1052,7 +1054,6 @@ void wxRibbonButtonBar::MakeLayouts()
         //               small buttons small, stacked vertically
         wxRibbonButtonBarLayout* layout = new wxRibbonButtonBarLayout;
         wxPoint cursor(0, 0);
-        layout->overall_size.SetHeight(0);
         for(btn_i = 0; btn_i < btn_count; ++btn_i)
         {
             wxRibbonButtonBarButtonBase* button = m_buttons.Item(btn_i);
@@ -1088,8 +1089,7 @@ void wxRibbonButtonBar::MakeLayouts()
             }
             layout->buttons.push_back(instance);
         }
-        layout->overall_size.SetHeight(available_height);
-        layout->overall_size.SetWidth(cursor.x + stacked_width);
+        layout->CalculateOverallSize();
         m_layouts.Add(layout);
     }
     if(btn_count >= 2)
@@ -1105,7 +1105,7 @@ void wxRibbonButtonBar::MakeLayouts()
                               wxRIBBON_BUTTONBAR_BUTTON_MEDIUM);
         }
 
-        // TODO: small buttons are not implemented yet in 
+        // TODO: small buttons are not implemented yet in
         //       art_msw.cpp:2581 and will be invisible
         /*iLast = btn_count;
         while(iLast-- > 0)

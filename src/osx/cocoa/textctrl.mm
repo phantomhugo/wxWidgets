@@ -265,8 +265,8 @@ NSView* wxMacEditHelper::ms_viewCurrentlyEdited = nil;
                 {
                     wxCommandEvent event(wxEVT_TEXT_ENTER, wxpeer->GetId());
                     event.SetEventObject( wxpeer );
-                    wxTextWidgetImpl* impl = (wxNSTextFieldControl * ) wxWidgetImpl::FindFromWXWidget( self );
-                    wxTextEntry * const entry = impl->GetTextEntry();
+                    wxTextWidgetImpl* twimpl = (wxNSTextFieldControl*)wxWidgetImpl::FindFromWXWidget(self);
+                    wxTextEntry* const entry = twimpl->GetTextEntry();
                     event.SetString( entry->GetValue() );
                     handled = wxpeer->HandleWindowEvent( event );
                 }
@@ -299,8 +299,8 @@ NSView* wxMacEditHelper::ms_viewCurrentlyEdited = nil;
                         [cevent keyCode] == 9 /* V */ &&
                             ([cevent modifierFlags] & NSCommandKeyMask) == NSCommandKeyMask )
                 {
-                    wxTextWidgetImpl* impl = (wxNSTextFieldControl * ) wxWidgetImpl::FindFromWXWidget( self );
-                    wxTextEntry * const entry = impl->GetTextEntry();
+                    wxTextWidgetImpl* twimpl = (wxNSTextFieldControl*)wxWidgetImpl::FindFromWXWidget(self);
+                    wxTextEntry* const entry = twimpl->GetTextEntry();
                     entry->Paste();
                     handled = YES;
                 }
@@ -489,6 +489,12 @@ NSView* wxMacEditHelper::ms_viewCurrentlyEdited = nil;
     return self;
 }
 
+- (void)dealloc
+{
+    self.undoManager = nil;
+    [super dealloc];
+}
+
 - (void)textDidChange:(NSNotification *)aNotification
 {
     wxUnusedVar(aNotification);
@@ -596,6 +602,12 @@ NSView* wxMacEditHelper::ms_viewCurrentlyEdited = nil;
         initialized = YES;
         wxOSXCocoaClassAddWXMethods( self );
     }
+}
+
+- (void)dealloc
+{
+    self.WXFieldEditor = nil;
+    [super dealloc];
 }
 
 - (void) setEnabled:(BOOL) flag
@@ -912,7 +924,7 @@ wxTextSearchResult wxNSTextViewControl::SearchText(const wxTextSearch &search) c
 
     // return if passed an invalid starting point
     if ( search.m_startingPosition != -1 &&
-            search.m_startingPosition >= [viewString length] )
+            (NSUInteger)search.m_startingPosition >= [viewString length] )
         return wxTextSearchResult{};
 
     NSRange searchRange = NSMakeRange(0, [viewString length]);
@@ -1320,9 +1332,9 @@ void wxNSTextViewControl::SetStyle(long start,
         if ( style.HasFont() )
             [attrs setValue:style.GetFont().OSXGetNSFont() forKey:NSFontAttributeName];
         if ( style.HasBackgroundColour() )
-            [attrs setValue:style.GetBackgroundColour().OSXGetNSColor() forKey:NSBackgroundColorAttributeName];
+            [attrs setValue:style.GetBackgroundColour().OSXGetWXColor() forKey:NSBackgroundColorAttributeName];
         if ( style.HasTextColour() )
-            [attrs setValue:style.GetTextColour().OSXGetNSColor() forKey:NSForegroundColorAttributeName];
+            [attrs setValue:style.GetTextColour().OSXGetWXColor() forKey:NSForegroundColorAttributeName];
         if ( style.HasFontUnderlined() )
         {
             int underlineStyle = NSUnderlineStyleNone;
@@ -1345,7 +1357,7 @@ void wxNSTextViewControl::SetStyle(long start,
             wxColour colour = style.GetUnderlineColour();
             if ( colour.IsOk() )
             {
-                [attrs setValue:colour.OSXGetNSColor() forKey:NSUnderlineColorAttributeName];
+                [attrs setValue:colour.OSXGetWXColor() forKey:NSUnderlineColorAttributeName];
             }
         }
         [m_textView setTypingAttributes:attrs];
@@ -1359,10 +1371,10 @@ void wxNSTextViewControl::SetStyle(long start,
             [storage addAttribute:NSFontAttributeName value:style.GetFont().OSXGetNSFont() range:range];
 
         if ( style.HasBackgroundColour() )
-            [storage addAttribute:NSBackgroundColorAttributeName value:style.GetBackgroundColour().OSXGetNSColor() range:range];
+            [storage addAttribute:NSBackgroundColorAttributeName value:style.GetBackgroundColour().OSXGetWXColor() range:range];
 
         if ( style.HasTextColour() )
-            [storage addAttribute:NSForegroundColorAttributeName value:style.GetTextColour().OSXGetNSColor() range:range];
+            [storage addAttribute:NSForegroundColorAttributeName value:style.GetTextColour().OSXGetWXColor() range:range];
 
         if( style.HasFontUnderlined() )
         {
@@ -1387,7 +1399,7 @@ void wxNSTextViewControl::SetStyle(long start,
             wxColour colour = style.GetUnderlineColour();
             if ( colour.IsOk() )
             {
-                [dict setValue:colour.OSXGetNSColor() forKey:NSUnderlineColorAttributeName];
+                [dict setValue:colour.OSXGetWXColor() forKey:NSUnderlineColorAttributeName];
             }
             [storage addAttributes:dict range:range];
             [dict release];
@@ -1836,6 +1848,14 @@ wxSize wxNSTextFieldControl::GetBestSize() const
         sz.x = (int)ceil(best.size.width);
         sz.y = (int)ceil(best.size.height);
 
+        // never be smaller than single-line NSMiniControlSize field:
+        sz.y = wxMax(sz.y, 16);
+
+        // !!! Any changes to these adjustments must be mirrored in wxTextCtrl::DoGetSizeFromTextSize() !!!
+
+        sz.x -= 4;
+        sz.y -= 2;
+
         if ( [m_textField isBezeled] || [m_textField isBordered] )
         {
             // since this will be added again in DoGetSizeFromTextSize
@@ -1872,6 +1892,7 @@ wxWidgetImplType* wxWidgetImpl::CreateTextControl( wxTextCtrl* wxpeer,
         c = t;
 
         t->SetStringValue(str);
+        t->ApplyScrollViewBorderType();
     }
     else
     {

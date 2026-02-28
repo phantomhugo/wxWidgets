@@ -220,7 +220,7 @@ public:
 
         // Because new label can have different length than the old one
         // so updating button's label with TB_SETBUTTONINFO would require
-        // also manual re-positionining items in the control tools located
+        // also manual re-positioning items in the control tools located
         // to the right in the toolbar and recalculation of stretchable
         // spacers so it is easier just to recreate the toolbar with
         // Realize(). Performance penalty should be negligible.
@@ -443,17 +443,18 @@ bool wxToolBar::MSWCreateToolbar(const wxPoint& pos, const wxSize& size)
 #endif
 
     // Retrieve or apply/restore tool packing value.
+    DWORD padding = ::SendMessage(GetHwnd(), TB_GETPADDING, 0, 0);
     if ( m_toolPacking <= 0 )
     {
         // Retrieve packing value if it hasn't been yet set with SetToolPacking.
-        DWORD padding = ::SendMessage(GetHwnd(), TB_GETPADDING, 0, 0);
-        m_toolPacking = IsVertical() ? HIWORD(padding) : LOWORD(padding);
+        m_toolPacking = FromDIP(IsVertical() ? HIWORD(padding) : LOWORD(padding));
     }
-    else
-    {
-        // Apply packing value if it has been already set with SetToolPacking.
-        MSWSetPadding(m_toolPacking);
-    }
+
+    // Scale the tool packing to the active DPI
+    DWORD orthoPadding = FromDIP(IsVertical() ? LOWORD(padding) : HIWORD(padding));
+    DWORD scaledPadding = IsVertical() ? MAKELPARAM(orthoPadding, m_toolPacking)
+                                       : MAKELPARAM(m_toolPacking, orthoPadding);
+    ::SendMessage(GetHwnd(), TB_SETPADDING, 0, scaledPadding);
 
 #if wxUSE_TOOLTIPS
     // MSW "helpfully" handles ampersands as mnemonics in the tooltips
@@ -590,7 +591,7 @@ wxSize wxToolBar::MSWGetFittingtSizeForControl(wxToolBarTool* tool) const
 
     // This is arbitrary, but we want to leave at least 1px around the control
     // vertically, otherwise it really looks too cramped.
-    size.y += 2*1;
+    size.y += FromDIP(2*1);
 
     // Account for the label, if any.
     if ( wxStaticText * const staticText = tool->GetStaticText() )
@@ -603,7 +604,7 @@ wxSize wxToolBar::MSWGetFittingtSizeForControl(wxToolBarTool* tool) const
                 size.x = sizeLabel.x;
 
             size.y += sizeLabel.y;
-            size.y += MARGIN_CONTROL_LABEL;
+            size.y += FromDIP(MARGIN_CONTROL_LABEL);
         }
     }
 
@@ -747,6 +748,24 @@ bool wxToolBar::MSWGetDarkModeSupport(MSWDarkModeSupport& support) const
 int wxToolBar::MSWGetToolTipMessage() const
 {
     return TB_GETTOOLTIPS;
+}
+
+/* static */
+wxVisualAttributes
+wxToolBar::GetClassDefaultAttributes(wxWindowVariant variant)
+{
+    wxVisualAttributes attrs =
+        wxToolBarBase::GetClassDefaultAttributes(variant);
+
+    // Override the default background because the default value doesn't
+    // provide any contrast with the main window in dark mode.
+    //
+    // Note that in light mode the default background colour is already
+    // wxSYS_COLOUR_BTNFACE anyhow, see wxWindow version of this function.
+    if ( wxMSWDarkMode::IsActive() )
+        attrs.colBg = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
+
+    return attrs;
 }
 
 // ----------------------------------------------------------------------------
@@ -1378,12 +1397,13 @@ bool wxToolBar::Realize()
 
                 // Center the static text horizontally for consistency with the
                 // button labels and position it below the control vertically.
+                const int labelMargin = FromDIP(MARGIN_CONTROL_LABEL);
                 staticText->Move(x + (totalWidth - staticTextSize.x)/2,
                                  r.top + (height + controlSize.y
                                                  - staticTextSize.y
-                                                 + MARGIN_CONTROL_LABEL)/2);
+                                                 + labelMargin)/2);
 
-                totalHeight += staticTextSize.y + MARGIN_CONTROL_LABEL;
+                totalHeight += staticTextSize.y + labelMargin;
             }
         }
 
@@ -1695,27 +1715,36 @@ bool wxToolBar::MSWOnNotify(int WXUNUSED(idCtrl),
                 nmtbcd->clrText =
                 nmtbcd->clrTextHighlight = wxColourToRGB(GetForegroundColour());
 
-                const wxColour colBg = m_hasBgCol
-                    ? GetBackgroundColour()
-                    : wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
-                nmtbcd->clrHighlightHotTrack = wxColourToRGB(colBg.ChangeLightness(115));
+                const wxColour colBg = GetBackgroundColour();
+                nmtbcd->clrHighlightHotTrack =
+                    wxColourToRGB(colBg.ChangeLightness(115));
 
                 *result = CDRF_DODEFAULT |
                           CDRF_NOTIFYPOSTPAINT |
                           TBCDRF_USECDCOLORS |
                           TBCDRF_HILITEHOTTRACK;
 
-                // Draw custom checked button background when it is not hot:
-                // by default it is drawn in a light colour not appropriate for
-                // the dark mode under Windows 11.
+                // Draw custom button background when it would be drawn with a
+                // light background by default: this is the case for checked
+                // buttons under Windows 11 (unless they are "hot") and for
+                // selected buttons (which is a state the button is in when
+                // the mouse is pressed over it).
+                wxColour customBg;
                 if ( (nmtbcd->nmcd.uItemState &
                         (CDIS_CHECKED | CDIS_HOT)) == CDIS_CHECKED )
                 {
-                    const wxColor color =
-                        wxSystemSettings::GetColour(wxSYS_COLOUR_HOTLIGHT)
-                            .ChangeLightness(110);
+                    customBg = wxSystemSettings::GetColour(wxSYS_COLOUR_HOTLIGHT);
+                }
+                else if ( nmtbcd->nmcd.uItemState == CDIS_SELECTED )
+                {
+                    customBg = colBg;
+                }
 
-                    AutoHBRUSH br(wxColourToRGB(color));
+                if ( customBg.IsOk() )
+                {
+                    customBg = customBg.ChangeLightness(110);
+
+                    AutoHBRUSH br(wxColourToRGB(customBg));
                     ::FillRect(nmtbcd->nmcd.hdc, &nmtbcd->nmcd.rc, br);
                     *result |= TBCDRF_NOBACKGROUND;
                 }
@@ -1737,10 +1766,7 @@ bool wxToolBar::MSWOnNotify(int WXUNUSED(idCtrl),
                     ::SendMessage(GetHwnd(), TB_GETITEMDROPDOWNRECT,
                                   (WPARAM)itemIndex, (LPARAM)&ddrc);
 
-                    wxColour colBg = m_hasBgCol
-                        ? GetBackgroundColour()
-                        : wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
-
+                    wxColour colBg = GetBackgroundColour();
                     if ( nmtbcd->nmcd.uItemState & CDIS_HOT )
                     {
                         // Make this slightly different from the colour used
@@ -2027,6 +2053,17 @@ void wxToolBar::SetToolPacking(int packing)
 // Responds to colour changes, and passes event on to children.
 void wxToolBar::OnSysColourChanged(wxSysColourChangedEvent& event)
 {
+    // let the event propagate further in any case
+    event.Skip();
+
+    if ( wxMSWDarkMode::IsActive() )
+    {
+        // We currently don't use system colours in dark mode, although we
+        // should, of course. For now at least don't switch to using light mode
+        // colours.
+        return;
+    }
+
     if ( !UseBgCol() )
         wxRGBToColour(m_backgroundColour, ::GetSysColor(COLOR_BTNFACE));
 
@@ -2039,9 +2076,6 @@ void wxToolBar::OnSysColourChanged(wxSysColourChangedEvent& event)
     SetRows(nrows);
 
     Refresh();
-
-    // let the event propagate further
-    event.Skip();
 }
 
 void wxToolBar::OnMouseEvent(wxMouseEvent& event)
@@ -2089,6 +2123,13 @@ void wxToolBar::RealizeHelper()
 
 void wxToolBar::OnDPIChanged(wxDPIChangedEvent& event)
 {
+    // Scale the tool packing to the new DPI
+    DWORD curPadding = ::SendMessage(GetHwnd(), TB_GETPADDING, 0, 0);
+    DWORD newPadding = MAKELPARAM(event.ScaleX(LOWORD(curPadding)),
+                                  event.ScaleY(HIWORD(curPadding)));
+    m_toolPacking = IsVertical() ? HIWORD(newPadding) : LOWORD(newPadding);
+    ::SendMessage(GetHwnd(), TB_SETPADDING, 0, newPadding);
+
     // Manually scale the size of the controls. Even though the font has been
     // updated, the internal size of the controls does not.
     wxToolBarToolsList::compatibility_iterator node;
@@ -2259,11 +2300,8 @@ WXHBRUSH wxToolBar::MSWGetToolbarBgBrush()
     // different colours), it seems to be a solid one and using REBAR
     // background brush as we used to do before doesn't look good at all under
     // Windows 7 (and probably Vista too), so for now we just keep it simple
-    wxColour const
-        colBg = m_hasBgCol ? GetBackgroundColour()
-                           : wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
     wxBrush * const
-        brush = wxTheBrushList->FindOrCreateBrush(colBg);
+        brush = wxTheBrushList->FindOrCreateBrush(GetBackgroundColour());
 
     return brush ? static_cast<WXHBRUSH>(brush->GetResourceHandle()) : 0;
 }

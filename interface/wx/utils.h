@@ -110,48 +110,6 @@ public:
     ~wxWindowDisabler();
 };
 
-
-
-/**
-    @class wxBusyCursor
-
-    This class makes it easy to tell your user that the program is temporarily
-    busy. Just create a wxBusyCursor object on the stack, and within the
-    current scope, the hourglass will be shown.
-
-    For example:
-
-    @code
-    wxBusyCursor wait;
-
-    for (int i = 0; i < 100000; i++)
-        DoACalculation();
-    @endcode
-
-    It works by calling wxBeginBusyCursor() in the constructor, and
-    wxEndBusyCursor() in the destructor.
-
-    @library{wxcore}
-    @category{misc}
-
-    @see wxBeginBusyCursor(), wxEndBusyCursor(), wxWindowDisabler, wxBusyInfo
-*/
-class wxBusyCursor
-{
-public:
-    /**
-        Constructs a busy cursor object, calling wxBeginBusyCursor().
-    */
-    wxBusyCursor(const wxCursor* cursor = wxHOURGLASS_CURSOR);
-
-    /**
-        Destroys the busy cursor object, calling wxEndBusyCursor().
-    */
-    ~wxBusyCursor();
-};
-
-
-
 // ============================================================================
 // Global functions/macros
 // ============================================================================
@@ -159,38 +117,6 @@ public:
 
 /** @addtogroup group_funcmacro_dialog */
 ///@{
-
-/**
-    Changes the cursor to the given cursor for all windows in the application.
-    Use wxEndBusyCursor() to revert the cursor back to its previous state.
-    These two calls can be nested, and a counter ensures that only the outer
-    calls take effect.
-
-    @see wxIsBusy(), wxBusyCursor
-
-    @header{wx/utils.h}
-*/
-void wxBeginBusyCursor(const wxCursor* cursor = wxHOURGLASS_CURSOR);
-
-/**
-    Changes the cursor back to the original cursor, for all windows in the
-    application. Use with wxBeginBusyCursor().
-
-    @see wxIsBusy(), wxBusyCursor
-
-    @header{wx/utils.h}
-*/
-void wxEndBusyCursor();
-
-/**
-    Returns @true if between two wxBeginBusyCursor() and wxEndBusyCursor()
-    calls.
-
-    @see wxBusyCursor.
-
-    @header{wx/utils.h}
-*/
-bool wxIsBusy();
 
 /**
     Ring the system bell.
@@ -232,7 +158,7 @@ void wxInfoMessageBox(wxWindow* parent);
 
     @header{wx/utils.h}
 
-    @library{wxcore}
+    @library{wxbase}
 */
 wxVersionInfo wxGetLibraryVersionInfo();
 
@@ -1141,13 +1067,8 @@ wxString wxGetNativeCpuArchitectureName();
     Returns a structure containing information about the currently running
     Linux distribution.
 
-    This function uses the @c lsb_release utility which is part of the
-    <tt>Linux Standard Base Core</tt> specification
-    (see http://refspecs.linux-foundation.org/lsb.shtml) since the very first LSB
-    release 1.0 (released in 2001).
-    The @c lsb_release utility is very common on modern Linux distributions but in
-    case it's not available, then this function will return a ::wxLinuxDistributionInfo
-    structure containing empty strings.
+    In case such information cannot be obtained, this function will return
+    a ::wxLinuxDistributionInfo structure containing empty strings.
 
     This function is Linux-specific and is only available when the @c \__LINUX__
     symbol is defined.
@@ -1614,18 +1535,6 @@ wxString wxNow();
     @header{wx/utils.h}
 */
 void wxSleep(int secs);
-
-/**
-    @deprecated This function is deprecated because its name is misleading:
-                notice that the argument is in milliseconds, not microseconds.
-                Please use either wxMilliSleep() or wxMicroSleep() depending on
-                the resolution you need.
-
-    Sleeps for the specified number of milliseconds.
-
-    @header{wx/utils.h}
-*/
-void wxUsleep(unsigned long milliseconds);
 
 ///@}
 

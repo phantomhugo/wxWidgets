@@ -368,6 +368,7 @@ public:
         - Unix: @c prefix/share/appinfo
         - Windows: the directory where the executable file is located
         - Mac: @c appinfo.app/Contents/Resources bundle subdirectory
+        - iOS: @c appinfo.app bundle subdirectory
 
         @since 2.7.0
 
@@ -442,7 +443,7 @@ public:
     virtual wxString GetUserLocalDataDir() const;
 
     /**
-        Return OS specific directory where project shared liraries are.
+        Return OS specific directory where project shared libraries are.
 
         The function does the same thing as GetPluginsDir() under non-Mac platforms
         but differs from it under Mac, where plugins (shared libraries loaded by the

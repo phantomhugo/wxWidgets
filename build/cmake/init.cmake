@@ -198,14 +198,18 @@ if(WIN32)
     endif()
 endif()
 
+wx_get_install_dir(include)
 if(WIN32_MSVC_NAMING)
     if(wxBUILD_SHARED)
         set(lib_suffix "_dll")
     else()
         set(lib_suffix "_lib")
     endif()
-
     set(wxPLATFORM_LIB_DIR "${wxCOMPILER_PREFIX}${wxARCH_SUFFIX}${lib_suffix}")
+    set(wxINSTALL_INCLUDE_DIR "${include_dir}")
+else()
+    wx_get_flavour(lib_flavour "-")
+    set(wxINSTALL_INCLUDE_DIR "${include_dir}/wx-${wxMAJOR_VERSION}.${wxMINOR_VERSION}${lib_flavour}")
 endif()
 
 if(wxBUILD_CUSTOM_SETUP_HEADER_PATH)
@@ -392,6 +396,11 @@ if(UNIX)
         # have GNOME libsecret under Unix to be able to compile this class.
         find_package(LIBSECRET)
         if(NOT LIBSECRET_FOUND)
+            if(wxUSE_SECRETSTORE STREQUAL ON)
+                message(FATAL_ERROR "wxSecretStore support requested, but libsecret was not found: either install it or don't set wxUSE_SECRETSTORE to ON")
+            endif()
+
+            # wxUSE_SECRETSTORE must be AUTO, continue with a warning.
             message(WARNING "libsecret not found, wxSecretStore won't be available")
             wx_option_force_value(wxUSE_SECRETSTORE OFF)
         endif()
@@ -447,7 +456,55 @@ if(wxUSE_GUI)
             wx_option_force_value(wxUSE_OWNER_DRAWN OFF)
         endif()
 
-        if(NOT UNIX)
+        if(UNIX)
+            if(wxHAVE_GDK_WAYLAND AND wxUSE_WAYLAND)
+                find_package(PkgConfig)
+                pkg_check_modules(WAYLAND_CLIENT wayland-client)
+                if(WAYLAND_CLIENT_FOUND)
+                    pkg_get_variable(WAYLAND_SCANNER wayland-scanner wayland_scanner)
+                    if(WAYLAND_SCANNER)
+                        set(wx_protocols_input_dir ${wxSOURCE_DIR}/src/unix/protocols)
+                        set(wx_protocols_temp_dir ${wxOUTPUT_DIR}/wx/protocols)
+                        set(wx_protocols_output_dir ${wxSETUP_HEADER_PATH}/wx/protocols)
+
+                        # Note that we need multiple execute_process()
+                        # invocations as single one would run commands
+                        # concurrently and not sequentially.
+                        execute_process(
+                            COMMAND
+                                ${CMAKE_COMMAND} -E make_directory ${wx_protocols_temp_dir}
+                        )
+                        execute_process(
+                            COMMAND
+                                ${WAYLAND_SCANNER} client-header
+                                    ${wx_protocols_input_dir}/pointer-warp-v1.xml
+                                    ${wx_protocols_temp_dir}/pointer-warp-v1-client-protocol.h
+                        )
+                        execute_process(
+                            COMMAND
+                                ${WAYLAND_SCANNER} private-code
+                                    ${wx_protocols_input_dir}/pointer-warp-v1.xml
+                                    ${wx_protocols_temp_dir}/pointer-warp-v1-client-protocol.c
+                        )
+
+                        execute_process(
+                            COMMAND
+                                ${CMAKE_COMMAND} -E make_directory ${wx_protocols_output_dir}
+                        )
+                        execute_process(
+                            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                                    ${wx_protocols_temp_dir}/pointer-warp-v1-client-protocol.h
+                                    ${wx_protocols_temp_dir}/pointer-warp-v1-client-protocol.c
+                                    ${wx_protocols_output_dir}
+                        )
+
+                        set(wxHAVE_WAYLAND_CLIENT ON)
+                        list(APPEND wxTOOLKIT_INCLUDE_DIRS ${WAYLAND_CLIENT_INCLUDE_DIRS})
+                        list(APPEND wxTOOLKIT_LIBRARIES ${WAYLAND_CLIENT_LIBRARIES})
+                    endif()
+                endif()
+            endif()
+        else()
             wx_option_force_value(wxUSE_WEBVIEW OFF)
             wx_option_force_value(wxUSE_MEDIACTRL OFF)
             wx_option_force_value(wxUSE_UIACTIONSIMULATOR OFF)
@@ -460,6 +517,7 @@ if(wxUSE_GUI)
     if(wxUSE_OPENGL)
         if(WXOSX_IPHONE)
             set(OPENGL_FOUND TRUE)
+            set(OPENGL_INCLUDE_DIR "")
             set(OPENGL_LIBRARIES "-framework OpenGLES" "-framework QuartzCore" "-framework GLKit")
         else()
             find_package(OpenGL)
@@ -479,15 +537,23 @@ if(wxUSE_GUI)
                     # library directly like this to avoid link problems.
                     set(OPENGL_LIBRARIES ${OPENGL_egl_LIBRARY} ${OPENGL_LIBRARIES})
                 endif()
+                set(wxHAS_EGL 1)
                 set(OPENGL_INCLUDE_DIR ${OPENGL_INCLUDE_DIR} ${OPENGL_EGL_INCLUDE_DIRS})
                 find_package(WAYLANDEGL)
                 if(WAYLANDEGL_FOUND AND wxHAVE_GDK_WAYLAND)
                     list(APPEND OPENGL_LIBRARIES ${WAYLANDEGL_LIBRARIES})
                 endif()
             endif()
+            if(X11_FOUND AND OpenGL_GLX_FOUND)
+                # toolkit.cmake calls find_package(X11) if X11 support is needed
+                set(wxHAS_GLX 1)
+            endif()
+            if(WXGTK3 AND APPLE AND (NOT wxHAVE_GDK_X11 OR NOT wxHAVE_GDK_WAYLAND))
+                set(OPENGL_FOUND OFF)
+            endif()
         endif()
         if(NOT OPENGL_FOUND)
-            message(WARNING "opengl not found, wxGLCanvas won't be available")
+            message(WARNING "OpenGL not found, wxGLCanvas won't be available")
             wx_option_force_value(wxUSE_OPENGL OFF)
         endif()
         if(UNIX AND (NOT WXGTK3 OR NOT OpenGL_EGL_FOUND))
@@ -599,7 +665,7 @@ if(wxUSE_GUI)
         endif()
     endif()
 
-    if(wxUSE_MEDIACTRL AND WXGTK AND NOT APPLE AND NOT WIN32)
+    if(wxUSE_MEDIACTRL AND WXGTK AND NOT WIN32)
         find_package(GSTREAMER 1.0 COMPONENTS video)
         if(NOT GSTREAMER_FOUND)
             find_package(GSTREAMER 0.10 COMPONENTS interfaces)
@@ -624,6 +690,7 @@ if(wxUSE_GUI)
         find_package(SDL2)
         if(NOT SDL2_FOUND)
             find_package(SDL)
+            mark_as_advanced(SDL_INCLUDE_DIR SDLMAIN_LIBRARY)
         endif()
         if(NOT SDL2_FOUND AND NOT SDL_FOUND)
             message(WARNING "SDL not found, SDL Audio back-end won't be available")
@@ -649,7 +716,7 @@ if(wxUSE_GUI)
     endif()
 
     if(wxUSE_UIACTIONSIMULATOR AND UNIX AND WXGTK)
-        if(wxUSE_XTEST)
+        if(wxHAVE_GDK_X11 AND wxUSE_XTEST)
             find_package(XTEST)
             if(XTEST_FOUND)
                 list(APPEND wxTOOLKIT_INCLUDE_DIRS ${XTEST_INCLUDE_DIRS})

@@ -491,6 +491,13 @@ void wxFrame::OnSysColourChanged(wxSysColourChangedEvent& event)
     }
 #endif // wxUSE_STATUSBAR
 
+#if wxUSE_MENUS && wxUSE_OWNER_DRAWN && !defined(__WXUNIVERSAL__)
+    if ( wxMenuBar* const menuBar = GetMenuBar() )
+    {
+        menuBar->MSWApplyThemeBackground();
+    }
+#endif // wxUSE_MENUS && wxUSE_OWNER_DRAWN && !defined(__WXUNIVERSAL__)
+
     // Propagate the event to the non-top-level children
     wxWindow::OnSysColourChanged(event);
 }
@@ -857,9 +864,11 @@ HandleMenuMessage(WXLRESULT* result,
         case WM_MENUBAR_MEASUREMENUITEM:
             if ( auto* const measureMenuItem = (MenuBarMeasureMenuItem*)lParam )
             {
-                // We only need to handle this message for a workaround when
-                // using non-standard DPI.
-                if ( !(w->GetDPIScaleFactor() > 1.0) )
+                // We only need to handle this message to work around the
+                // incorrect behavior of the native control not scaling its
+                // padding at high DPI, which is fixed in Windows 11.
+                if ( !(wxGetWinVersion() <= wxWinVersion_10 &&
+                       w->GetDPIScaleFactor() > 1.0) )
                     break;
 
                 MEASUREITEMSTRUCT& mis = measureMenuItem->mis;

@@ -76,8 +76,8 @@
 
 #include "wx/msw/private.h"
 #include "wx/msw/private/darkmode.h"
-#include "wx/msw/private/dpiaware.h"
 #include "wx/msw/private/keyboard.h"
+#include "wx/msw/private/metrics.h"
 #include "wx/msw/private/paint.h"
 #include "wx/msw/private/winstyle.h"
 #include "wx/msw/dcclient.h"
@@ -104,6 +104,7 @@
 
 #include <string.h>
 
+#include <imm.h>
 #include <shellapi.h>
 #include <mmsystem.h>
 
@@ -126,6 +127,11 @@
 // global variables
 // ---------------------------------------------------------------------------
 
+#if wxUSE_PRINTING_ARCHITECTURE && (!defined(__WXUNIVERSAL__) || !wxUSE_POSTSCRIPT_ARCHITECTURE_IN_MSW)
+// This variable is defined in src/msw/printdlg.cpp.
+extern bool wxPrinterDialogShown;
+#endif // wxUSE_PRINTING_ARCHITECTURE
+
 #if wxUSE_MENUS_NATIVE
 extern wxMenu *wxCurrentPopupMenu;
 #endif
@@ -140,6 +146,11 @@ extern wxPopupWindow* wxCurrentPopupWindow;
 // control.
 wxWindowMSW *wxWindowBeingErased = nullptr;
 #endif // wxUSE_UXTHEME
+
+// Set to the key code of the pressed key if we need to ignore it but couldn't
+// return 1 from the keyboard hook because we had to leave the IME edit this
+// event, see wxKeyboardHook() code.
+WPARAM wxVKBlockedByKeyboardHook = 0;
 
 namespace
 {
@@ -468,47 +479,6 @@ bool wxWindowMSW::CreateUsingMSWClass(const wxChar* classname,
     msflags &= ~WS_BORDER;
 #endif // wxUniversal
 
-    // Enable double buffering by default for all our own, i.e. not the ones
-    // using native controls, classes.
-    //
-    // The loop here is a bogus one just to create a block that we can break
-    // from, it never executes more than once.
-    while ( !classname )
-    {
-        // WS_EX_COMPOSITED seems to be incompatible with WS_EX_TOPMOST, so
-        // don't use it for:
-
-        // Popup windows that get created with this style themselves: this
-        // seems to work under Windows 10, but doesn't under Windows 7 and
-        // using WS_EX_COMPOSITED for these windows that are temporarily
-        // doesn't seem to be very useful anyhow, so don't bother testing for
-        // the OS version and just always disable it for them.
-        if ( exstyle & WS_EX_TOPMOST )
-            break;
-
-        // Children of such windows as this doesn't work either (see #23078).
-        wxWindow* const tlw = wxGetTopLevelParent(this);
-        if ( tlw && tlw->HasFlag(wxSTAY_ON_TOP) )
-            break;
-
-        // We also allow disabling the use of this style globally by setting
-        // a system option if nothing else (i.e. turning it off for individual
-        // windows) works.
-        if ( wxSystemOptions::GetOptionInt("msw.window.no-composited") )
-            break;
-
-        // Do enable composition for this window.
-
-        exstyle |= WS_EX_COMPOSITED;
-
-        // We have to use the class including CS_[HV]REDRAW bits, as
-        // WS_EX_COMPOSITED doesn't work correctly if the entire window is
-        // not redrawn every time it's drawn.
-        style |= wxFULL_REPAINT_ON_RESIZE;
-
-        break;
-    }
-
     if ( IsShown() )
     {
         msflags |= WS_VISIBLE;
@@ -823,17 +793,14 @@ bool wxWindowMSW::IsTransparentBackgroundSupported(wxString* WXUNUSED(reason)) c
     return true;
 }
 
-bool wxWindowMSW::SetCursor(const wxCursor& cursor)
+void wxWindowMSW::WXUpdateCursor()
 {
-    if ( !wxWindowBase::SetCursor(cursor) )
-    {
-        // no change
-        return false;
-    }
+    // Call the base class version to update m_cursor.
+    wxWindowBase::WXUpdateCursor();
 
     // don't "overwrite" busy cursor
     if ( wxIsBusy() )
-        return true;
+        return;
 
     if ( m_cursor.IsOk() )
     {
@@ -874,8 +841,6 @@ bool wxWindowMSW::SetCursor(const wxCursor& cursor)
                       (WPARAM)GetHwndOf(win),
                       MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
     }
-
-    return true;
 }
 
 void wxWindowMSW::WarpPointer(int x, int y)
@@ -1679,15 +1644,10 @@ void wxWindowMSW::MSWDisableComposited()
 {
     for ( auto win = this; win; win = win->GetParent() )
     {
-        // We never set WS_EX_COMPOSITED on TLWs, and we shouldn't recurse into
-        // different windows, so we can stop here.
+        wxMSWWinExStyleUpdater(GetHwndOf(win)).TurnOff(WS_EX_COMPOSITED);
+
         if ( win->IsTopLevel() )
             break;
-
-        wxMSWWinExStyleUpdater updater(GetHwndOf(win));
-        updater.TurnOff(WS_EX_COMPOSITED);
-        if ( updater.Apply() )
-            win->CallForEachChild([](wxWindow* w) { w->MSWOnDisabledComposited(); });
     }
 }
 
@@ -2476,7 +2436,38 @@ wxWindowMSW::HandleMenuSelect(WXWORD nItem, WXWORD flags, WXHMENU hMenu)
         item = wxID_NONE;
 
     wxMenu* menu = MSWFindMenuFromHMENU(hMenu);
-    wxMenuItem* menuItem = MSWFindMenuItemFromHMENU(hMenu, item);
+
+    // Don't try to look for the menu item if it's not our menu at all, e.g. if
+    // it's the per-window system menu in MDI applications.
+    wxMenuItem* menuItem = nullptr;
+    if ( menu )
+    {
+        int pos = 0;
+        for ( auto& mi : menu->GetMenuItems() )
+        {
+            // If there is a normal menu item with the same ID as the position
+            // of a submenu we give precedence to the normal item, as this
+            // seems more useful because the application is more likely to
+            // handle wxEVT_MENU_HIGHLIGHT for a normal item than for a submenu.
+            if ( mi->GetId() == item )
+            {
+                menuItem = mi;
+                break;
+            }
+
+            // We don't get the ID for submenus, but their position in the
+            // parent window, so this is how we identify them.
+            if ( mi->IsSubMenu() && item == pos )
+            {
+                menuItem = mi;
+
+                // Don't break here, if we find an item with the given ID
+                // later, take it instead of this submenu, as explained above.
+            }
+
+            ++pos;
+        }
+    }
 
     wxMenuEvent event(wxEVT_MENU_HIGHLIGHT, item, menu, menuItem);
     if ( wxMenu::ProcessMenuEvent(menu, event, this) )
@@ -2525,37 +2516,6 @@ wxMenu* wxWindowMSW::MSWFindMenuFromHMENU(WXHMENU hMenu)
         return wxCurrentPopupMenu;
 
     return nullptr;
-}
-
-wxMenuItem* wxWindowMSW::MSWFindMenuItemFromHMENU(WXHMENU hMenu, int item)
-{
-    WinStruct<MENUITEMINFO> mii;
-    mii.fMask = MIIM_ID | MIIM_DATA; // Include MIIM_DATA to access dwItemData
-
-    const int count = ::GetMenuItemCount(hMenu);
-    for ( int i = 0; i < count; i++ )
-    {
-        if ( ::GetMenuItemInfo(hMenu, i, TRUE, &mii) )
-        {
-            wxMenuItem* menuItem = (wxMenuItem*)mii.dwItemData;
-            if ( mii.wID == (unsigned int)item && menuItem )
-            {
-                return menuItem;
-            }
-
-            // Check for submenus
-            if ( mii.hSubMenu )
-            {
-                wxMenuItem* foundInSubmenu = MSWFindMenuItemFromHMENU(mii.hSubMenu, item);
-                if ( foundInSubmenu )
-                {
-                    return foundInSubmenu;
-                }
-            }
-        }
-    }
-
-    return nullptr; // Not found
 }
 
 #endif // wxUSE_MENUS && !defined(__WXUNIVERSAL__)
@@ -3645,6 +3605,10 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
             processed = HandleEndSession(wParam != 0, lParam);
             break;
 
+        case WM_ENTERIDLE:
+            processed = HandleEnterIdle(wParam, lParam);
+            break;
+
         case WM_GETMINMAXINFO:
             processed = HandleGetMinMaxInfo((MINMAXINFO*)lParam);
             break;
@@ -4321,6 +4285,31 @@ bool wxWindowMSW::HandleQueryEndSession(long logOff, bool *mayEnd)
     return true;
 }
 
+bool wxWindowMSW::HandleEnterIdle(WXWPARAM wParam, WXLPARAM lParam)
+{
+#if wxUSE_OWNER_DRAWN
+    // We only care about idle states triggered by menus
+    if ( static_cast<WXWPARAM>(wParam) != MSGF_MENU || !lParam )
+        return false;
+
+    // Fix menu rounded corners in Windows 11 which are turned off if menu is
+    // owner-drawn and we're not in dark mode (but also not using high contrast
+    // mode as round corners are not used in it).
+    if ( wxGetWinVersion() < wxWinVersion_11 )
+        return false;
+
+    if ( !wxMSWDarkMode::IsActive() && !wxMSWImpl::IsHighContrast() )
+    {
+        wxMSWImpl::EnableRoundCorners(reinterpret_cast<HWND>(lParam));
+    }
+#else
+    wxUnusedVar(wParam);
+    wxUnusedVar(lParam);
+#endif // wxUSE_OWNER_DRAWN
+
+    return false;
+}
+
 bool wxWindowMSW::HandleEndSession(bool endSession, long logOff)
 {
     // If the session isn't ending we don't need to generate any events, but we
@@ -4388,7 +4377,7 @@ bool wxWindowMSW::HandleActivate(int state,
                                  bool minimized,
                                  WXHWND WXUNUSED(activate))
 {
-    if ( minimized )
+    if ( state == WA_ACTIVE && minimized )
     {
         // Getting activation event when the window is minimized, as happens
         // e.g. when the window task bar icon is clicked, is unexpected and
@@ -4405,6 +4394,15 @@ bool wxWindowMSW::HandleActivate(int state,
         // (still existent) hidden parent, see #18970.
         return false;
     }
+
+#if wxUSE_PRINTING_ARCHITECTURE && (!defined(__WXUNIVERSAL__) || !wxUSE_POSTSCRIPT_ARCHITECTURE_IN_MSW)
+    if ( wxPrinterDialogShown )
+    {
+        // Finally, there is a weird case of WM_ACTIVATE synthesized by the
+        // native print dialog, see the code in src/msw/printdlg.cpp.
+        return false;
+    }
+#endif // wxUSE_PRINTING_ARCHITECTURE
 
     wxActivateEvent event(wxEVT_ACTIVATE,
                           (state == WA_ACTIVE) || (state == WA_CLICKACTIVE),
@@ -4845,15 +4843,6 @@ wxWindowMSW::MSWOnMeasureItem(int id, WXMEASUREITEMSTRUCT *itemStruct)
 // DPI
 // ---------------------------------------------------------------------------
 
-namespace wxMSWImpl
-{
-
-AutoSystemDpiAware::SetThreadDpiAwarenessContext_t
-AutoSystemDpiAware::ms_pfnSetThreadDpiAwarenessContext =
-    (AutoSystemDpiAware::SetThreadDpiAwarenessContext_t)-1;
-
-} // namespace wxMSWImpl
-
 namespace
 {
 
@@ -5059,6 +5048,9 @@ wxWindowMSW::MSWUpdateOnDPIChange(const wxSize& oldDPI, const wxSize& newDPI)
 
     InvalidateBestSize();
 
+    // update cursor size
+    WXUpdateCursor();
+
     // update font if necessary
     MSWUpdateFontOnDPIChange(newDPI);
 
@@ -5113,6 +5105,10 @@ bool wxWindowMSW::HandleDisplayChange()
 {
     wxDisplayChangedEvent event;
     event.SetEventObject(this);
+
+    // trigger display cache update to ensure the user receives the most
+    // recent display properties on event handling after change.
+    wxDisplay::InvalidateCache();
 
     return HandleWindowEvent(event);
 }
@@ -5202,6 +5198,18 @@ bool wxWindowMSW::HandleSettingChange(WXWPARAM wParam, WXLPARAM lParam)
     {
         // Forward to the existing function generating an event for this.
         HandleSysColorChange();
+    }
+
+    // Another special case: even with this wParam value is sent when the user
+    // changes the mouse pointer size in the Control Panel.
+    if ( wParam == 0x2029 )
+    {
+        WXUpdateCursor();
+
+        wxSysMetricChangedEvent event(wxSysMetric::CursorSize);
+        event.SetEventObject(this);
+
+        (void)HandleWindowEvent(event);
     }
 
     // despite MSDN saying "(This message cannot be sent directly to a window.)"
@@ -6171,9 +6179,7 @@ void wxWindowMSW::GenerateMouseLeave()
 
     // we need to have client coordinates here for symmetry with
     // wxEVT_ENTER_WINDOW
-    RECT rect = wxGetWindowRect(GetHwnd());
-    pt.x -= rect.left;
-    pt.y -= rect.top;
+    wxMapWindowPoints(HWND_DESKTOP, GetHwnd(), &pt);
 
     wxMouseEvent event(wxEVT_LEAVE_WINDOW);
     InitMouseEvent(event, pt.x, pt.y, state);
@@ -6894,12 +6900,49 @@ int VKToWX(WXWORD vk, WXLPARAM lParam, wchar_t *uc)
             // ASCII characters, not Latin-1 ones).
             if ( wxk > 255 )
             {
-                // But for anything beyond this we can only return the key
-                // value as a real Unicode character, not a wxKeyCode
-                // because this enum values clash with Unicode characters
-                // (e.g. WXK_LBUTTON also happens to be U+012C a.k.a.
-                // "LATIN CAPITAL LETTER I WITH BREVE").
-                wxk = WXK_NONE;
+                // If the key generates a non-Latin character, return the key
+                // code that it would have generated in the US layout.
+                //
+                // We could also use Windows to map the key in the US layout,
+                // but this would require creating such layout which might have
+                // unknown side effects, so for now just hardcode it here.
+                static const int keys[] =
+                {
+                    WXK_NONE,
+                    WXK_ESCAPE,
+                    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
+                    WXK_BACK,
+                    WXK_TAB,
+                    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']',
+                    WXK_RETURN,
+                    WXK_CONTROL,
+                    'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', '`',
+                    WXK_SHIFT,
+                    '\\', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/',
+                    WXK_SHIFT,
+                    WXK_NUMPAD_MULTIPLY,
+                    WXK_ALT,
+                    WXK_SPACE,
+                    WXK_CAPITAL,
+                    WXK_F1, WXK_F2, WXK_F3, WXK_F4, WXK_F5,
+                    WXK_F6, WXK_F7, WXK_F8, WXK_F9, WXK_F10,
+                    WXK_NUMLOCK, WXK_SCROLL,
+                    WXK_NUMPAD7, WXK_NUMPAD8, WXK_NUMPAD9,
+                    WXK_NUMPAD_SUBTRACT,
+                    WXK_NUMPAD4, WXK_NUMPAD5, WXK_NUMPAD6,
+                    WXK_NUMPAD_ADD,
+                    WXK_NUMPAD1, WXK_NUMPAD2, WXK_NUMPAD3,
+                    WXK_NUMPAD0,
+                    WXK_NUMPAD_DECIMAL,
+                    WXK_NONE,
+                    WXK_NONE,
+                    WXK_NONE,
+                    WXK_F11,
+                    WXK_F12
+                };
+
+                const UINT sc = ::MapVirtualKey(vk, MAPVK_VK_TO_VSC);
+                wxk = sc < WXSIZEOF(keys) ? keys[sc] : WXK_NONE;
             }
             break;
 
@@ -7068,7 +7111,11 @@ WXWORD WXToVK(int wxk, bool *isExtended)
             break;
 
         default:
-            // check to see if its one of the OEM key codes.
+            // Special handling for OEM key codes. First, we try to check if
+            // there is a key corresponding to them in the current keyboard
+            // layout: if there is one, we consider that the VK corresponding
+            // to this wx key is this one, even if it's a completely different
+            // physical key (e.g. VK for "-" in French AZERTY layout is "6").
             BYTE vks = LOBYTE(VkKeyScan(wxk));
             if ( vks != 0xff )
             {
@@ -7076,7 +7123,30 @@ WXWORD WXToVK(int wxk, bool *isExtended)
             }
             else
             {
-                vk = (WXWORD)wxk;
+                // If there is no corresponding key, we still want to be able
+                // to find some VK that could be used to trigger accelerators
+                // using this key, for example. So we use the key that would
+                // generate this wx key in the US keyboard layout as fallback
+                // if we know it (see the conversion in VKToWX() above).
+                switch ( wxk )
+                {
+                    case ';':  vk = VK_OEM_1;       break;
+                    case '=':  vk = VK_OEM_PLUS;    break;
+                    case ',':  vk = VK_OEM_COMMA;   break;
+                    case '-':  vk = VK_OEM_MINUS;   break;
+                    case '.':  vk = VK_OEM_PERIOD;  break;
+                    case '/':  vk = VK_OEM_2;       break;
+                    case '`':  vk = VK_OEM_3;       break;
+                    case '[':  vk = VK_OEM_4;       break;
+                    case '\\': vk = VK_OEM_5;       break;
+                    case ']':  vk = VK_OEM_6;       break;
+                    case '\'': vk = VK_OEM_7;       break;
+
+                    default:
+                        // Use the value of the wx key itself for compatibility
+                        // but it would probably make more sense to return 0.
+                        vk = (WXWORD)wxk;
+                }
             }
             break;
     }
@@ -7203,6 +7273,51 @@ extern wxWindow *wxGetWindowFromHWND(WXHWND hWnd)
     return win;
 }
 
+namespace
+{
+
+// We use dynamic loading to avoid having to link with imm32.lib
+// (another positive side effect is that imm32.dll is loaded only if the
+// program actually handles wxEVT_CHAR_HOOK events without skipping them, as
+// it's the only case when we need to use these IME functions).
+typedef HIMC (WINAPI *ImmGetContext_t)(HWND);
+typedef BOOL (WINAPI *ImmGetOpenStatus_t)(HIMC);
+typedef BOOL (WINAPI *ImmReleaseContext_t)(HWND, HIMC);
+
+ImmGetContext_t gs_pfnImmGetContext = nullptr;
+ImmGetOpenStatus_t gs_pfnImmGetOpenStatus = nullptr;
+ImmReleaseContext_t gs_pfnImmReleaseContext = nullptr;
+
+bool wxIsIMEOpen(const wxWindow* win)
+{
+    if ( !win )
+        return false;
+
+    if ( !gs_pfnImmGetContext )
+    {
+        wxLoadedDLL dllImm32("imm32.dll");
+        if ( !dllImm32.IsLoaded() )
+            return false;
+
+        wxDL_INIT_FUNC(gs_pfn, ImmGetContext, dllImm32);
+        wxDL_INIT_FUNC(gs_pfn, ImmGetOpenStatus, dllImm32);
+        wxDL_INIT_FUNC(gs_pfn, ImmReleaseContext, dllImm32);
+    }
+
+    const HWND hwnd = GetHwndOf(win);
+
+    const HIMC hIMC = gs_pfnImmGetContext(hwnd);
+    if ( !hIMC )
+        return false;
+
+    const BOOL isOpen = gs_pfnImmGetOpenStatus(hIMC);
+    gs_pfnImmReleaseContext(hwnd, hIMC);
+
+    return isOpen;
+}
+
+} // anonymous namespace
+
 // Windows keyboard hook. Allows interception of e.g. F1, ESCAPE
 // in active frames and dialogs, regardless of where the focus is.
 static HHOOK wxTheKeyboardHook = 0;
@@ -7255,8 +7370,20 @@ wxKeyboardHook(int nCode, WXWPARAM wParam, WXLPARAM lParam)
                 {
                     if ( !event.IsNextEventAllowed() )
                     {
-                        // Stop processing of this event.
-                        return 1;
+                        // When IME is active, we must let it have the event as
+                        // otherwise it could just hang, see #22473.
+                        if ( !wxIsIMEOpen(win) )
+                        {
+                            // Stop processing of this event.
+                            return 1;
+                        }
+
+                        // Because we don't stop processing of the event at
+                        // Windows level, we are going to get WM_KEYDOWN for
+                        // this key, but we need to ignore it as it's not
+                        // supposed to be generated if wxEVT_CHAR_HOOK handled
+                        // the event.
+                        wxVKBlockedByKeyboardHook = wParam;
                     }
                 }
             }

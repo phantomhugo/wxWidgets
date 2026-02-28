@@ -21,7 +21,10 @@
 
 #include "wx/webrequest.h"
 #include "wx/filename.h"
+#include "wx/uri.h"
 #include "wx/wfstream.h"
+
+#include "wx/private/make_unique.h"
 
 #include <memory>
 #include <unordered_map>
@@ -140,23 +143,15 @@ protected:
                    const wxString& user,
                    const wxString& password)
     {
-        wxString schema;
-        wxString rest;
-        if ( baseURL.StartsWith("https://", &rest) )
-        {
-            schema = "https";
-        }
-        else if ( baseURL.StartsWith("http://", &rest) )
-        {
-            schema = "http";
-        }
-        else
-        {
-            FAIL("Base URL must be an HTTP(S) one: " << baseURL);
-        }
+        wxString url = baseURL;
+        if ( !url.EndsWith('/') && !relURL.StartsWith('/') )
+            url += '/';
+        url += relURL;
 
-        Create(wxString::Format("%s://%s:%s@%s/%s",
-                                schema, user, password, rest, relURL));
+        wxURI uri(url);
+        uri.SetUserAndPassword(user, password);
+
+        Create(uri.BuildURI());
     }
 
     virtual void Create(const wxString& url) = 0;
@@ -228,6 +223,54 @@ protected:
             REQUIRE( insecure.ToInt(&flags) );
 
             GetRequest().MakeInsecure(flags);
+        }
+
+        wxString debug;
+        if ( wxGetEnv("WX_TEST_WEBREQUEST_DEBUG", &debug ) )
+        {
+            class DebugLogger : public wxWebRequestDebugLogger
+            {
+            public:
+                virtual void OnInfo(const wxString& info) override
+                {
+                    wxFprintf(stderr, "// %s\n", info);
+                }
+
+                virtual void OnRequestSent(const wxString& line) override
+                {
+                    wxFprintf(stderr, "=> %s\n", line);
+                }
+
+                virtual void OnResponseReceived(const wxString& line) override
+                {
+                    wxFprintf(stderr, "<= %s\n", line);
+                }
+
+                virtual void OnHeaderSent(const wxString& name, const wxString& value) override
+                {
+                    wxFprintf(stderr, "-> %s: %s\n", name, value);
+                }
+
+                virtual void OnHeaderReceived(const wxString& name, const wxString& value) override
+                {
+                    wxFprintf(stderr, "<- %s: %s\n", name, value);
+                }
+
+                virtual void OnDataSent(const void* WXUNUSED(data), size_t size) override
+                {
+                    wxFprintf(stderr, "-> data (%zu bytes)\n", size);
+                }
+
+                virtual void OnDataReceived(const void* WXUNUSED(data), size_t size) override
+                {
+                    wxFprintf(stderr, "<- data (%zu bytes)\n", size);
+                }
+            };
+
+            if ( debug == "1" )
+                GetSession().SetDebugLogger(std::make_unique<DebugLogger>());
+            else
+                WARN("Unknown WX_TEST_WEBREQUEST_DEBUG value: " << debug);
         }
     }
 
@@ -661,6 +704,44 @@ TEST_CASE_METHOD(RequestFixture,
 }
 
 TEST_CASE_METHOD(RequestFixture,
+                 "WebRequest::Auth::Basic/Explicit", "[net][webrequest][auth]")
+{
+    if ( !InitBaseURL() )
+        return;
+
+    Create("basic-auth/wxtest/wxwidgets");
+
+    request.UseBasicAuth(wxWebCredentials("wxtest", wxSecretValue("wxwidgets")));
+
+    Run();
+
+    CHECK_THAT( request.GetResponse().AsString().utf8_string(),
+                Catch::Contains(AUTHORIZED_SUBSTRING) );
+}
+
+TEST_CASE_METHOD(RequestFixture,
+                 "WebRequest::Auth::Basic/Reserved", "[net][webrequest][auth]")
+{
+    if ( !InitBaseURL() )
+        return;
+
+    // Use some reserved (in the RFC 3986 sense) characters in the user name and
+    // the password (as well as a sub-delimiter character '=' in the password).
+    Create("basic-auth/u%40d/1%3d2%3f");
+    Run(wxWebRequest::State_Unauthorized, 401);
+    REQUIRE( request.GetAuthChallenge().IsOk() );
+
+    UseCredentials("u@d", "1=2?");
+    RunLoopWithTimeout();
+    CHECK( request.GetState() == wxWebRequest::State_Completed );
+
+    const auto& response = request.GetResponse();
+    CHECK( response.GetStatus() == 200 );
+    CHECK_THAT( response.AsString().utf8_string(),
+                Catch::Contains(AUTHORIZED_SUBSTRING) );
+}
+
+TEST_CASE_METHOD(RequestFixture,
                  "WebRequest::Auth::Digest", "[net][webrequest][auth]")
 {
     if ( !InitBaseURL() )
@@ -1050,6 +1131,30 @@ TEST_CASE_METHOD(SyncRequestFixture,
 }
 
 TEST_CASE_METHOD(SyncRequestFixture,
+                 "WebRequest::Sync::PostAfterRedirect", "[net][webrequest][sync]")
+{
+    if ( !InitBaseURL() )
+        return;
+
+    // We can't test this when using WinHTTP because we need to use either 307
+    // or 308 redirect status code to preserve the POST method across the
+    // redirect (all backends switch to GET for 301 and 302, although it would
+    // be possible to configure this to preserve POST when using libcurl) and
+    // WinHTTP doesn't handle them automatically.
+    const auto& versionInfo = wxWebSession::GetDefault().GetLibraryVersionInfo();
+    if ( versionInfo.GetName() == "WinHTTP" )
+    {
+        WARN("Skipping POST with redirect test with WinHTTP backend");
+        return;
+    }
+
+    Create("redirect-to?url=post&status_code=307");
+    request.SetData("app=WebRequestRedirect&version=1", "application/x-www-form-urlencoded");
+    REQUIRE( Execute() );
+    CHECK( response.GetStatus() == 200 );
+}
+
+TEST_CASE_METHOD(SyncRequestFixture,
                  "WebRequest::Sync::Put", "[net][webrequest][sync]")
 {
     if ( !InitBaseURL() )
@@ -1106,12 +1211,65 @@ TEST_CASE_METHOD(SyncRequestFixture,
                     Catch::Contains(AUTHORIZED_SUBSTRING) );
     }
 
+    SECTION("Explicit basic auth")
+    {
+        Create("basic-auth/wxtest/wxwidgets");
+        request.UseBasicAuth(wxWebCredentials("wxtest", wxSecretValue("wxwidgets")));
+
+        CHECK( Execute() );
+        CHECK( response.GetStatus() == 200 );
+        CHECK( state == wxWebRequest::State_Completed );
+
+        CHECK_THAT( response.AsString().utf8_string(),
+                    Catch::Contains(AUTHORIZED_SUBSTRING) );
+    }
+
+    SECTION("Password after redirect")
+    {
+        Create("redirect-to?url=basic-auth/wxtest/wxwidgets");
+        request.UseBasicAuth(wxWebCredentials("wxtest", wxSecretValue("wxwidgets")));
+
+        CHECK( Execute() );
+        CHECK( response.GetStatus() == 200 );
+        CHECK( state == wxWebRequest::State_Completed );
+
+        CHECK_THAT( response.AsString().utf8_string(),
+                    Catch::Contains(AUTHORIZED_SUBSTRING) );
+    }
+
     SECTION("Bad password")
     {
         CreateWithAuth("basic-auth/wxtest/wxwidgets", "wxtest", "foobar");
         CHECK_FALSE( Execute() );
         CHECK( response.GetStatus() == 401 );
         CHECK( state == wxWebRequest::State_Unauthorized );
+    }
+
+    SECTION("Reserved characters")
+    {
+        if ( wxWebSession::GetDefault().GetLibraryVersionInfo().GetName()
+                == "URLSession" )
+        {
+            // NSURLSession doesn't decode percent-encoded characters in the
+            // password (as indirectly confirmed by the documentation of NSURL
+            // password property, which says that "Any percent-encoded
+            // characters are not unescaped.", resulting in sending wrong
+            // password to the server if we use any reserved characters in it.
+            CreateWithAuth("basic-auth/u%40d/1=2", "u@d", "1=2");
+        }
+        else
+        {
+            // With the other backends, using reserved characters in the
+            // password does work.
+            CreateWithAuth("basic-auth/u%40d/1%3d2%3f", "u@d", "1=2?");
+        }
+
+        REQUIRE( Execute() );
+        CHECK( response.GetStatus() == 200 );
+        CHECK( state == wxWebRequest::State_Completed );
+
+        CHECK_THAT( response.AsString().utf8_string(),
+                    Catch::Contains(AUTHORIZED_SUBSTRING) );
     }
 }
 

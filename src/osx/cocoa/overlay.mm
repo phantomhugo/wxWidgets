@@ -75,7 +75,8 @@
 
 - (void)dealloc
 {
-   [super dealloc];
+    self.overlayView = nil;
+    [super dealloc];
 }
 @end
 
@@ -85,6 +86,12 @@
 {
     wxUnusedVar(dirtyRect);
     [self.bitmapImageRep drawInRect:[self  bounds]];
+}
+
+- (void)dealloc
+{
+    self.bitmapImageRep = nil;
+    [super dealloc];
 }
 
 // from https://developer.apple.com/library/archive/documentation/GraphicsAnimation/Conceptual/HighResolutionOSX/CapturingScreenContents/CapturingScreenContents.html
@@ -249,9 +256,9 @@ void wxOverlayImpl::BeginDrawing( wxDC* dc)
         wxGraphicsContext* ctx = wxGraphicsContext::CreateFromNative( m_overlayContext );
         ctx->Translate(0, ySize);
         ctx->Scale(1,-1);
-        
+
         win_impl->SetGraphicsContext( ctx );
-        
+
         if (m_window)
             dc->SetDeviceOrigin(dc->LogicalToDeviceX(-m_x), dc->LogicalToDeviceY(-m_y));
         dc->SetClippingRegion(m_x, m_y, m_width, m_height);

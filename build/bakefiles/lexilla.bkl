@@ -29,7 +29,7 @@
         <if cond="SHARED=='1' and MONOLITHIC=='0'">WXUSINGDLL</if>
     </set>
 
-    <lib id="wxlexilla" template="3rdparty_lib,wxlexilla_cppflags,msvc_setup_h"
+    <lib id="wxlexilla" template_append="3rdparty_lib,wxlexilla_cppflags,msvc_setup_h"
          cond="USE_STC=='1' and BUILDING_LIB=='1'">
         <if cond="FORMAT!='autoconf'">
             <include>$(SETUPHDIR)</include>
@@ -140,6 +140,7 @@
             src/stc/lexilla/lexers/LexRuby.cxx
             src/stc/lexilla/lexers/LexRust.cxx
             src/stc/lexilla/lexers/LexSAS.cxx
+            src/stc/lexilla/lexers/LexSINEX.cxx
             src/stc/lexilla/lexers/LexSML.cxx
             src/stc/lexilla/lexers/LexSQL.cxx
             src/stc/lexilla/lexers/LexSTTXT.cxx

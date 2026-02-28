@@ -374,7 +374,7 @@ public:
     float GetRatio() const
         { return m_ratio; }
 
-    virtual wxRect GetRect() { return m_rect; }
+    virtual wxRect GetRect() const { return m_rect; }
 
     // set a sizer item id (different from a window id, all sizer items,
     // including spacers, can have an associated id)
@@ -624,15 +624,6 @@ public:
     virtual void Clear( bool delete_windows = false );
     virtual void DeleteWindows();
 
-    // Inform sizer about the first direction that has been decided (by parent item)
-    // Returns true if it made use of the information (and recalculated min size)
-    //
-    // Note that while this method doesn't do anything by default, it should
-    // almost always be overridden in the derived classes and should have been
-    // pure virtual if not for backwards compatibility constraints.
-    virtual bool InformFirstDirection( int WXUNUSED(direction), int WXUNUSED(size), int WXUNUSED(availableOtherDir) )
-        { return false; }
-
     void SetMinSize( int width, int height )
         { DoSetMinSize( width, height ); }
     void SetMinSize( const wxSize& size )
@@ -668,6 +659,13 @@ public:
     // prepare for laying it out and then RepositionChildren() is called with
     // this size to really update all the sizer items.
     virtual wxSize CalcMin() = 0;
+
+    // Can be overridden to return adjusted minimal size when the size in the
+    // given direction is already known.
+    virtual wxSize
+    CalcMinSizeFromKnownDirection(int direction,
+                                  int size,
+                                  int availableOtherDir);
 
     // This method should be overridden but isn't pure virtual for backwards
     // compatibility.
@@ -705,10 +703,6 @@ public:
         m_position = pos;
         m_size = size;
         Layout();
-
-        // This call is required for wxWrapSizer to be able to calculate its
-        // minimal size correctly.
-        InformFirstDirection(wxHORIZONTAL, size.x, size.y);
     }
     void SetDimension(int x, int y, int width, int height)
         { SetDimension(wxPoint(x, y), wxSize(width, height)); }
@@ -746,6 +740,11 @@ public:
     // This is the ShowItems() counterpart and returns true if any of the sizer
     // items are shown.
     virtual bool AreAnyItemsShown() const;
+
+    // Don't use in the new code, override CalcMinSizeFromKnownDirection()
+    // instead.
+    virtual bool InformFirstDirection( int WXUNUSED(direction), int WXUNUSED(size), int WXUNUSED(availableOtherDir) )
+        { return false; }
 
 protected:
     wxSize              m_size;
@@ -839,24 +838,34 @@ protected:
     // of children (and the fixed number of rows/columns)
     int CalcCols() const
     {
+        // Check the count first because we shouldn't assert if the sizer is
+        // completely empty.
+        const int count = wxSsize(m_children);
+        if ( !count )
+            return 0;
+
         wxCHECK_MSG
         (
             m_rows, 0,
             "Can't calculate number of cols if number of rows is not specified"
         );
 
-        return int(m_children.GetCount() + m_rows - 1) / m_rows;
+        return (count + m_rows - 1) / m_rows;
     }
 
     int CalcRows() const
     {
+        const int count = wxSsize(m_children);
+        if ( !count )
+            return 0;
+
         wxCHECK_MSG
         (
             m_cols, 0,
             "Can't calculate number of cols if number of rows is not specified"
         );
 
-        return int(m_children.GetCount() + m_cols - 1) / m_cols;
+        return (count + m_cols - 1) / m_cols;
     }
 
 private:
@@ -979,11 +988,11 @@ public:
 
     // implementation of our resizing logic
     virtual wxSize CalcMin() override;
+    virtual wxSize
+    CalcMinSizeFromKnownDirection(int direction,
+                                  int size,
+                                  int availableOtherDir) override;
     virtual void RepositionChildren(const wxSize& minSize) override;
-
-    virtual bool InformFirstDirection(int direction,
-                                      int size,
-                                      int availableOtherDir) override;
 
 protected:
     // Only overridden to perform extra debugging checks.

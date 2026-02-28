@@ -248,6 +248,19 @@ MyCanvas::MyCanvas(wxWindow* parent)
     }
 #endif
 
+#if wxUSE_LIBWEBP
+    image.Destroy();
+
+    if (!image.LoadFile(dir + "horse.webp", wxBITMAP_TYPE_WEBP))
+    {
+        wxLogError("Can't load WebP image");
+    }
+    else
+    {
+        my_horse_webp = wxBitmap(image);
+    }
+#endif
+
     CreateAntiAliasedBitmap();
 
     my_smile_xbm = wxBitmap( (const char*)smile_bits, smile_width,
@@ -410,10 +423,10 @@ void MyCanvas::OnDPIChanged(wxDPIChangedEvent& event)
 wxSize MyCanvas::GetDrawingSize() const
 {
     // Aproximate the size used in OnPaint
-    // 4 rows, about 13 columns and 1 DPI dependent column
+    // 4 columns, about 14 rows and 1 DPI dependent row
     const int imageSize = 200;
     const int width = 4 * FromDIP(250);
-    const int height = 13 * (imageSize + 2 * GetCharHeight()) + FromDIP(imageSize);
+    const int height = 14 * (imageSize + 2 * GetCharHeight()) + FromDIP(imageSize);
 
     return wxSize(width, height);
 }
@@ -533,6 +546,12 @@ void MyCanvas::OnPaint(wxPaintEvent& WXUNUSED(event))
 
     y += yOffset;
 
+    dc.DrawText("WebP handler", col1, y);
+    if (my_horse_webp.IsOk())
+        dc.DrawBitmap(my_horse_webp, col1, y + ch);
+
+    y += yOffset;
+
     dc.DrawText("XPM handler", col1, y);
     if (my_horse_xpm.IsOk())
         dc.DrawBitmap(my_horse_xpm, col1, y + ch);
@@ -583,7 +602,7 @@ void MyCanvas::OnPaint(wxPaintEvent& WXUNUSED(event))
         dc.DrawText("(green on red)", col2, y + ch);
         dc.SetTextForeground("GREEN");
         dc.SetTextBackground("RED");
-        dc.DrawBitmap(my_smile_xbm, col2, y + 2.5 * ch);
+        dc.DrawBitmap(my_smile_xbm, col2, y + ch * 5 / 2);
 
         dc.SetTextForeground(*wxBLACK);
         dc.DrawText("After wxImage conversion", col2 + colWidth / 2, y);
@@ -595,7 +614,7 @@ void MyCanvas::OnPaint(wxPaintEvent& WXUNUSED(event))
             wxRED_PEN->GetColour().Red(),
             wxRED_PEN->GetColour().Green(),
             wxRED_PEN->GetColour().Blue());
-        dc.DrawBitmap(wxBitmap(i), col2 + colWidth / 2, y + 2.5 * ch, true);
+        dc.DrawBitmap(wxBitmap(i), col2 + colWidth / 2, y + ch * 5 / 2, true);
         dc.SetTextForeground(*wxBLACK);
 
         y += yOffset / 2;
@@ -625,7 +644,7 @@ void MyCanvas::OnPaint(wxPaintEvent& WXUNUSED(event))
             dc.DrawText("(red on green)", col2, y + ch);
             dc.SetTextForeground("RED");
             dc.SetTextBackground("GREEN");
-            dc.DrawBitmap(mono, col2, y + 2.5 * ch);
+            dc.DrawBitmap(mono, col2, y + ch * 5 / 2);
 
             dc.SetTextForeground(*wxBLACK);
             dc.DrawText("After wxImage conversion", col2 + colWidth / 2, y);
@@ -637,11 +656,11 @@ void MyCanvas::OnPaint(wxPaintEvent& WXUNUSED(event))
                 wxRED_PEN->GetColour().Red(),
                 wxRED_PEN->GetColour().Green(),
                 wxRED_PEN->GetColour().Blue());
-            dc.DrawBitmap(wxBitmap(i), col2 + colWidth / 2, y + 2.5 * ch, true);
+            dc.DrawBitmap(wxBitmap(i), col2 + colWidth / 2, y + ch * 5 / 2, true);
             dc.SetTextForeground(*wxBLACK);
         }
 
-        y += yOffset / 1.5;
+        y += yOffset * 2 / 3;
     }
 
     // For testing transparency
@@ -673,27 +692,27 @@ void MyCanvas::OnPaint(wxPaintEvent& WXUNUSED(event))
         xmpCol += xmpSep;
         dc.DrawText("Enlarged", xmpCol, y + ch / 2);
         dc.SetUserScale(1.5, 1.5);
-        dc.DrawBitmap(to_blit, xmpCol / 1.5, (y + 2 * ch) / 1.5, true);
-        xmpCol += 0.5 * xmpSep;
+        dc.DrawBitmap(to_blit, xmpCol * 2 / 3, (y + 2 * ch) * 2 / 3, true);
+        xmpCol += xmpSep / 2;
         dc.SetUserScale(2, 2);
         dc.DrawBitmap(to_blit, xmpCol / 2, (y + 2 * ch) / 2, true);
         dc.SetUserScale(1.0, 1.0);
 
-        xmpCol += 0.75 * xmpSep;
+        xmpCol += xmpSep * 3 / 4;
         dc.DrawText("Blit", xmpCol, y + ch / 2);
         wxMemoryDC blit_dc;
         blit_dc.SelectObject(to_blit);
         dc.Blit(xmpCol, y + 2 * ch, to_blit.GetWidth(), to_blit.GetHeight(), &blit_dc, 0, 0, wxCOPY, true);
-        xmpCol += 0.4 * xmpSep;
+        xmpCol += xmpSep * 2 / 5;
         dc.SetUserScale(1.5, 1.5);
-        dc.Blit(xmpCol / 1.5, (y + 2 * ch) / 1.5, to_blit.GetWidth(), to_blit.GetHeight(), &blit_dc, 0, 0, wxCOPY, true);
-        xmpCol += 0.5 * xmpSep;
+        dc.Blit(xmpCol * 2 / 3, (y + 2 * ch) * 2 / 3, to_blit.GetWidth(), to_blit.GetHeight(), &blit_dc, 0, 0, wxCOPY, true);
+        xmpCol += xmpSep / 2;
         dc.SetUserScale(2, 2);
         dc.Blit(xmpCol / 2, (y + 2 * ch) / 2, to_blit.GetWidth(), to_blit.GetHeight(), &blit_dc, 0, 0, wxCOPY, true);
         dc.SetUserScale(1.0, 1.0);
     }
 
-    y += yOffset / 1.5;
+    y += yOffset * 2 / 3;
 
     dc.DrawText("ICO handler (1st image)", col1, y);
     if (my_horse_ico32.IsOk())

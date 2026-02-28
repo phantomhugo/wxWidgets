@@ -40,6 +40,18 @@ enum
                           wxFULLSCREEN_NOCAPTION
 };
 
+/**
+    Possible parameters for wxFrame::SetWindowModality().
+
+    @since 3.3.2
+*/
+enum class wxWindowMode
+{
+    Normal,      ///< Show the frame non-modally, and this is the default.
+    WindowModal, ///< Disable only the parent window while the frame is shown.
+    AppModal     ///< Disable all the other TLWs while the frame is shown.
+};
+
 #define wxDEFAULT_FRAME_STYLE (wxSYSTEM_MENU |          \
                                wxRESIZE_BORDER |        \
                                wxMINIMIZE_BOX |         \
@@ -60,7 +72,7 @@ enum
     internal top level window list.
 
     @beginEventEmissionTable
-    @event{EVT_MAXIMIZE(id, func)}
+    @event{EVT_MAXIMIZE(func)}
         Process a @c wxEVT_MAXIMIZE event. See wxMaximizeEvent.
     @event{EVT_MOVE(func)}
         Process a @c wxEVT_MOVE event, which is generated when a window is moved.
@@ -75,7 +87,7 @@ enum
         See wxMoveEvent.
     @event{EVT_SHOW(func)}
         Process a @c wxEVT_SHOW event. See wxShowEvent.
-    @event{EVT_FULLSCREEN(id, func)}
+    @event{EVT_FULLSCREEN(func)}
         Process a @c wxEVT_FULLSCREEN event. See wxFullScreenEvent.
     @endEventTable
 
@@ -226,6 +238,17 @@ public:
         @see wxIconBundle
     */
     const wxIconBundle& GetIcons() const;
+
+    /**
+        Get the window title.
+
+        This base class function is overridden in this class to behave as
+        GetTitle() and is useful when having only a `wxWindow*` pointer.
+
+        Please call GetTitle() directly instead of this function for clarity if
+        possible.
+     */
+    virtual wxString GetLabel() const;
 
     /**
         Gets a string containing the window title.
@@ -492,6 +515,11 @@ public:
 
         @note In wxMSW, @a icon must be either 16x16 or 32x32 icon.
 
+        @note In wxGTK this function currently doesn't do anything when using
+            Wayland, which doesn't allow setting the icon for a window. Please
+            create a `.desktop` file for your application to set the icon for
+            its windows.
+
         @see wxIcon, SetIcons()
     */
     void SetIcon(const wxIcon& icon);
@@ -507,6 +535,11 @@ public:
 
         @note In wxMSW, @a icons must contain a 16x16 or 32x32 icon,
               preferably both.
+
+        @note In wxGTK this function currently doesn't do anything when using
+            Wayland, which doesn't allow setting the icon for a window. Please
+            create a `.desktop` file for your application to set the icon for
+            its windows.
 
         @see wxIconBundle
     */
@@ -571,6 +604,20 @@ public:
     void SetSizeHints(const wxSize& minSize,
                       const wxSize& maxSize = wxDefaultSize,
                       const wxSize& incSize = wxDefaultSize);
+
+    /**
+        Sets the window title.
+
+        This base class function is overridden in this class to behave as
+        SetTitle() and is useful when having only a `wxWindow*` pointer.
+
+        Please call SetTitle() directly instead of this function for clarity if
+        possible.
+
+        @param title
+            The window title.
+     */
+    virtual void SetLabel(const wxString& title);
 
     /**
         Sets the window title.

@@ -289,7 +289,7 @@ enum wxWindowVariant
     @endExtraStyleTable
 
     @beginEventEmissionTable
-    @event{EVT_ACTIVATE(id, func)}
+    @event{EVT_ACTIVATE(func)}
         Process a @c wxEVT_ACTIVATE event. See wxActivateEvent.
     @event{EVT_CHILD_FOCUS(func)}
         Process a @c wxEVT_CHILD_FOCUS event. See wxChildFocusEvent.
@@ -1402,6 +1402,48 @@ public:
     virtual wxSize GetEffectiveMinSize() const;
 
     /**
+        May be overridden if the control minimal size depends on the layout
+        direction.
+
+        This function is called when using sizers for the layout to request
+        minimum controls size once its size in the specified @a direction is
+        fixed by the layout algorithm and known to be equal to @a size.
+
+        It may be useful to override it if the control minimal size varies
+        depending on its size in some direction. For example, controls showing
+        multi-line text may return the size needed to show their text after
+        wrapping the contents to fit the given width when @a direction is
+        wxHORIZONTAL and @a size is the available width.
+
+        The default implementation of this method returns wxDefaultSize
+        (to be precise, it may return GetEffectiveMinSize() if the deprecated
+        InformFirstDirection() is overridden and returns @true, but this
+        shouldn't be done in the new code).
+
+        @param direction
+            The direction in which the size is fixed, either ::wxHORIZONTAL or
+            ::wxVERTICAL.
+        @param size
+            The size in the direction given by the @a direction parameter,
+            always valid, i.e. positive.
+        @param availableOtherDir
+            The size available in the other direction, may be -1 if the
+            available size is not known.
+        @return
+            The minimal size of the window when its size in the given
+            @a direction is fixed to @a size or ::wxDefaultSize if the minimum
+            size doesn't depend on the layout direction and is always the same.
+
+        @since 3.3.2
+
+        @see wxSizer::CalcMinSizeFromKnownDirection()
+    */
+    virtual wxSize
+    GetMinSizeFromKnownDirection(int direction,
+                                 int size,
+                                 int availableOtherDir);
+
+    /**
         Returns the maximum size of window's client area.
 
         This is an indication to the sizer layout mechanism that this is the maximum
@@ -1590,12 +1632,10 @@ public:
     virtual wxSize GetWindowBorderSize() const;
 
     /**
-       wxSizer and friends use this to give a chance to a component to recalc
-       its min size once one of the final size components is known. Override
-       this function when that is useful (such as for wxStaticText which can
-       stretch over several lines). Parameter availableOtherDir
-       tells the item how much more space there is available in the opposite
-       direction (-1 if unknown).
+       Compatibility function called by GetMinSizeFromKnownDirection().
+
+       This function shouldn't be used in the new code, please override
+       GetMinSizeFromKnownDirection() instead.
     */
     virtual bool
     InformFirstDirection(int direction,
@@ -1947,6 +1987,10 @@ public:
 
     /**
         Returns the position and size of the window as a wxRect object.
+
+        As with GetPosition(), the rectangle position is relative to the parent
+        window for child windows or relative to the display origin for top
+        level windows.
 
         @see GetScreenRect()
     */
@@ -2441,8 +2485,8 @@ public:
         problem.
 
 
-        Under wxGTK, wxOSX and wxMSW, you can use ::wxBG_STYLE_TRANSPARENT to obtain
-        full transparency of the window background. Note that wxGTK supports
+        Under wxGTK, wxOSX, wxMSW and wxQt, you can use ::wxBG_STYLE_TRANSPARENT to
+        obtain full transparency of the window background. Note that wxGTK supports
         this only since GTK 2.12 with a compositing manager enabled, call
         IsTransparentBackgroundSupported() to check whether this is the case,
         see the example of doing it in @ref page_samples_shaped "the shaped
@@ -3140,6 +3184,21 @@ public:
     ///@{
 
     /**
+        Get the ID to be used for help events generated at the given point.
+
+        By default help events use the ID of the window for which they are
+        generated, but in some cases it may be preferable to use an ID for a
+        sub-element of the window instead, e.g. this is used by wxToolBar to
+        generate help events with the ID of the tool under the mouse, if any.
+
+        Similarly, this function may be overridden in other composite controls
+        in the application code.
+
+        @since 3.3.2
+     */
+    virtual int GetHelpIdAtPoint(const wxPoint& pt);
+
+    /**
         Gets the help text to be used as context-sensitive help for this window.
         Note that the text is actually stored by the current wxHelpProvider
         implementation, and not in the window object itself.
@@ -3765,9 +3824,18 @@ public:
     /**
         Return the cursor associated with this window.
 
-        @see SetCursor()
+        @see SetCursor(), GetCursorBundle()
     */
-    const wxCursor& GetCursor() const;
+    wxCursor GetCursor() const;
+
+    /**
+        Returns the cursor bundle associated with this window.
+
+        @see SetCursorBundle()
+
+        @since 3.3.0
+    */
+    wxCursorBundle GetCursorBundle() const;
 
     /**
         Returns @true if this window has the current mouse capture.
@@ -3797,12 +3865,27 @@ public:
         The @a cursor may be @c wxNullCursor in which case the window cursor will
         be reset back to default.
 
+        This function doesn't allow specifying higher resolution versions of
+        the cursor to use on high DPI displays. Use SetCursorBundle() in order
+        to do this.
+
         @param cursor
             Specifies the cursor that the window should normally display.
 
-        @see ::wxSetCursor, wxCursor
+        @see ::wxSetCursor, wxCursor, GetCursor()
     */
     virtual bool SetCursor(const wxCursor& cursor);
+
+    /**
+        Sets a collection of cursors to be used by the window.
+
+        The window will automatically select the cursor of the appropriate size
+        among those available in @a cursors and will update it as necessary if
+        the DPI scaling changes.
+
+        @since 3.3.0
+     */
+    virtual bool SetCursorBundle(const wxCursorBundle& cursors);
 
     /**
         Moves the pointer to the given position on the window.
@@ -3812,8 +3895,12 @@ public:
               applications (and probably avoid using it under the other
               platforms without good reason as well).
 
-        @note This function does nothing when using wxGTK with Wayland because
-              Wayland intentionally doesn't provide the required functionality.
+        @note This function only works when using wxGTK with Wayland if the
+              compositor implements the "pointer warp" protocol. In addition,
+              its implementation is subject to the limitations imposed by the
+              compositor, e.g. mutter (the Wayland compositor used by GNOME)
+              requires a mouse button to be pressed when this function is
+              called and doesn't move the pointer otherwise.
 
         @param x
             The new x position for the cursor.
@@ -4287,39 +4374,6 @@ public:
     ///@}
 
 
-    /**
-        Disable the use native double buffering in wxMSW.
-
-        This MSW-specific function can be used to disable the use of
-        `WS_EX_COMPOSITED` for this window and all of its parents and so allow
-        using wxClientDC with it.
-
-        `WS_EX_COMPOSITED` style is turned on by default when creating the
-        windows and it is strongly recommended @e not to use this functions to
-        remove it, but to instead change the drawing code to avoid using
-        wxClientDC.
-
-        If you do need to use it, please note that this function doesn't exist
-        in the other ports and has to be explicitly bracketed by the checks for
-        wxMSW, e.g.
-        @code
-        MyFrame::MyFrame(...)
-        {
-            auto p = new wxPanel(this);
-        #ifdef __WXMSW__
-            p->MSWDisableComposited();
-        #endif
-
-            // Using wxClientDC will work now with this panel in wxMSW --
-            // although it still won't with wxOSX nor wxGTK under Wayland.
-        }
-        @endcode
-
-        @see wxClientDC
-
-        @since 3.3.0
-     */
-    void MSWDisableComposited();
 
 protected:
 

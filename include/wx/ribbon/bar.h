@@ -64,7 +64,7 @@ public:
     }
 
     wxRibbonBarEvent(const wxRibbonBarEvent& e) = default;
-    wxEvent *Clone() const override { return new wxRibbonBarEvent(*this); }
+    wxNODISCARD wxEvent *Clone() const override { return new wxRibbonBarEvent(*this); }
 
     wxRibbonPage* GetPage() {return m_page;}
     void SetPage(wxRibbonPage* page) {m_page = page;}
@@ -163,7 +163,7 @@ public:
 
     // Return the image list containing images of the given size, creating it
     // if necessary.
-    wxImageList* GetButtonImageList(wxSize size);
+    wxImageList* GetButtonImageList(wxSize size, int initialCount = 1);
 
 protected:
     friend class wxRibbonPage;

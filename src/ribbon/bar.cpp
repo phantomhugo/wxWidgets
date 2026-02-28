@@ -381,16 +381,7 @@ void wxRibbonBar::DeletePage(size_t n)
             m_current_page = wxNOT_FOUND;
 
             if(m_pages.GetCount() > 0)
-            {
-                if(n >= m_pages.GetCount())
-                {
-                    SetActivePage(m_pages.GetCount() - 1);
-                }
-                else
-                {
-                    SetActivePage(n - 1);
-                }
-            }
+                SetActivePage(wxMin(n, m_pages.GetCount() - 1));
         }
         else if(m_current_page > static_cast<int>(n))
         {
@@ -810,7 +801,7 @@ void wxRibbonBar::CommonInit(long style)
     m_ribbon_state = wxRIBBON_BAR_PINNED;
 }
 
-wxImageList* wxRibbonBar::GetButtonImageList(wxSize size)
+wxImageList* wxRibbonBar::GetButtonImageList(wxSize size, int initialCount)
 {
     for ( size_t n = 0; n < m_image_lists.size(); ++n )
     {
@@ -819,7 +810,7 @@ wxImageList* wxRibbonBar::GetButtonImageList(wxSize size)
     }
 
     wxImageList* const
-        il = new wxImageList(size.GetWidth(), size.GetHeight(), /*mask*/false);
+        il = new wxImageList(size.GetWidth(), size.GetHeight(), /*mask*/false, initialCount);
     m_image_lists.push_back(il);
 
     return il;

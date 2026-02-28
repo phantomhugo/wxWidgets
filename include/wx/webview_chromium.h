@@ -16,8 +16,6 @@
 
 class WXDLLIMPEXP_FWD_BASE wxFileName;
 
-extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendChromium[];
-
 class CefClient;
 
 // Private namespace containing classes used only in the implementation.
@@ -212,6 +210,9 @@ public:
     // If non-zero, specifies the port to use for remote debugging (the usual
     // value for it is 9223).
     int m_remoteDebuggingPort = 0;
+
+    // Set to true to block CEF from accessing local files.
+    bool m_disableFileAccess = false;
 
     // Function to create the custom CefClient to use if non-null.
     //

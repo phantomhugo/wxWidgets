@@ -46,6 +46,8 @@ enum wxBitmapType
     wxBITMAP_TYPE_TGA,
     wxBITMAP_TYPE_MACCURSOR,
     wxBITMAP_TYPE_MACCURSOR_RESOURCE,
+    wxBITMAP_TYPE_WEBP, ///< @since 3.3.0
+    wxBITMAP_TYPE_WEBP_RESOURCE, ///< @since 3.3.0
     wxBITMAP_TYPE_ANY = 50
 };
 
@@ -479,6 +481,10 @@ public:
     /**
         Returns @true if this rectangle has a width or height less than or
         equal to 0 and @false otherwise.
+
+        This is equivalent to using `GetSize().IsEmpty()`.
+
+        @see wxSize::IsEmpty()
     */
     bool IsEmpty() const;
 
@@ -694,17 +700,33 @@ public:
         Converts the given wxRealPoint (with floating point coordinates) to a
         wxPoint instance.
 
-        Notice that this truncates the floating point values of @a pt
-        components, if you want to round them instead you need to do it
-        manually, e.g.
-        @code
-            #include <wx/math.h>    // for wxRound()
-
-            wxRealPoint rp = ...;
-            wxPoint p(wxRound(rp.x), wxRound(rp.y));
-        @endcode
+        Notice that since v3.1.2 the behaviour of this constructor has changed
+        to round the floating point values of @a pt components, if you want to
+        truncate them instead, please use wxPoint::Truncate().
     */
     wxPoint(const wxRealPoint& pt);
+
+    /**
+        Creates a wxPoint by rounding the coordinates of the given
+        wxRealPoint.
+
+        This is equivalent to using the constructor taking wxRealPoint but is
+        more explicit about the fact that rounding is performed.
+
+        @since 3.3.2
+    */
+    static wxPoint Round(const wxRealPoint& pt);
+
+    /**
+        Creates a wxPoint by truncating the coordinates of the given
+        wxRealPoint.
+
+        This is similar to Round() but instead of rounding the coordinates,
+        they are simply truncated to integers.
+
+        @since 3.3.2
+    */
+    static wxPoint Truncate(const wxRealPoint& pt);
 
     /**
         @name Miscellaneous operators
@@ -1113,6 +1135,17 @@ public:
     bool IsAtLeast(const wxSize& size) const;
 
     /**
+        Returns @true if either of the size object components is 0 or -1/
+
+        Empty wxSize objects don't define a valid size in the geometric sense.
+
+        @see wxRect::IsEmpty()
+
+        @since 3.3.1
+    */
+    bool IsEmpty() const;
+
+    /**
         Returns @true if neither of the size object components is equal to -1,
         which is used as default for the size values in wxWidgets (hence the
         predefined ::wxDefaultSize has both of its components equal to -1).
@@ -1336,14 +1369,24 @@ bool wxColourDisplay();
 int wxDisplayDepth();
 
 /**
-    Globally sets the cursor; only has an effect on Windows, Mac and GTK+. You
-    should call this function with wxNullCursor to restore the system cursor.
+    Globally sets the cursor.
 
-    @see wxCursor, wxWindow::SetCursor()
+    The globally set cursor overrides any cursor set for the individual
+    windows, i.e. the specified cursor will be used for all windows of the
+    application until this function is called again with an empty cursor bundle
+    to restore the default behaviour of using the window-specific cursors.
+
+    Note that this function won't update the cursor size if the DPI or user
+    preferred cursor size changes, as this is considered unlikely to happen
+    while this temporary cursor is shown. If you do want to update the cursor
+    size, you need to handle ::wxEVT_DPI_CHANGED and ::wxEVT_SYS_METRIC_CHANGED
+    events and call this function again from their handlers.
+
+    @see wxCursor, wxWindow::SetCursor(), wxWindow::SetCursorBundle()
 
     @header{wx/gdicmn.h}
 */
-void wxSetCursor(const wxCursor& cursor);
+void wxSetCursor(const wxCursorBundle& cursors);
 
 ///@}
 

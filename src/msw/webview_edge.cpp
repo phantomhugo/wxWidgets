@@ -99,7 +99,7 @@ public:
     {
         wxURI rawURI(GetRawURI());
         wxString path = rawURI.GetPath();
-        if (!path.empty()) // Remove / in front
+        if (!path.empty() && path[0] == '/') // Remove '/' in front if present
             path.erase(0, 1);
         wxString uri = wxString::Format("%s:%s", m_handler->GetName(), path);
         return uri;
@@ -264,11 +264,17 @@ public:
         m_dataPath = wxStandardPaths::Get().GetUserLocalDataDir();
 #ifdef __VISUALC__
         m_webViewEnvironmentOptions = Make<CoreWebView2EnvironmentOptions>().Get();
+#if wxUSE_INTL
         m_webViewEnvironmentOptions->put_Language(wxUILocale::GetCurrent().GetLocaleId().GetName().wc_str());
+#endif
 
         wxCOMPtr<ICoreWebView2EnvironmentOptions3> options3;
         if (SUCCEEDED(m_webViewEnvironmentOptions->QueryInterface(IID_PPV_ARGS(&options3))))
-            options3->put_IsCustomCrashReportingEnabled(false);
+        {
+            // Contrary to what could be expected, Windows doesn't send crash
+            // report to Microsoft when this setting is set to true, not false!
+            options3->put_IsCustomCrashReportingEnabled(true);
+        }
 #endif
     }
 
@@ -571,6 +577,21 @@ HRESULT wxWebViewEdgeImpl::HandleNavigationStarting(ICoreWebView2NavigationStart
     if (SUCCEEDED(args->get_Uri(&uri)))
         evtURL = wxString(uri);
 
+    // Check if this is a custom scheme URL that needs translation
+    // (e.g., memory:page2.htm -> https://memory.wxsite/page2.htm)
+    for (const auto& kv : m_handlers)
+    {
+        const wxString scheme = kv.second->GetName() + ":";
+        if (evtURL.StartsWith(scheme))
+        {
+            // Cancel this navigation and redirect through LoadURL
+            // which will translate the custom scheme URL
+            args->put_Cancel(true);
+            m_ctrl->LoadURL(evtURL);
+            return S_OK;
+        }
+    }
+
     wxWebViewEvent event(wxEVT_WEBVIEW_NAVIGATING, m_ctrl->GetId(), evtURL, wxString());
     event.SetEventObject(m_ctrl);
     if (mainFrame)
@@ -668,7 +689,7 @@ HRESULT wxWebViewEdgeImpl::OnNavigationCompleted(ICoreWebView2* WXUNUSED(sender)
         {
             // If we are not at the end of the list, then erase everything
             // between us and the end before adding the new page
-            if (m_historyPosition != static_cast<int>(m_historyList.size()) - 1)
+            if (m_historyPosition != wxSsize(m_historyList) - 1)
             {
                 m_historyList.erase(m_historyList.begin() + m_historyPosition + 1,
                     m_historyList.end());
@@ -800,13 +821,30 @@ HRESULT wxWebViewEdgeImpl::OnWebResourceRequested(ICoreWebView2* WXUNUSED(sender
         return hr;
     wxWebViewEdgeHandlerRequest request(apiRequest);
 
-    // Find handler
+    // Find handler by server (e.g., https://memory.wxsite/page1.htm)
+    // or by scheme (e.g., memory:logo.png)
     wxURI uri(request.GetRawURI());
-    if (!uri.HasServer())
-        return E_INVALIDARG;
-    wxSharedPtr<wxWebViewHandler> handler = m_handlers[uri.GetServer()];
+    wxSharedPtr<wxWebViewHandler> handler;
+
+    if (uri.HasServer())
+        handler = m_handlers[uri.GetServer()];
+
+    if (!handler)
+    {
+        wxString scheme = uri.GetScheme();
+        for (const auto& kv : m_handlers)
+        {
+            if (kv.second->GetName() == scheme)
+            {
+                handler = kv.second;
+                break;
+            }
+        }
+    }
+
     if (!handler)
         return E_INVALIDARG;
+
     request.SetHandler(handler.get());
 
     // Create response
@@ -851,6 +889,14 @@ HRESULT wxWebViewEdgeImpl::OnWebViewCreated(HRESULT result, ICoreWebView2Control
     UpdateBounds();
     m_webViewController->put_IsVisible(true);
     m_ctrl->NotifyWebViewCreated();
+
+    // If focus moved to the WebView window before the Edge instance was fully
+    // created, we couldn't call m_webViewController->MoveFocus at that time. If focus is
+    // there now, call MoveFocus to ensure that focus is inside of the web
+    // content window. This helps screen readers, since they  use the focus
+    // window to influence their behavior.
+    if (m_ctrl && m_ctrl->HasFocus())
+        m_webViewController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
 
     // Connect and handle the various WebView events
     m_webView->add_NavigationStarting(
@@ -901,8 +947,14 @@ HRESULT wxWebViewEdgeImpl::OnWebViewCreated(HRESULT result, ICoreWebView2Control
     // Register handlers
     for (const auto& kv : m_handlers)
     {
+        // Register filter for virtual host URLs (e.g., *://memory.wxsite/*)
         wxString filterURI = wxString::Format("*://%s/*", kv.first);
-        m_webView->AddWebResourceRequestedFilter(filterURI.wc_str(), COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+        AddWebResourceRequestedFilter(filterURI);
+
+        // Also register filter for scheme URLs (e.g., memory:*)
+        // This is needed for resources referenced in HTML like <img src='memory:logo.png'>
+        wxString schemeFilter = kv.second->GetName() + ":*";
+        AddWebResourceRequestedFilter(schemeFilter);
     }
 
     if (m_pendingContextMenuEnabled != -1)
@@ -993,6 +1045,30 @@ void wxWebViewEdgeImpl::UpdateWebMessageHandler()
     }
 }
 
+void wxWebViewEdgeImpl::AddWebResourceRequestedFilter(const wxString& filterURI)
+{
+    // Try to use the newer API that properly handles iframes if available,
+    // fall back to the deprecated method otherwise.
+    wxCOMPtr<ICoreWebView2_22> webView22;
+    if (SUCCEEDED(m_webView->QueryInterface(IID_PPV_ARGS(&webView22))))
+    {
+        HRESULT hr = webView22->AddWebResourceRequestedFilterWithRequestSourceKinds(
+            filterURI.wc_str(),
+            COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL,
+            COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_ALL);
+        if (FAILED(hr))
+            wxLogApiError("AddWebResourceRequestedFilterWithRequestSourceKinds", hr);
+    }
+    else
+    {
+        HRESULT hr = m_webView->AddWebResourceRequestedFilter(
+            filterURI.wc_str(),
+            COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+        if (FAILED(hr))
+            wxLogApiError("AddWebResourceRequestedFilter", hr);
+    }
+}
+
 ICoreWebView2Settings* wxWebViewEdgeImpl::GetSettings()
 {
     if (!m_webView)
@@ -1074,8 +1150,6 @@ bool wxWebViewEdge::Create(wxWindow* parent,
         return false;
     }
 
-    MSWDisableComposited();
-
     if (!m_impl->Create())
         return false;
     Bind(wxEVT_SIZE, &wxWebViewEdge::OnSize, this);
@@ -1145,7 +1219,7 @@ void wxWebViewEdge::LoadHistoryItem(wxSharedPtr<wxWebViewHistoryItem> item)
         if (m_impl->m_historyList[i].get() == item.get())
             pos = i;
     }
-    wxASSERT_MSG(pos != static_cast<int>(m_impl->m_historyList.size()), "invalid history item");
+    wxASSERT_MSG(pos != wxSsize(m_impl->m_historyList), "invalid history item");
     m_impl->m_historyLoadingFromList = true;
     LoadURL(item->GetUrl());
     m_impl->m_historyPosition = pos;
@@ -1168,7 +1242,7 @@ wxVector<wxSharedPtr<wxWebViewHistoryItem> > wxWebViewEdge::GetForwardHistory()
     wxVector<wxSharedPtr<wxWebViewHistoryItem> > forwardhist;
     //As we don't have std::copy or an iterator constructor in the wxwidgets
     //native vector we construct it by hand
-    for (int i = m_impl->m_historyPosition + 1; i < static_cast<int>(m_impl->m_historyList.size()); i++)
+    for (int i = m_impl->m_historyPosition + 1; i < wxSsize(m_impl->m_historyList); i++)
     {
         forwardhist.push_back(m_impl->m_historyList[i]);
     }
@@ -1178,7 +1252,7 @@ wxVector<wxSharedPtr<wxWebViewHistoryItem> > wxWebViewEdge::GetForwardHistory()
 bool wxWebViewEdge::CanGoForward() const
 {
     if (m_impl->m_historyEnabled)
-        return m_impl->m_historyPosition != static_cast<int>(m_impl->m_historyList.size()) - 1;
+        return m_impl->m_historyPosition != wxSsize(m_impl->m_historyList) - 1;
     else
         return false;
 }
@@ -1624,8 +1698,14 @@ void wxWebViewEdge::RegisterHandler(wxSharedPtr<wxWebViewHandler> handler)
 
     if (m_impl->m_webView)
     {
+        // Register filter for virtual host URLs (e.g., *://memory.wxsite/*)
         wxString filterURI = wxString::Format("*://%s/*", handlerHost);
-        m_impl->m_webView->AddWebResourceRequestedFilter(filterURI.wc_str(), COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+        m_impl->AddWebResourceRequestedFilter(filterURI);
+
+        // Also register filter for scheme URLs (e.g., memory:*)
+        // This is needed for resources referenced in HTML like <img src='memory:logo.png'>
+        wxString schemeFilter = handler->GetName() + ":*";
+        m_impl->AddWebResourceRequestedFilter(schemeFilter);
     }
 }
 

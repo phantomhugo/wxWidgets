@@ -78,7 +78,7 @@ public:
     virtual void SetDateTime(const wxDateTime& dt) override
     {
         wxDateTime dtFrom, dtTo;
-        
+
         if ( GetDateRange(&dtFrom,&dtTo) == false ||
             ( (!dtFrom.IsValid() || dtFrom <= dt) &&
              (!dtTo.IsValid() || dt <= dtTo ) ) )
@@ -138,7 +138,7 @@ public:
         {
             wxWindow* const wxpeer = GetWXPeer();
             if ( wxpeer )
-                [nsdatePicker setTextColor: wxpeer->GetForegroundColour().OSXGetNSColor()];
+                [nsdatePicker setTextColor: wxpeer->GetForegroundColour().OSXGetWXColor()];
             else
                 [nsdatePicker setTextColor: [NSColor controlTextColor]];
         }

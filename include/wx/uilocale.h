@@ -133,7 +133,12 @@ public:
     // in the new code.
     static bool UseLocaleName(const wxString& localeName);
 
-    // Get the object corresponding to the currently used locale.
+    // Return true if the locale was set by calling either UseDefault() or
+    // UseLocaleName().
+    static bool IsSet();
+
+    // Get the object corresponding to the currently used locale, which is
+    // always valid: if IsSet() is false, "C" locale is returned.
     static const wxUILocale& GetCurrent();
 
     // A helper just to avoid writing wxUILocale(wxLocaleIdent::FromTag(...)).
@@ -180,6 +185,27 @@ public:
 
     // Query the layout direction of the current locale.
     wxLayoutDirection GetLayoutDirection() const;
+
+    // Query infos about number formatting of the current locale
+    wxLocaleNumberFormatting GetNumberFormatting() const;
+
+    // Query the curreny symbol of the current locale
+    wxString GetCurrencySymbol() const;
+
+    // Query the currency code of the current locale
+    wxString GetCurrencyCode() const;
+
+    // Query the currency symbol position of the current locale
+    wxCurrencySymbolPosition GetCurrencySymbolPosition() const;
+
+    // Query the currency infos of the current locale
+    wxLocaleCurrencyInfo GetCurrencyInfo() const;
+
+    // Query whether the current locale uses the metric system
+    wxMeasurementSystem UsesMetricSystem() const;
+
+    // Guess from the region whether the current locale uses the metric system
+    static wxMeasurementSystem GuessMetricSystemFromRegion(const wxLocaleIdent& idLocale);
 
     // Compares two strings in the order defined by this locale.
     int CompareStrings(const wxString& lhs, const wxString& rhs,

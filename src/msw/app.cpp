@@ -65,6 +65,7 @@
 #if wxUSE_OLE
     #include <ole2.h>
 #endif
+#include <shobjidl.h>
 
 #include <string.h>
 #include <ctype.h>
@@ -414,7 +415,7 @@ bool wxConsoleStderr::Write(const wxString& text)
 
     // This fails, for not very clear reasons, when running under a Cygwin
     // shell, so try to use the standard output functions as a fallback.
-    if ( fwprintf(stderr, L"%s", text.t_str()) != -1 )
+    if ( fwprintf(stderr, L"%s", static_cast<const wchar_t*>(text.t_str())) != -1 )
         return true;
 
     return false;
@@ -494,6 +495,14 @@ bool wxApp::Initialize(int& argc_, wxChar **argv_)
     }
 
     callBaseCleanup.Dismiss();
+
+    // We need to set the app user model ID before doing anything UI-related if
+    // it is specified.
+    const wxString className(wxTheApp->GetClassName());
+    if ( !className.empty() )
+    {
+        SetCurrentProcessExplicitAppUserModelID(className.wc_str());
+    }
 
     if ( !wxSystemOptions::GetOptionInt("msw.no-manifest-check") )
     {
@@ -730,17 +739,10 @@ void wxApp::OnEndSession(wxCloseEvent& WXUNUSED(event))
     // WM_ENDSESSION handler or when we delete our last window, so make sure we
     // at least execute our cleanup code before
 
-    // Destroy all the remaining TLWs before calling OnExit() to have the same
-    // sequence of events in this case as in case of the normal shutdown,
-    // otherwise we could have many problems due to wxApp being already
-    // destroyed when window cleanup code (in close event handlers or dtor) is
-    // executed.
-    //
     // Note that we survive after this call only because we don't delete any
-    // windows at MSW level, see gs_gotEndSession check in wxWindow dtor.
-    DeleteAllTLWs();
-
-    const int rc = OnExit();
+    // windows at MSW level, see gs_gotEndSession check in wxWindow dtor, even
+    // though CallOnExit() deletes all C++ top level window objects.
+    const int rc = CallOnExit();
 
     // Skip unregistering windows classes: this is not really necessary and
     // would result in an error because we may still have an open window.

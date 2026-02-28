@@ -145,6 +145,15 @@
 #   define wxSUPPRESS_GCC_PRIVATE_DTOR_WARNING(name)
 #endif
 
+/* Enable some warnings not enabled by default if requested. */
+#ifdef wxENABLE_EXTRA_WARNINGS
+#   ifdef __GNUC__
+#       pragma GCC diagnostic warning "-Wcast-qual"
+#       pragma GCC diagnostic warning "-Wdouble-promotion"
+#       pragma GCC diagnostic warning "-Wextra"
+#   endif
+#endif
+
 /*
    Clang Support
  */
@@ -346,6 +355,13 @@ typedef short int WXTYPE;
 
 /* for consistency with wxStatic/DynamicCast defined in wx/object.h */
 #define wxConstCast(obj, className) const_cast<className *>(obj)
+
+/* Poor man's version of C++20 std::ssize(). */
+template <class C>
+int wxSsize(const C& c)
+{
+    return static_cast<int>(c.size());
+}
 
 #endif /* __cplusplus */
 
@@ -2601,10 +2617,6 @@ typedef int (* LINKAGEMODE wxListIterateFunction)(void *current);
 #define DECLARE_WXOSX_OPAQUE_CFREF( name ) typedef struct __##name* name##Ref;
 #define DECLARE_WXOSX_OPAQUE_CONST_CFREF( name ) typedef const struct __##name* name##Ref;
 
-#endif
-
-#ifdef __WXMAC__
-
 #define WX_OPAQUE_TYPE( name ) struct wxOpaque##name
 
 typedef void*       WXHCURSOR;
@@ -2621,8 +2633,6 @@ typedef unsigned long   WXDWORD;
 typedef unsigned short  WXWORD;
 
 typedef WX_OPAQUE_TYPE(PicHandle ) * WXHMETAFILE ;
-
-typedef void*       WXDisplay;
 
 /*
  * core frameworks
@@ -2700,7 +2710,7 @@ typedef HIShapeRef WXHRGN;
 
 #endif // __WXMAC__
 
-#if defined(__WXMAC__)
+#ifdef __DARWIN__
 
 /* Objective-C type declarations.
  * These are to be used in public headers in lieu of NSSomething* because
@@ -2745,22 +2755,44 @@ DECLARE_WXCOCOA_OBJC_CLASS(NSData);
 DECLARE_WXCOCOA_OBJC_CLASS(NSMutableArray);
 DECLARE_WXCOCOA_OBJC_CLASS(NSString);
 DECLARE_WXCOCOA_OBJC_CLASS(NSObject);
+DECLARE_WXCOCOA_OBJC_CLASS(NSSet);
 
-#if wxOSX_USE_COCOA
+#ifdef __WXDARWIN_OSX__
+
+DECLARE_WXCOCOA_OBJC_CLASS(NSBitmapImageRep);
+DECLARE_WXCOCOA_OBJC_CLASS(NSColor);
+DECLARE_WXCOCOA_OBJC_CLASS(NSFont);
+DECLARE_WXCOCOA_OBJC_CLASS(NSFontDescriptor);
+DECLARE_WXCOCOA_OBJC_CLASS(NSImage);
+DECLARE_WXCOCOA_OBJC_CLASS(NSSound);
+DECLARE_WXCOCOA_OBJC_CLASS(NSThread);
+
+typedef WX_NSColor WXColor;
+typedef WX_NSImage WXImage;
+
+#elif defined(__WXDARWIN_IPHONE__)
+
+DECLARE_WXCOCOA_OBJC_CLASS(UIColor);
+DECLARE_WXCOCOA_OBJC_CLASS(UIImage);
+DECLARE_WXCOCOA_OBJC_CLASS(UIFont);
+
+typedef WX_UIColor WXColor;
+typedef WX_UIImage WXImage;
+
+#else
+
+#endif
+
+#ifdef __WXOSX_COCOA__
 
 DECLARE_WXCOCOA_OBJC_CLASS(NSApplication);
-DECLARE_WXCOCOA_OBJC_CLASS(NSBitmapImageRep);
 DECLARE_WXCOCOA_OBJC_CLASS(NSBox);
 DECLARE_WXCOCOA_OBJC_CLASS(NSButton);
-DECLARE_WXCOCOA_OBJC_CLASS(NSColor);
 DECLARE_WXCOCOA_OBJC_CLASS(NSColorPanel);
 DECLARE_WXCOCOA_OBJC_CLASS(NSControl);
 DECLARE_WXCOCOA_OBJC_CLASS(NSCursor);
 DECLARE_WXCOCOA_OBJC_CLASS(NSEvent);
-DECLARE_WXCOCOA_OBJC_CLASS(NSFont);
-DECLARE_WXCOCOA_OBJC_CLASS(NSFontDescriptor);
 DECLARE_WXCOCOA_OBJC_CLASS(NSFontPanel);
-DECLARE_WXCOCOA_OBJC_CLASS(NSImage);
 DECLARE_WXCOCOA_OBJC_CLASS(NSLayoutManager);
 DECLARE_WXCOCOA_OBJC_CLASS(NSMenu);
 DECLARE_WXCOCOA_OBJC_CLASS(NSMenuExtra);
@@ -2769,14 +2801,12 @@ DECLARE_WXCOCOA_OBJC_CLASS(NSNotification);
 DECLARE_WXCOCOA_OBJC_CLASS(NSPanel);
 DECLARE_WXCOCOA_OBJC_CLASS(NSResponder);
 DECLARE_WXCOCOA_OBJC_CLASS(NSScrollView);
-DECLARE_WXCOCOA_OBJC_CLASS(NSSound);
 DECLARE_WXCOCOA_OBJC_CLASS(NSStatusItem);
 DECLARE_WXCOCOA_OBJC_CLASS(NSTableColumn);
 DECLARE_WXCOCOA_OBJC_CLASS(NSTableView);
 DECLARE_WXCOCOA_OBJC_CLASS(NSTextContainer);
 DECLARE_WXCOCOA_OBJC_CLASS(NSTextField);
 DECLARE_WXCOCOA_OBJC_CLASS(NSTextStorage);
-DECLARE_WXCOCOA_OBJC_CLASS(NSThread);
 DECLARE_WXCOCOA_OBJC_CLASS(NSWindow);
 DECLARE_WXCOCOA_OBJC_CLASS(NSView);
 DECLARE_WXCOCOA_OBJC_CLASS(NSOpenGLContext);
@@ -2792,31 +2822,29 @@ DECLARE_WXCOCOA_OBJC_CLASS(NSPasteboard);
 DECLARE_WXCOCOA_OBJC_CLASS(WKWebView);
 
 typedef WX_NSWindow WXWindow;
+typedef WX_NSEvent WXEvent;
 typedef WX_NSView WXWidget;
-typedef WX_NSImage WXImage;
 typedef WX_NSMenu WXHMENU;
 typedef WX_NSOpenGLPixelFormat WXGLPixelFormat;
 typedef WX_NSOpenGLContext WXGLContext;
 typedef WX_NSPasteboard OSXPasteboard;
 typedef WX_WKWebView OSXWebViewPtr;
 
-#elif wxOSX_USE_IPHONE
+#elif defined(__WXOSX_IPHONE__)
 
 DECLARE_WXCOCOA_OBJC_CLASS(UIMenu);
 DECLARE_WXCOCOA_OBJC_CLASS(UIMenuItem);
 DECLARE_WXCOCOA_OBJC_CLASS(UIWindow);
-DECLARE_WXCOCOA_OBJC_CLASS(UImage);
 DECLARE_WXCOCOA_OBJC_CLASS(UIView);
-DECLARE_WXCOCOA_OBJC_CLASS(UIFont);
-DECLARE_WXCOCOA_OBJC_CLASS(UIImage);
 DECLARE_WXCOCOA_OBJC_CLASS(UIEvent);
-DECLARE_WXCOCOA_OBJC_CLASS(NSSet);
+DECLARE_WXCOCOA_OBJC_CLASS(UIPress);
+DECLARE_WXCOCOA_OBJC_CLASS(UIKey);
 DECLARE_WXCOCOA_OBJC_CLASS(EAGLContext);
 DECLARE_WXCOCOA_OBJC_CLASS(UIPasteboard);
 
 typedef WX_UIWindow WXWindow;
+typedef WX_UIEvent WXEvent;
 typedef WX_UIView WXWidget;
-typedef WX_UIImage WXImage;
 typedef WX_UIMenu WXHMENU;
 typedef WX_EAGLContext WXGLContext;
 typedef WX_NSString WXGLPixelFormat;
@@ -2825,8 +2853,7 @@ typedef WX_UIPasteboard WXOSXPasteboard;
 #endif
 
 
-
-#endif /* __WXMAC__ */
+#endif /* __DARWIN__ */
 
 /* ABX: check __WIN32__ instead of __WXMSW__ for the same MSWBase in any Win32 port */
 #if defined(__WIN32__)

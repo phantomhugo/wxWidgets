@@ -40,9 +40,9 @@ bool wxNotebook::Create( wxWindow *parent,
     const wxSize& size,
     long style,
     const wxString& name )
-{    
+{
     DontCreatePeer();
-    
+
     if (! (style & wxBK_ALIGN_MASK))
         style |= wxBK_TOP;
 
@@ -271,7 +271,18 @@ wxRect wxNotebook::GetPageRect() const
 {
     wxSize size = GetClientSize() ;
 
+#ifdef __WXOSX_IPHONE__
+
+    // TODO: find out what the proper border is
+    const int borderAround = 4;
+
+    if (HasFlag(wxBK_BOTTOM))
+        return wxRect( 0, 0, size.x , size.y );
+    else
+        return wxRect( 0, 35+(2*borderAround), size.x , size.y-35-(2*borderAround) );
+#else
     return wxRect( 0 , 0 , size.x , size.y ) ;
+#endif
 }
 
 // ----------------------------------------------------------------------------

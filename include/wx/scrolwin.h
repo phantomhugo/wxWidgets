@@ -152,6 +152,22 @@ public:
     // returns 0 if no scrollbars are there.
     int GetScrollLines( int orient ) const;
 
+    // wxWidgets <= 3.3.1 autoscrolled exactly when the (captured) mouse cursor
+    // was outside the entire window.  Starting with wxWidgets 3.3.2, the
+    // region where the mouse cursor triggers autoscrolling is configurable.
+    // Allow autoscrolling when the mouse is inside the window but within
+    // insideWidth pixels of the edge.
+    void EnableAutoScrollInside(wxCoord insideWidth);
+    // Forbid autoscrolling when the mouse is outside the window
+    void DisableAutoScrollOutside();
+
+    // Check whether clientPt triggers autoscrolling in each direction: return
+    // true if it does and fill the corresponding output parameter with the
+    // event type to generate.
+    bool AutoscrollTest(wxPoint clientPt,
+                        wxEventType& evtHorzScroll,
+                        wxEventType& evtVertScroll) const;
+
     // Set the x, y scrolling increments.
     void SetScrollRate( int xstep, int ystep );
 
@@ -182,13 +198,23 @@ public:
     // which it is implemented to not use wxWindow::ScrollWindow().
     virtual void EnableScrolling(bool x_scrolling, bool y_scrolling);
 
-    // Get the view start
+    // Get the view start in scroll units
     void GetViewStart(int *x, int *y) const { DoGetViewStart(x, y); }
 
     wxPoint GetViewStart() const
     {
         wxPoint pt;
         DoGetViewStart(&pt.x, &pt.y);
+        return pt;
+    }
+
+    // Get the view start in pixels
+    void GetViewStartPixels(int *x, int *y) const { DoGetViewStartPixels(x, y); }
+
+    wxPoint GetViewStartPixels() const
+    {
+        wxPoint pt;
+        DoGetViewStartPixels(&pt.x, &pt.y);
         return pt;
     }
 
@@ -253,8 +279,10 @@ public:
     // the methods to be called from the window event handlers
     void HandleOnScroll(wxScrollWinEvent& event);
     void HandleOnSize(wxSizeEvent& event);
-    void HandleOnMouseEnter(wxMouseEvent& event);
-    void HandleOnMouseLeave(wxMouseEvent& event);
+    void OnMotion(wxMouseEvent& event);
+    void OnLeftDown(wxMouseEvent& event);
+    void OnLeaveAutoScrollRegion();
+    void OnEnterAutoScrollRegion();
 #if wxUSE_MOUSEWHEEL
     void HandleOnMouseWheel(wxMouseEvent& event);
 #endif // wxUSE_MOUSEWHEEL
@@ -285,6 +313,7 @@ protected:
 
     // implementation of public methods with the same name
     virtual void DoGetViewStart(int *x, int *y) const;
+    virtual void DoGetViewStartPixels(int *x, int *y) const;
     virtual void DoScroll(int x, int y) = 0;
     virtual void DoShowScrollbars(wxScrollbarVisibility horz,
                                   wxScrollbarVisibility vert) = 0;
@@ -334,6 +363,10 @@ protected:
     }
 
 
+    wxCoord               m_innerScrollWidth = 0;
+    bool                  m_outerScrollEnabled = true;
+    bool                  m_inAutoScrollRegion = false;
+
     double                m_scaleX;
     double                m_scaleY;
 
@@ -353,6 +386,11 @@ protected:
     int                   m_yScrollLines;
     int                   m_xScrollLinesPerPage;
     int                   m_yScrollLinesPerPage;
+
+    // Extra offset compared to the multiple of m_[xy]ScrollPosition which is
+    // used to obtain the position in pixels for DoGetViewStartPixels().
+    int                   m_xScrollPositionPixelOffset;
+    int                   m_yScrollPositionPixelOffset;
 
     bool                  m_xScrollingEnabled;
     bool                  m_yScrollingEnabled;

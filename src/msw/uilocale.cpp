@@ -28,7 +28,11 @@
 
 #include "wx/scopedarray.h"
 #include "wx/dynlib.h"
+#include "wx/tokenzr.h"
 #include "wx/wxcrt.h"
+
+#include <array>
+#include <vector>
 
 #ifndef LOCALE_NAME_USER_DEFAULT
     #define LOCALE_NAME_USER_DEFAULT nullptr
@@ -96,28 +100,40 @@ namespace
 void GetUserPreferredLanguagesFromRegistry(wxVector<wxString>& userLanguages)
 {
     // Open the registry key for user preferred languages
-    HKEY hKey;
-    if (::RegOpenKeyEx(HKEY_CURRENT_USER,
-                       L"Control Panel\\International\\User Profile",
-                       0, KEY_READ, &hKey) == ERROR_SUCCESS)
+    wxRegKey key(wxRegKey::HKCU, L"Control Panel\\International\\User Profile");
+    if ( !key.Open(wxRegKey::Read) )
+        return;
+
+    // Retrieve the "Languages" value from the key
+    DWORD type = REG_SZ;
+    constexpr DWORD numChars = 256;
+    DWORD valueSize = numChars*sizeof(WCHAR);
+    wxScopedArray<WCHAR> languagesBuf(numChars + 1); // +1 for NUL at the end
+    WCHAR* const languages = languagesBuf.get();
+    if ( ::RegQueryValueEx(reinterpret_cast<HKEY>(key.GetHkey()),
+                           L"Languages",
+                           wxRESERVED_PARAM,
+                           &type,
+                           reinterpret_cast<LPBYTE>(languages),
+                           &valueSize) == ERROR_SUCCESS )
     {
-        // Retrieve the "Languages" value from the key
-        DWORD type = REG_SZ;
-        DWORD valueSize = 256;
-        wxScopedArray<WCHAR> languages(valueSize);
-        if (::RegQueryValueEx(hKey, L"Languages", nullptr, &type, reinterpret_cast<LPBYTE>(languages.get()), &valueSize) == ERROR_SUCCESS)
+        // Ensure the buffer is NUL-terminated because this is not
+        // guaranteed by RegQueryValueEx() for REG_MULTI_SZ values.
+        const size_t actualLen = valueSize/sizeof(WCHAR);
+        languages[actualLen] = L'\0';
+
+        // Extract languages from multi-string value
+        const WCHAR* p = languages;
+
+        while ( *p != 0 )
         {
-            // Extract languages from multi-string value
-            WCHAR* buf = languages.get();
-            while (*buf != 0)
-            {
-                const wxString language(buf);
-                userLanguages.push_back(language);
-                buf += language.length() + 1;
-            }
+            const wxString language(p);
+            userLanguages.push_back(language);
+            p += language.length() + 1;
+
+            if ( static_cast<size_t>(p - languages) >= actualLen )
+                break;
         }
-        // Close the registry key
-        ::RegCloseKey(hKey);
     }
 }
 
@@ -145,6 +161,16 @@ LCTYPE wxGetLCTYPEFormatFromLocalInfo(wxLocaleInfo index)
 
 WXDLLIMPEXP_BASE wxString wxGetMSWDateTimeFormat(wxLocaleInfo index)
 {
+    if ( !wxUILocale::IsSet() )
+    {
+        // We don't want to use the date/time formats of "C" locale here
+        // because this is incompatible with the behaviour in the previous
+        // wxWidgets versions and inconsistent with the behaviour of
+        // wxCalendarCtrl (which uses default user locale format), so let the
+        // date/time controls keep using their default format.
+        return wxString{};
+    }
+
     wxString format;
     wxString localeName = wxUILocale::GetCurrent().GetName();
     if (localeName.IsSameAs("C"))
@@ -280,6 +306,45 @@ public:
     wxLayoutDirection GetLayoutDirection() const override
     {
         return wxLayout_Default;
+    }
+
+    wxLocaleNumberFormatting GetNumberFormatting() const override
+    {
+        wxLocaleNumberFormatting numForm;
+        numForm.decimalSeparator = ".";
+        numForm.groupSeparator   = "";
+        numForm.grouping         = {};
+        numForm.fractionalDigits = 2;
+        return numForm;
+    }
+
+    wxString GetCurrencySymbol() const override
+    {
+        return "$";
+    }
+
+    wxString GetCurrencyCode() const override
+    {
+        return "USD";
+    }
+
+    wxCurrencySymbolPosition GetCurrencySymbolPosition() const override
+    {
+        return wxCurrencySymbolPosition::PrefixWithSep;
+    }
+
+    wxLocaleCurrencyInfo GetCurrencyInfo() const override
+    {
+        return wxLocaleCurrencyInfo(
+            GetCurrencySymbol(),
+            GetCurrencyCode(),
+            GetCurrencySymbolPosition(),
+            GetNumberFormatting());
+    }
+
+    wxMeasurementSystem UsesMetricSystem() const override
+    {
+        return wxMeasurementSystem::Metric;
     }
 
     int CompareStrings(const wxString& lhs, const wxString& rhs,
@@ -450,13 +515,15 @@ public:
         switch ( index )
         {
             case wxLOCALE_THOUSANDS_SEP:
-                str = DoGetInfo(LOCALE_STHOUSAND);
+                str = DoGetInfo(cat == wxLOCALE_CAT_MONEY
+                    ? LOCALE_SMONTHOUSANDSEP
+                    : LOCALE_STHOUSAND);
                 break;
 
             case wxLOCALE_DECIMAL_POINT:
                 str = DoGetInfo(cat == wxLOCALE_CAT_MONEY
-                                    ? LOCALE_SMONDECIMALSEP
-                                    : LOCALE_SDECIMAL);
+                    ? LOCALE_SMONDECIMALSEP
+                    : LOCALE_SDECIMAL);
                 break;
 
             case wxLOCALE_SHORT_DATE_FMT:
@@ -607,11 +674,64 @@ public:
 
     wxLayoutDirection GetLayoutDirection() const override
     {
-        wxString str = DoGetInfo(LOCALE_IREADINGLAYOUT);
-        // str contains a number between 0 and 3:
-        // 0 = LTR, 1 = RTL, 2 = TTB+RTL, 3 = TTB + LTR
-        // If str equals 1 return RTL, otherwise LTR
-        return (str.IsSameAs("1") ? wxLayout_RightToLeft : wxLayout_LeftToRight);
+        if ( m_layoutDir == wxLayout_Default )
+        {
+            wxString str = DoGetInfo(LOCALE_IREADINGLAYOUT);
+            // str contains a number between 0 and 3:
+            // 0 = LTR, 1 = RTL, 2 = TTB+RTL, 3 = TTB + LTR
+            // If str equals 1 return RTL, otherwise LTR
+            m_layoutDir = str.IsSameAs("1") ? wxLayout_RightToLeft
+                                            : wxLayout_LeftToRight;
+        }
+
+        return m_layoutDir;
+    }
+
+    wxLocaleNumberFormatting GetNumberFormatting() const override
+    {
+        return DoGetNumberFormatting(wxLOCALE_CAT_NUMBER);
+    }
+
+    wxString GetCurrencySymbol() const override
+    {
+        return DoGetInfo(LOCALE_SCURRENCY);
+    }
+
+    wxString GetCurrencyCode() const override
+    {
+        return wxString(DoGetInfo(LOCALE_SINTLSYMBOL)).Left(3);
+    }
+
+    wxCurrencySymbolPosition GetCurrencySymbolPosition() const override
+    {
+        static std::array<wxCurrencySymbolPosition, 4> symPos = {
+             wxCurrencySymbolPosition::PrefixNoSep, wxCurrencySymbolPosition::SuffixNoSep,
+             wxCurrencySymbolPosition::PrefixWithSep, wxCurrencySymbolPosition::SuffixWithSep };
+        wxString posStr = wxString(DoGetInfo(LOCALE_ICURRENCY));
+        unsigned int posIdx;
+        return posStr.ToUInt(&posIdx) && posIdx < symPos.size()
+            ? symPos[posIdx]
+            : wxCurrencySymbolPosition::PrefixWithSep;
+    }
+
+    wxLocaleCurrencyInfo GetCurrencyInfo() const override
+    {
+        wxLocaleNumberFormatting currencyFormatting = DoGetNumberFormatting(wxLOCALE_CAT_MONEY);
+        return wxLocaleCurrencyInfo(
+            GetCurrencySymbol(),
+            GetCurrencyCode(),
+            GetCurrencySymbolPosition(),
+            currencyFormatting);
+    }
+
+    wxMeasurementSystem UsesMetricSystem() const override
+    {
+        wxString str = DoGetInfo(LOCALE_IMEASURE);
+        if (!str.empty())
+        {
+            return (str.IsSameAs("0")) ? wxMeasurementSystem::Metric : wxMeasurementSystem::NonMetric;
+        }
+        return wxMeasurementSystem::Unknown;
     }
 
     int CompareStrings(const wxString& lhs, const wxString& rhs,
@@ -668,7 +788,39 @@ private:
         return buf;
     }
 
+    wxLocaleNumberFormatting DoGetNumberFormatting(wxLocaleCategory cat) const
+    {
+        wxString groupSeparator = DoGetInfo(cat == wxLOCALE_CAT_MONEY
+                                ? LOCALE_SMONTHOUSANDSEP
+                                : LOCALE_STHOUSAND);
+        wxString groupingInfo = DoGetInfo(cat == wxLOCALE_CAT_MONEY
+                              ? LOCALE_SMONGROUPING
+                              : LOCALE_SGROUPING);
+        wxString decimalSeparator = DoGetInfo(cat == wxLOCALE_CAT_MONEY
+                                  ? LOCALE_SMONDECIMALSEP
+                                  : LOCALE_SDECIMAL);
+        wxString digits = DoGetInfo(cat == wxLOCALE_CAT_MONEY
+                        ? LOCALE_ICURRDIGITS
+                        : LOCALE_IDIGITS);
+        int fractionalDigits;
+        if (digits.empty() || !digits.ToInt(&fractionalDigits))
+            fractionalDigits = 0;
+
+        // Extract grouping lengths from groupingInfo
+        std::vector<int> grouping;
+        for (wxStringTokenizer tokenizer(groupingInfo, ";"); tokenizer.HasMoreTokens();)
+        {
+            int value = 0;
+            if (tokenizer.GetNextToken().ToInt(&value))
+                grouping.push_back(value);
+        }
+
+        return wxLocaleNumberFormatting(groupSeparator, grouping, decimalSeparator, fractionalDigits);
+    }
+
     const wchar_t* const m_name;
+
+    mutable wxLayoutDirection m_layoutDir = wxLayout_Default;
 
     wxDECLARE_NO_COPY_CLASS(wxUILocaleImplName);
 };

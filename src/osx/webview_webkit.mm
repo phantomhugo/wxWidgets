@@ -39,10 +39,6 @@
 
 using namespace wxOSXImpl;
 
-// using native types to get compile errors and warnings
-
-#define DEBUG_WEBKIT_SIZING 0
-
 // ----------------------------------------------------------------------------
 // macros
 // ----------------------------------------------------------------------------
@@ -267,7 +263,7 @@ bool wxWebViewWebKit::Create(wxWindow *parent,
         {
             for (const auto& kv : m_handlers)
             {
-                [webViewConfig setURLSchemeHandler:[[WebViewCustomProtocol alloc] initWithHandler:kv.second.get()]
+                [webViewConfig setURLSchemeHandler:[[[WebViewCustomProtocol alloc] initWithHandler:kv.second.get()] autorelease]
                                             forURLScheme:wxCFStringRef(kv.first).AsNSString()];
             }
         }
@@ -338,7 +334,7 @@ bool wxWebViewWebKit::Create(wxWindow *parent,
             document.webkitFullscreenEnabled = true; \
         ");
         [m_webView.configuration.userContentController addScriptMessageHandler:
-            [[WebViewScriptMessageHandler alloc] initWithWxWindow:this] name:@"__wxfullscreen"];
+            [[[WebViewScriptMessageHandler alloc] initWithWxWindow:this]autorelease] name:@"__wxfullscreen"];
     }
 
     m_UIDelegate = uiDelegate;
@@ -624,7 +620,7 @@ void wxWebViewWebKit::RunScriptAsync(const wxString& javascript, void* clientDat
 bool wxWebViewWebKit::AddScriptMessageHandler(const wxString& name)
 {
     [m_webView.configuration.userContentController addScriptMessageHandler:
-        [[WebViewScriptMessageHandler alloc] initWithWxWindow:this] name:wxCFStringRef(name).AsNSString()];
+        [[[WebViewScriptMessageHandler alloc] initWithWxWindow:this] autorelease] name:wxCFStringRef(name).AsNSString()];
     // Make webkit message handler available under common name
     wxString js = wxString::Format("window.%s = window.webkit.messageHandlers.%s;",
             name, name);
@@ -648,6 +644,7 @@ bool wxWebViewWebKit::AddUserScript(const wxString& javascript,
                 WKUserScriptInjectionTimeAtDocumentStart : WKUserScriptInjectionTimeAtDocumentEnd
             forMainFrameOnly:NO];
     [m_webView.configuration.userContentController addUserScript:userScript];
+    [userScript release];
     return true;
 }
 
@@ -674,12 +671,12 @@ wxString wxWebViewWebKit::GetCurrentTitle() const
 
 float wxWebViewWebKit::GetZoomFactor() const
 {
-    return m_webView.magnification;
+    return float(m_webView.magnification);
 }
 
 void wxWebViewWebKit::SetZoomFactor(float zoom)
 {
-    m_webView.magnification = zoom;
+    m_webView.magnification = double(zoom);
 }
 
 void wxWebViewWebKit::DoSetPage(const wxString& src, const wxString& baseUrl)
@@ -816,6 +813,10 @@ void wxWebViewWebKit::RegisterHandler(wxSharedPtr<wxWebViewHandler> handler)
 
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
+    if (self.window.firstResponder != self) 
+    {
+        return NO;
+    }
     if ([event modifierFlags] & NSCommandKeyMask)
     {
         switch ([event.characters characterAtIndex:0])
@@ -984,7 +985,7 @@ wxString nsErrorToWxHtmlError(NSError* error, wxWebViewNavigationError* out)
 
 - (void)webView:(WKWebView *)webView
     didFailNavigation:(WKNavigation *)navigation
-            withError:(NSError *)error;
+            withError:(NSError *)error
 {
     if (webKitWindow){
         NSString *url = webView.URL.absoluteString;
@@ -1007,7 +1008,7 @@ wxString nsErrorToWxHtmlError(NSError* error, wxWebViewNavigationError* out)
 
 - (void)webView:(WKWebView *)webView
     didFailProvisionalNavigation:(WKNavigation *)navigation
-                       withError:(NSError *)error;
+                       withError:(NSError *)error
 {
     if (webKitWindow){
         NSString *url = webView.URL.absoluteString;

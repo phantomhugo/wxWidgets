@@ -82,7 +82,6 @@ public:
     virtual void Update() override;
     virtual void ClearBackground() override;
 
-    virtual bool SetCursor( const wxCursor &cursor ) override;
     virtual bool SetFont( const wxFont &font ) override;
     virtual bool SetBackgroundColour( const wxColour &colour ) override;
     virtual bool SetForegroundColour( const wxColour &colour ) override;
@@ -129,6 +128,8 @@ public:
 
     // implementation from now on
     // --------------------------
+
+    virtual void WXUpdateCursor() override;
 
     void MacClientToRootWindow( int *x , int *y ) const;
 
@@ -221,6 +222,9 @@ public:
     // returns the visible region of this control in window ie non-client coordinates
     const wxRegion&     MacGetVisibleRegion( bool includeOuterStructures = false ) ;
 
+    // sets NSView.clipsToBounds property
+    void                MacClipsToBounds( bool clip );
+
     // returns true if children have to clipped to the content area
     // (e.g., scrolled windows)
     bool                MacClipChildren() const { return m_clipChildren ; }
@@ -274,6 +278,16 @@ public:
     // or windows indiscriminately, e.g. for setting NSViewAnimationTargetKey
     virtual void *OSXGetViewOrWindow() const;
 #endif // Cocoa
+
+#ifdef __WXOSX_IPHONE__
+    void                OSXSetScrollTargetWindow( wxWindow *target );
+    wxWindow *          OSXGetScrollTargetWindow() { return m_scrollTargetWindow; }
+    const wxWindow *    OSXGetScrollTargetWindow() const { return m_scrollTargetWindow; }
+    wxWindow *          m_scrollTargetWindow;
+    void                OSXSetScrollOwnerWindow( wxWindow *owner );
+    wxWindow *          OSXGetScrollOwnerWindow() { return m_scrollOwnerWindow; }
+    wxWindow *          m_scrollOwnerWindow;
+#endif
 
     void *              MacGetCGContextRef() { return m_cgContextRef ; }
     void                MacSetCGContextRef(void * cg) { m_cgContextRef = cg ; }

@@ -180,6 +180,7 @@ extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendDefault[];
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendIE[];
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendEdge[];
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendWebKit[];
+extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendChromium[];
 
 class WXDLLIMPEXP_WEBVIEW wxWebViewFactory : public wxObject
 {
@@ -199,7 +200,7 @@ public:
     {
         return wxVersionInfo();
     }
-    virtual wxWebViewConfiguration CreateConfiguration();
+    virtual wxWebViewConfiguration CreateConfiguration() = 0;
 };
 
 using wxStringWebViewFactoryMap = std::unordered_map<wxString, wxSharedPtr<wxWebViewFactory>>;
@@ -426,7 +427,7 @@ public:
     const wxString& GetMessageHandler() const { return m_messageHandler; }
     wxWebViewWindowFeatures* GetTargetWindowFeatures() const { return (wxWebViewWindowFeatures*)m_clientData; }
 
-    virtual wxEvent* Clone() const override { return new wxWebViewEvent(*this); }
+    wxNODISCARD virtual wxEvent* Clone() const override { return new wxWebViewEvent(*this); }
 private:
     wxString m_url;
     wxString m_target;

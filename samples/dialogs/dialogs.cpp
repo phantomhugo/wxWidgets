@@ -721,7 +721,7 @@ MyFrame::MyFrame(const wxString& title)
 
 #if wxUSE_INFOBAR
     // an info bar can be created very simply and used without any extra effort
-    m_infoBarSimple = new wxInfoBar(this);
+    m_infoBarSimple = new wxInfoBar(this, wxID_ANY, wxINFOBAR_CHECKBOX);
 
     // or it can also be customized by
     m_infoBarAdvanced = new wxInfoBar(this);
@@ -763,10 +763,6 @@ MyFrame::MyFrame(const wxString& title)
     SetOwnBackgroundColour(m_canvas->GetBackgroundColour());
 #endif // wxUSE_INFOBAR
 
-#if wxUSE_TIPWINDOW
-    m_tipWindow = nullptr;
-#endif // wxUSE_TIPWINDOW
-
 #ifdef __WXMSW__
     // Test MSW-specific function allowing to access the "system" menu.
     wxMenu * const menu = MSWGetSystemMenu();
@@ -798,7 +794,6 @@ void MyFrame::DoApplyColour(const wxColour& colour)
         return;
 
     m_canvas->SetBackgroundColour(colour);
-    m_canvas->ClearBackground();
     m_canvas->Refresh();
 }
 
@@ -862,7 +857,6 @@ void MyFrame::ChooseColourGeneric(wxCommandEvent& event)
     {
         m_clrData = dialog->GetColourData();
         m_canvas->SetBackgroundColour(m_clrData.GetColour());
-        m_canvas->ClearBackground();
         m_canvas->Refresh();
     }
     dialog->Destroy();
@@ -942,6 +936,13 @@ void MyFrame::LogDialog(wxCommandEvent& WXUNUSED(event))
 void MyFrame::InfoBarSimple(wxCommandEvent& WXUNUSED(event))
 {
     static int s_count = 0;
+    static bool s_dontShowAgain = false;
+
+    if (s_dontShowAgain)
+    {
+        wxMessageBox("You asked to not see this again. Remember?");
+        return;
+    }
 
     wxString msg;
     if ( ++s_count % 2 )
@@ -959,7 +960,21 @@ void MyFrame::InfoBarSimple(wxCommandEvent& WXUNUSED(event))
                    s_count);
     }
 
+    m_infoBarSimple->ShowCheckBox(_("Do not show this again"), false);
     m_infoBarSimple->ShowMessage(msg);
+    // intercept the close button being clicked
+    m_infoBarSimple->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& WXUNUSED(event))
+        {
+            // dismiss the message and (if a generic control)
+            // see if the "don't show this again" checkbox
+            // was checked and handle that for next time
+            m_infoBarSimple->Dismiss();
+            if (m_infoBarSimple->IsCheckBoxChecked())
+            {
+                s_dontShowAgain = true;
+            };
+        }, wxID_CLOSE);
 }
 
 void MyFrame::InfoBarAdvanced(wxCommandEvent& WXUNUSED(event))
@@ -1163,6 +1178,7 @@ void MyFrame::LineEntry(wxCommandEvent& WXUNUSED(event))
                              "Please enter a string",
                              "Default value",
                              wxOK | wxCANCEL);
+    dialog.SetHint("Enter your text here");
 
     if (dialog.ShowModal() == wxID_OK)
     {
@@ -1176,6 +1192,7 @@ void MyFrame::TextEntry(wxCommandEvent& WXUNUSED(event))
                              "Please enter some text",
                              "First line\nSecond one\nAnd another one too",
                              wxOK | wxCANCEL | wxTE_MULTILINE);
+    dialog.SetHint("Enter your text here");
 
     if (dialog.ShowModal() == wxID_OK)
     {
@@ -2837,14 +2854,13 @@ void MyFrame::OnShowTip(wxCommandEvent& WXUNUSED(event))
     }
     else
     {
-        m_tipWindow = new wxTipWindow
+        m_tipWindow = wxTipWindow::New
                           (
                             this,
                             "This is just some text to be shown in the tip "
                             "window, broken into multiple lines, each less "
                             "than 60 logical pixels wide.",
-                            FromDIP(60),
-                            &m_tipWindow
+                            FromDIP(60)
                           );
     }
 }
@@ -3428,7 +3444,7 @@ static void InitAboutInfoMinimal(wxAboutDialogInfo& info)
                         wxVERSION_NUM_DOT_STRING
                     ));
     info.SetDescription("This sample shows different wxWidgets dialogs.");
-    info.SetCopyright("Copyright (C) 1992-2025 wxWidgets dev team.");
+    info.SetCopyright("Copyright (C) 1992-2026 wxWidgets dev team.");
 }
 
 static void InitAboutInfoWebsite(wxAboutDialogInfo& info)

@@ -50,14 +50,12 @@ static void wxGtkOnRemoveTag(GtkTextBuffer *buffer,
                              GtkTextIter * WXUNUSED(end),
                              char *prefix)
 {
-    gchar *name;
-    g_object_get (tag, "name", &name, nullptr);
+    wxGlibPtr<gchar> name;
+    g_object_get (tag, "name", name.Out(), nullptr);
 
     if (!name || strncmp(name, prefix, strlen(prefix)))
         // anonymous tag or not starting with prefix - don't remove
         g_signal_stop_emission_by_name (buffer, "remove_tag");
-
-    g_free(name);
 }
 }
 
@@ -668,7 +666,7 @@ extern "C" {
 static void state_flags_changed(GtkWidget*, GtkStateFlags, wxTextCtrl* win)
 {
     // restore non-default cursor, if any
-    win->GTKUpdateCursor(false, true);
+    win->GTKApplyCursor();
 }
 }
 #endif // __WXGTK3__
@@ -1898,7 +1896,7 @@ void wxTextCtrl::OnChar( wxKeyEvent &key_event )
     key_event.Skip();
 }
 
-GtkWidget* wxTextCtrl::GetConnectWidget()
+GtkWidget* wxTextCtrl::GetConnectWidget() const
 {
     return GTK_WIDGET(m_text);
 }
@@ -2117,21 +2115,31 @@ bool wxTextCtrl::GetStyle(long position, wxTextAttr& style)
 }
 
 #ifdef __WXGTK3__
-void wxTextCtrl::GTKSetPangoMarkup(const wxString& str)
+bool wxTextCtrl::GTKSetPangoMarkup(const wxString& str)
 {
-    wxCHECK_RET(IsMultiLine(), "pango markup requires multiline control");
+    wxCHECK_MSG(IsMultiLine(), false,
+                "Pango markup only supported in multiline controls");
 
-    // multiple events may get fired while editing text, so block those
+#if GTK_CHECK_VERSION(3,16,0)
+    if (gtk_check_version(3,16,0) == nullptr)
     {
-        EventsSuppressor noevents(this);
-        // clear current content
-        GtkTextIter start, end;
-        gtk_text_buffer_get_bounds(m_buffer, &start, &end);
-        gtk_text_buffer_delete(m_buffer, &start, &end);
+        // multiple events may get fired while editing text, so block those
+        {
+            EventsSuppressor noevents(this);
+            // clear current content
+            GtkTextIter start, end;
+            gtk_text_buffer_get_bounds(m_buffer, &start, &end);
+            gtk_text_buffer_delete(m_buffer, &start, &end);
 
-        gtk_text_buffer_insert_markup(m_buffer, &start, str.utf8_str(), -1);
+            gtk_text_buffer_insert_markup(m_buffer, &start, str.utf8_str(), -1);
+        }
+        SendTextUpdatedEvent(GetEditableWindow());
+
+        return true;
     }
-    SendTextUpdatedEvent(GetEditableWindow());
+#endif // GTK 3.16
+
+    return false;
 }
 wxTextSearchResult wxTextCtrl::SearchText(const wxTextSearch& search) const
 {

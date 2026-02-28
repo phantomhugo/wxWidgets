@@ -174,26 +174,44 @@ public:
     // matter at all (which is the case if the theme is only used to query some
     // colours, for example), but otherwise (e.g. when using the theme to get
     // any metrics) the actual DPI of the window must be passed to NewForDPI().
-    static wxUxThemeHandle NewAtDPI(HWND hwnd, const wchar_t *classes, int dpi)
+    static wxUxThemeHandle
+    NewAtDPI(HWND hwnd,
+             const wchar_t *classes,
+             const wchar_t *classesDark,
+             int dpi)
     {
-        return wxUxThemeHandle(hwnd, classes, dpi);
+        return wxUxThemeHandle(hwnd, classes, classesDark, dpi);
     }
 
-    static wxUxThemeHandle NewAtStdDPI(HWND hwnd, const wchar_t *classes)
+    static wxUxThemeHandle
+    NewAtDPI(HWND hwnd,
+             const wchar_t *classes,
+             int dpi)
     {
-        return NewAtDPI(hwnd, classes, STD_DPI);
+        return NewAtDPI(hwnd, classes, nullptr, dpi);
     }
 
-    static wxUxThemeHandle NewAtStdDPI(const wchar_t *classes)
+    static wxUxThemeHandle
+    NewAtStdDPI(HWND hwnd,
+                const wchar_t *classes,
+                const wchar_t *classesDark = nullptr)
     {
-        return NewAtStdDPI(0, classes);
+        return NewAtDPI(hwnd, classes, classesDark, STD_DPI);
+    }
+
+    static wxUxThemeHandle
+    NewAtStdDPI(const wchar_t *classes,
+                const wchar_t *classesDark = nullptr)
+    {
+        return NewAtStdDPI(0, classes, classesDark);
     }
 
     // wxWindow pointer here must be valid and its DPI is always used.
-    wxUxThemeHandle(const wxWindow *win, const wchar_t *classes) :
-        wxUxThemeHandle(GetHwndOf(win), classes, win->GetDPI().y)
-    {
-    }
+    // If classesDark is non-nullptr and the dark mode is active, it's used
+    // instead of classes.
+    wxUxThemeHandle(const wxWindow* win,
+                    const wchar_t* classes,
+                    const wchar_t* classesDark = nullptr);
 
     wxUxThemeHandle(wxUxThemeHandle&& other)
         : m_hTheme{other.m_hTheme}
@@ -240,10 +258,17 @@ public:
 private:
     static const int STD_DPI = 96;
 
-    static HTHEME DoOpenThemeData(HWND hwnd, const wchar_t *classes, int dpi);
+    static HTHEME
+    DoOpenThemeData(HWND hwnd,
+                    const wchar_t *classes,
+                    const wchar_t *classesDark,
+                    int dpi);
 
-    wxUxThemeHandle(HWND hwnd, const wchar_t *classes, int dpi) :
-        m_hTheme{DoOpenThemeData(hwnd, classes, dpi)}
+    wxUxThemeHandle(HWND hwnd,
+                    const wchar_t *classes,
+                    const wchar_t* classesDark,
+                    int dpi)
+        : m_hTheme{DoOpenThemeData(hwnd, classes, classesDark, dpi)}
     {
     }
 

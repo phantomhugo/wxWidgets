@@ -16,13 +16,8 @@
 
 #if wxUSE_CAIRO
 
-#ifndef __WXGTK__
-// keep cairo.h from defining dllimport as we're defining the symbols inside
-// the wx dll in order to load them dynamically.
-#define cairo_public
-#endif
+#include "wx/private/cairo.h"
 
-#include <cairo.h>
 #include <float.h>
 
 bool wxCairoInit();
@@ -554,7 +549,7 @@ protected:
         );
     }
 
-#ifdef __WXGTK3__
+#if defined(__WXGTK3__) && !defined(__WIN32__)
     // This factor must be applied to the font before actually using it, for
     // consistency with the text drawn by GTK itself.
     float m_fontScalingFactor;
@@ -2540,7 +2535,7 @@ wxCairoContext::~wxCairoContext()
 
 void wxCairoContext::Init(cairo_t *context, bool storeInitClip)
 {
-#ifdef __WXGTK3__
+#if defined(__WXGTK3__) && !defined(__WIN32__)
     // Attempt to find the system font scaling parameter (e.g. "Fonts->Scaling
     // Factor" in Gnome Tweaks, "Force font DPI" in KDE System Settings or
     // GDK_DPI_SCALE environment variable).

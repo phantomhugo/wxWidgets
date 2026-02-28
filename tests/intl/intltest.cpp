@@ -207,7 +207,7 @@ void IntlTestCase::DateTimeFmtFrench()
     wxString fmtDT = wxLocale::GetInfo(wxLOCALE_DATE_TIME_FMT);
     INFO("French date and time format is \"" << fmtDT << "\"");
 
-#ifdef __WXOSX__
+#ifdef __DARWIN__
     // Things are difficult to test under macOS as the format keeps changing,
     // e.g. at some time between 10.10 and 10.12 a new " à " string appeared in
     // its middle, so test it piece-wise and hope it doesn't change too much.
@@ -393,7 +393,7 @@ TEST_CASE("wxLocale::Default", "[locale]")
 // under Linux some locales may be unavailable.
 static inline bool CheckSupported(const wxUILocale& loc, const char* desc)
 {
-#if defined(__WINDOWS__) || defined(__WXOSX__)
+#if defined(__WINDOWS__) || defined(__DARWIN__)
     INFO(desc << " locale");
     CHECK( loc.IsSupported() );
 #else // Unix (not Darwin)
@@ -417,11 +417,35 @@ TEST_CASE("wxUILocale::IsSupported", "[uilocale]")
 
 TEST_CASE("wxUILocale::GetInfo", "[uilocale]")
 {
-    CHECK( wxUILocale::FromTag("en").GetInfo(wxLOCALE_DECIMAL_POINT) == "." );
+    const wxUILocale locEN(wxUILocale::FromTag("en-US"));
+    CHECK( locEN.GetInfo(wxLOCALE_DECIMAL_POINT) == "." );
+    CHECK( locEN.GetCurrencySymbol() == "$");
+    CHECK( locEN.GetCurrencyCode() == "USD");
+    CHECK( locEN.GetCurrencyInfo().currencyFormat.fractionalDigits == 2);
+    CHECK( locEN.GetCurrencySymbolPosition() == wxCurrencySymbolPosition::PrefixNoSep );
+    CHECK( locEN.UsesMetricSystem() == wxMeasurementSystem::NonMetric);
 
-    const wxUILocale locDE(wxUILocale::FromTag("de"));
-    if ( CheckSupported(locDE, "German") )
-        CHECK( locDE.GetInfo(wxLOCALE_DECIMAL_POINT) == "," );
+    const wxUILocale locDE(wxUILocale::FromTag("de-DE"));
+    if (CheckSupported(locDE, "German"))
+    {
+        CHECK( locDE.GetInfo(wxLOCALE_DECIMAL_POINT) == ",");
+        CHECK( locDE.GetCurrencySymbol() == L"\u20AC");
+        CHECK( locDE.GetCurrencyCode() == "EUR");
+        CHECK( locDE.GetCurrencyInfo().currencyFormat.fractionalDigits == 2);
+        CHECK( locDE.GetCurrencySymbolPosition() == wxCurrencySymbolPosition::SuffixWithSep);
+        CHECK( locDE.UsesMetricSystem() == wxMeasurementSystem::Metric);
+    }
+
+    const wxUILocale locFR(wxUILocale::FromTag("fr-FR"));
+    if (CheckSupported(locFR, "French"))
+    {
+        CHECK( locFR.GetInfo(wxLOCALE_DECIMAL_POINT) == ",");
+        CHECK( locFR.GetCurrencySymbol() == L"\u20AC");
+        CHECK( locFR.GetCurrencyCode() == "EUR");
+        CHECK( locFR.GetCurrencyInfo().currencyFormat.fractionalDigits == 2);
+        CHECK( locFR.GetCurrencySymbolPosition() == wxCurrencySymbolPosition::SuffixWithSep);
+        CHECK( locFR.UsesMetricSystem() == wxMeasurementSystem::Metric);
+    }
 
     // This one shows that "Swiss High German" locale (de_CH) correctly uses
     // dot, and not comma, as decimal separator, even under macOS, where POSIX
@@ -460,7 +484,7 @@ TEST_CASE("wxUILocale::CompareStrings", "[uilocale]")
         CHECK( l.CompareStrings("B", "a") ==  1 );
 
         // Case insensitive comparison is not supported with POSIX APIs.
-#if defined(__WINDOWS__) || defined(__WXOSX__)
+#if defined(__WINDOWS__) || defined(__DARWIN__)
         CHECK( l.CompareStrings("a", "A", wxCompare_CaseInsensitive) == 0 );
 #endif
     }
@@ -477,7 +501,7 @@ TEST_CASE("wxUILocale::CompareStrings", "[uilocale]")
         CHECK( l.CompareStrings("a",  u8("ä")) == -1 );
         CHECK( l.CompareStrings(u8("ä"), "ae") == -1 );
 
-#if defined(__WINDOWS__) || defined(__WXOSX__)
+#if defined(__WINDOWS__) || defined(__DARWIN__)
         // CompareStringsEx() was only implemented correctly in Wine 7.10.
         wxVersionInfo wineVer;
         if ( wxIsRunningUnderWine(&wineVer) && !wineVer.AtLeast(7, 10) )

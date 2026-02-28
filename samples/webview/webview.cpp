@@ -466,7 +466,6 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
     wxString backend;
     if ( !wxGetEnv("WX_WEBVIEW_BACKEND", &backend) )
         backend = wxWebViewBackendDefault;
-#if wxUSE_WEBVIEW_CHROMIUM
     // Allow specifying shorter "CEF" instead of having to type the full class
     // name.
     //
@@ -477,7 +476,6 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
     // wouldn't be available during run-time at all.
     else if ( backend.CmpNoCase("cef") == 0 )
         backend = wxWebViewBackendChromium;
-#endif // wxUSE_WEBVIEW_CHROMIUM
 
     if ( backend != wxWebViewBackendDefault &&
             !wxWebView::IsBackendAvailable(backend) )
@@ -588,7 +586,6 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
                 wxLogError("Could not add script message handler");
         };
 
-#if wxUSE_WEBVIEW_CHROMIUM
         if ( backend == wxWebViewBackendChromium )
         {
             m_browser->Bind(wxEVT_WEBVIEW_CREATED, [initShow](wxWebViewEvent& event) {
@@ -598,7 +595,6 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
             });
         }
         else
-#endif // wxUSE_WEBVIEW_CHROMIUM
         {
             initShow();
         }
@@ -1128,8 +1124,10 @@ void WebFrame::OnNavigationRequest(wxWebViewEvent& evt)
         m_info->Dismiss();
     }
 
-    wxLogMessage("%s", "Navigation request to '" + evt.GetURL() + "' (target='" +
-    evt.GetTarget() + "')" + ((evt.IsTargetMainFrame()) ? " mainFrame" : ""));
+    wxLogMessage("Navigation request to '%s' (target='%s')%s",
+                 evt.GetURL(),
+                 evt.GetTarget(),
+                 evt.IsTargetMainFrame() ? " mainFrame" : "");
 
     //If we don't want to handle navigation then veto the event and navigation
     //will not take place, we also need to stop the loading animation
@@ -1149,7 +1147,7 @@ void WebFrame::OnNavigationRequest(wxWebViewEvent& evt)
   */
 void WebFrame::OnNavigationComplete(wxWebViewEvent& evt)
 {
-    wxLogMessage("%s", "Navigation complete; url='" + evt.GetURL() + "'");
+    wxLogMessage("Navigation complete; url='%s'", evt.GetURL());
     UpdateState();
 }
 
@@ -1161,7 +1159,7 @@ void WebFrame::OnDocumentLoaded(wxWebViewEvent& evt)
     //Only notify if the document is the main frame, not a subframe
     if(evt.GetURL() == m_browser->GetCurrentURL())
     {
-        wxLogMessage("%s", "Document loaded; url='" + evt.GetURL() + "'");
+        wxLogMessage("Document loaded; url='%s'", evt.GetURL());
     }
     UpdateState();
 }
@@ -1178,7 +1176,7 @@ void WebFrame::OnNewWindow(wxWebViewEvent& evt)
         flag = " (user)";
     }
 
-    wxLogMessage("%s", "New window; url='" + evt.GetURL() + "'" + flag);
+    wxLogMessage("New window; url='%s'%s", evt.GetURL(), flag);
 
     //If we handle new window events then create a new frame
     if (!m_tools_handle_new_window->IsChecked())
@@ -1217,7 +1215,7 @@ void WebFrame::OnNewWindowFeatures(wxWebViewEvent &evt)
 void WebFrame::OnTitleChanged(wxWebViewEvent& evt)
 {
     SetTitle(GetPrivatePrefix() + evt.GetString());
-    wxLogMessage("%s", "Title changed; title='" + evt.GetString() + "'");
+    wxLogMessage("Title changed; title='%s'", evt.GetString());
 }
 
 void WebFrame::OnFullScreenChanged(wxWebViewEvent & evt)
@@ -1322,7 +1320,7 @@ void WebFrame::OnToolsClicked(wxCommandEvent& WXUNUSED(evt))
     // them at least some name if we don't have anything better.
     const auto makeLabel = [](const wxString& title)
     {
-        return title.empty() ? "(untitled)" : title;
+        return title.empty() ? wxString("(untitled)") : title;
     };
 
     wxMenuItem* item;
@@ -1673,7 +1671,8 @@ void WebFrame::OnError(wxWebViewEvent& evt)
         WX_ERROR_CASE(wxWEBVIEW_NAV_ERR_OTHER);
     }
 
-    wxLogMessage("%s", "Error; url='" + evt.GetURL() + "', error='" + category + " (" + evt.GetString() + ")'");
+    wxLogMessage("Error; url='%s', error='%s (%s)'",
+                 evt.GetURL(), category, evt.GetString());
 
     //Show the info bar with an error
     m_info->ShowMessage(_("An error occurred loading ") + evt.GetURL() + "\n" +

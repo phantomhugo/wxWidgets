@@ -157,6 +157,16 @@ extern WXDLLIMPEXP_DATA_BASE(const wxStringCharType*) wxEmptyStringImpl;
 #define   wxMBSTRINGCAST (char *)(const char *)
 #define   wxWCSTRINGCAST (wchar_t *)(const wchar_t *)
 
+template <typename T>
+inline wxStdString wxToStdString(T x)
+{
+#if wxUSE_UNICODE_WCHAR
+    return std::to_wstring(x);
+#else
+    return std::to_string(x);
+#endif
+}
+
 // ----------------------------------------------------------------------------
 // constants
 // ----------------------------------------------------------------------------
@@ -1735,6 +1745,22 @@ public:
         return FromImpl(std::move(utf8));
     }
 
+    void AssignFromUTF8Unchecked(const char *utf8, size_t len = npos)
+    {
+        wxSTRING_INVALIDATE_CACHE();
+
+        m_impl.assign(utf8, len == npos ? strlen(utf8) : len);
+    }
+    void AssignFromUTF8(const char *utf8, size_t len = npos)
+    {
+        if ( !utf8 || !wxStringOperations::IsValidUtf8String(utf8) )
+        {
+            clear();
+            return;
+        }
+        AssignFromUTF8Unchecked(utf8, len);
+    }
+
     std::string utf8_string() const { return m_impl; }
 
     const wxScopedCharBuffer utf8_str() const
@@ -1757,6 +1783,56 @@ public:
       { return FromUTF8(utf8.c_str(), utf8.length()); }
     static wxString FromUTF8Unchecked(const std::string& utf8)
       { return FromUTF8Unchecked(utf8.c_str(), utf8.length()); }
+
+    void AssignFromUTF8Unchecked(const char *utf8, size_t len = npos)
+    {
+        if ( len == npos )
+            len = strlen(utf8);
+
+        wxMBConvStrictUTF8 conv;
+        if ( m_impl.size() > len )
+        {
+            // We can be sure that the conversion result fits into the
+            // existing buffer, so use it directly.
+            m_impl.resize(conv.ToWChar(ImplData(), m_impl.size(), utf8, len));
+        }
+        else
+        {
+            // We can't be sure that the conversion result fits into the
+            // existing buffer, so compute the length we need.
+            m_impl.resize(conv.ToWChar(nullptr, 0, utf8, len));
+            conv.ToWChar(ImplData(), m_impl.size(), utf8, len);
+        }
+    }
+    void AssignFromUTF8(const char *utf8, size_t len = npos)
+    {
+        if ( !utf8 )
+        {
+            clear();
+            return;
+        }
+
+        if ( len == npos )
+            len = strlen(utf8);
+
+        wxMBConvStrictUTF8 conv;
+        if ( m_impl.size() > len )
+        {
+            m_impl.resize(conv.ToWChar(ImplData(), m_impl.size(), utf8, len));
+        }
+        else
+        {
+            const auto needed = conv.ToWChar(nullptr, 0, utf8, len);
+            if ( needed == wxCONV_FAILED )
+            {
+                clear();
+                return;
+            }
+
+            m_impl.resize(needed);
+            conv.ToWChar(ImplData(), m_impl.size(), utf8, len);
+        }
+    }
 
     std::string utf8_string() const { return ToStdString(wxMBConvUTF8()); }
     const wxScopedCharBuffer utf8_str() const { return mb_str(wxMBConvUTF8()); }
@@ -2093,32 +2169,32 @@ public:
   // stream-like functions
       // insert an int into string
   wxString& operator<<(int i)
-    { return (*this) << Format(wxT("%d"), i); }
+    { return append(wxToStdString(i)); }
       // insert an unsigned int into string
   wxString& operator<<(unsigned int ui)
-    { return (*this) << Format(wxT("%u"), ui); }
+    { return append(wxToStdString(ui)); }
       // insert a long into string
   wxString& operator<<(long l)
-    { return (*this) << Format(wxT("%ld"), l); }
+    { return append(wxToStdString(l)); }
       // insert an unsigned long into string
   wxString& operator<<(unsigned long ul)
-    { return (*this) << Format(wxT("%lu"), ul); }
+    { return append(wxToStdString(ul)); }
 #ifdef wxHAS_LONG_LONG_T_DIFFERENT_FROM_LONG
       // insert a long long if they exist and aren't longs
   wxString& operator<<(wxLongLong_t ll)
-    {
-      return (*this) << Format(wxASCII_STR("%" wxLongLongFmtSpec "d"), ll);
-    }
+    { return append(wxToStdString(ll)); }
       // insert an unsigned long long
   wxString& operator<<(wxULongLong_t ull)
-    {
-      return (*this) << Format(wxASCII_STR("%" wxLongLongFmtSpec "u") , ull);
-    }
+    { return append(wxToStdString(ull)); }
 #endif // wxHAS_LONG_LONG_T_DIFFERENT_FROM_LONG
       // insert a float into string
   wxString& operator<<(float f)
-    { return *this << Format(wxS("%f"), static_cast<double>(f)); }
+    { return append(wxToStdString(f)); }
       // insert a double into string
+      //
+      // This doesn't use std::to_[w]string because this would use "%f" format
+      // while this function needs to use "%g" for compatibility. Prefer using
+      // wxString::From[C]Double() instead in performance-sensitive code.
   wxString& operator<<(double d)
     { return (*this) << Format(wxT("%g"), d); }
 
@@ -3645,6 +3721,14 @@ private:
 
 private:
   wxStringImpl m_impl;
+
+  // Get access to the string buffer: we assume that we can always rely on
+  // C++17 semantics of data(), even when not using C++17, which seems
+  // reasonable as C++17 mostly standardized existing practice.
+  wxStringCharType* ImplData()
+  {
+      return const_cast<wxStringCharType*>(m_impl.data());
+  }
 
   // buffers for compatibility conversion from (char*)c_str() and
   // (wchar_t*)c_str(): the pointers returned by these functions should remain

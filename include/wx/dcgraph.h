@@ -35,6 +35,13 @@ public:
     wxGCDC(wxGraphicsContext* context);
 
     wxGCDC();
+
+    wxGCDC(const wxGCDC&) = delete;
+    wxGCDC& operator=(const wxGCDC&) = delete;
+
+    wxGCDC(wxGCDC&&) = default;
+    wxGCDC& operator=(wxGCDC&&) = default;
+
     virtual ~wxGCDC();
 
 #ifdef __WXMSW__
@@ -46,7 +53,6 @@ public:
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxGCDC);
-    wxDECLARE_NO_COPY_CLASS(wxGCDC);
 };
 
 
@@ -217,7 +223,7 @@ public:
     virtual bool DoGetPartialTextExtents(const wxString& text, wxArrayInt& widths) const override;
 
 #ifdef __WXMSW__
-    virtual wxRect MSWApplyGDIPlusTransform(const wxRect& r) const override;
+    virtual wxRect MSWApplyWXTransform(const wxRect& r) const override;
 #endif // __WXMSW__
 
     // update the internal clip box variables

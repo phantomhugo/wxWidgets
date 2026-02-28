@@ -33,16 +33,11 @@ environment:
   GOPATH: c:\gopath
   matrix:
   - TOOLSET: msbuild
-    CONFIGURATION: DLL Release
-    ARCH: x64
-    VSVER: 17
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
-  - TOOLSET: msbuild
     CONFIGURATION: Debug
     ARCH: x64
-    VSVER: 17
-    wxUSE_UNICODE_UTF8: 1
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    SHARED: ON
+    VSVER: 16
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
   - TOOLSET: nmake
     VS: '14.0'
     BUILD: debug
@@ -54,12 +49,9 @@ environment:
     SHARED: ON
     CONFIGURATION: Release
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-  - TOOLSET: cmake_qt
-    GENERATOR: 'Visual Studio 16 2019'
-    ARCH: x64
-    SHARED: ON
-    CONFIGURATION: Release
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+
+cache:
+  - '%USERPROFILE%\go%GOVERSION%.windows-amd64.msi'
 
 clone_depth: 1
 
@@ -92,8 +84,10 @@ before_test:
     echo Getting and launching httpbin.
     rmdir %GOROOT% /s /q
     mkdir %GOROOT%
-    appveyor DownloadFile https://go.dev/dl/go%GOVERSION%.windows-amd64.msi
-    msiexec /i go%GOVERSION%.windows-amd64.msi INSTALLDIR="%GOROOT%" /q
+    cd %USERPROFILE%
+    set go_exe=go%GOVERSION%.windows-amd64.msi
+    if not exist "%go_exe%" appveyor DownloadFile https://go.dev/dl/%go_exe%
+    msiexec /i %go_exe% INSTALLDIR="%GOROOT%" /q
     go version
     go install github.com/mccutchen/go-httpbin/v2/cmd/go-httpbin@v2
     set PATH=%PATH%;%GOPATH%\bin

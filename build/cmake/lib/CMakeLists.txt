@@ -12,6 +12,8 @@ if(wxBUILD_MONOLITHIC)
     set(wxMONO_SRC_FILES)
     set(wxMONO_LIBS_PRIVATE)
     set(wxMONO_LIBS_PUBLIC)
+    set(wxMONO_DIRS_PRIVATE)
+    set(wxMONO_DIRS_PUBLIC)
     set(wxMONO_INCLUDE_DIRS)
     set(wxMONO_DEFINITIONS)
     set(wxMONO_NONCOMPILED_CPP_FILES)
@@ -21,7 +23,7 @@ endif()
 # Define third party libraries
 set(LIBS_THIRDPARTY regex zlib expat)
 if(wxUSE_GUI)
-    list(APPEND LIBS_THIRDPARTY jpeg png tiff nanosvg)
+    list(APPEND LIBS_THIRDPARTY jpeg png tiff nanosvg webp lunasvg)
 endif()
 foreach(LIB IN LISTS LIBS_THIRDPARTY)
     include(${LIB}.cmake)
@@ -43,7 +45,14 @@ endmacro()
 
 # Define base libraries
 set(LIBS base)
-add_opt_lib(net wxUSE_SOCKETS)
+
+# wxNet should be built if either wxUSE_SOCKETS or wxUSE_WEBREQUEST is on.
+if(wxUSE_SOCKETS OR wxUSE_WEBREQUEST)
+    set(wxUSE_NET ON)
+else()
+    set(wxUSE_NET OFF)
+endif()
+add_opt_lib(net wxUSE_NET)
 
 # Define UI libraries
 if(wxUSE_GUI)
@@ -89,6 +98,9 @@ if(wxBUILD_MONOLITHIC)
             endforeach()
 
             target_link_libraries(wxmono ${vis} ${wxMONO_LIBS_${vis}})
+        endif()
+        if(wxMONO_DIRS_${vis})
+            target_link_directories(wxmono ${vis} ${wxMONO_DIRS_${vis}})
         endif()
     endforeach()
     if(wxMONO_INCLUDE_DIRS)

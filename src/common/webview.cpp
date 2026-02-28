@@ -35,6 +35,7 @@ extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewDefaultURLStr[] = "about:bl
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendIE[] = "wxWebViewIE";
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendEdge[] = "wxWebViewEdge";
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendWebKit[] = "wxWebViewWebKit";
+extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendChromium[] = "wxWebViewChromium";
 
 #ifdef __WXMSW__
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendDefault[] = "";
@@ -58,16 +59,6 @@ wxDEFINE_EVENT( wxEVT_WEBVIEW_FULLSCREEN_CHANGED, wxWebViewEvent);
 wxDEFINE_EVENT( wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, wxWebViewEvent);
 wxDEFINE_EVENT( wxEVT_WEBVIEW_SCRIPT_RESULT, wxWebViewEvent);
 wxDEFINE_EVENT( wxEVT_WEBVIEW_BROWSING_DATA_CLEARED, wxWebViewEvent);
-
-// wxWebViewConfigurationDefault
-class wxWebViewConfigurationImplDefault : public wxWebViewConfigurationImpl
-{
-public:
-    virtual void* GetNativeConfiguration() const override
-    {
-        return nullptr;
-    }
-};
 
 // wxWebViewConfiguration
 wxWebViewConfiguration::wxWebViewConfiguration(const wxString& backend, wxWebViewConfigurationImpl* impl):
@@ -494,7 +485,7 @@ wxWebViewConfiguration wxWebView::NewConfiguration(const wxString& backend)
     if (iter != m_factoryMap.end())
         return iter->second->CreateConfiguration();
     else
-        return wxWebViewConfiguration(backend, new wxWebViewConfigurationImplDefault);
+        return wxWebViewConfiguration(backend, new wxWebViewConfigurationImpl);
 }
 
 // static
@@ -542,11 +533,6 @@ void wxWebView::InitFactoryMap()
         RegisterFactory(wxWebViewBackendWebKit, wxSharedPtr<wxWebViewFactory>
                                                        (new wxWebViewFactoryWebKit));
 #endif
-}
-
-wxWebViewConfiguration wxWebViewFactory::CreateConfiguration()
-{
-    return wxWebViewConfiguration(wxWebViewBackendDefault, new wxWebViewConfigurationImplDefault);
 }
 
 #endif // wxUSE_WEBVIEW

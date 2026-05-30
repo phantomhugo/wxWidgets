@@ -763,6 +763,13 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                             {
                                 // absolute mode (pixels not runs)
                                 int absolute = aByte;
+                                // RLE runs do not span scanlines; reject a
+                                // file whose absolute run would advance past
+                                // the right edge of the row and write into
+                                // adjacent rows or past the end of the image
+                                // buffer.
+                                if ( column + absolute > width )
+                                    return false;
                                 wxUint8 nibble[2] ;
                                 int readBytes = 0 ;
                                 for (int k = 0; k < absolute; k++)
@@ -776,6 +783,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                                         nibble[0] = (wxUint8)( (aByte & 0xF0) >> 4 ) ;
                                         nibble[1] = (wxUint8)( aByte & 0x0F ) ;
                                     }
+                                    if ( nibble[k%2] >= ncolors )
+                                        return false;
                                     ptr[poffset    ] = cmap[nibble[k%2]].r;
                                     ptr[poffset + 1] = cmap[nibble[k%2]].g;
                                     ptr[poffset + 2] = cmap[nibble[k%2]].b;
@@ -797,6 +806,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
 
                             for ( int l = 0; l < first && column < width; l++ )
                             {
+                                if ( nibble[l%2] >= ncolors )
+                                    return false;
                                 ptr[poffset    ] = cmap[nibble[l%2]].r;
                                 ptr[poffset + 1] = cmap[nibble[l%2]].g;
                                 ptr[poffset + 2] = cmap[nibble[l%2]].b;
@@ -809,8 +820,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                         for (int nibble = 0; nibble < 2 && column < width; nibble++)
                         {
                             int index = ((aByte & (0xF0 >> (nibble * 4))) >> (!nibble * 4));
-                            if ( index >= 16 )
-                                index = 15;
+                            if ( index >= ncolors )
+                                return false;
                             ptr[poffset] = cmap[index].r;
                             ptr[poffset + 1] = cmap[index].g;
                             ptr[poffset + 2] = cmap[index].b;
@@ -868,10 +879,19 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                             {
                                 // absolute mode (pixels not runs)
                                 int absolute = aByte;
+                                // RLE runs do not span scanlines; reject a
+                                // file whose absolute run would advance past
+                                // the right edge of the row and write into
+                                // adjacent rows or past the end of the image
+                                // buffer.
+                                if ( column + absolute > width )
+                                    return false;
                                 for (int k = 0; k < absolute; k++)
                                 {
                                     aByte = stream.GetC();
                                     if ( !stream.IsOk() )
+                                        return false;
+                                    if ( aByte >= ncolors )
                                         return false;
                                     ptr[poffset    ] = cmap[aByte].r;
                                     ptr[poffset + 1] = cmap[aByte].g;
@@ -889,6 +909,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                         else
                         {
                             // encoded mode (repeat aByte first times)
+                            if ( aByte >= ncolors )
+                                return false;
                             for ( int l = 0; l < first && column < width; l++ )
                             {
                                 ptr[poffset    ] = cmap[aByte].r;
@@ -900,6 +922,8 @@ bool LoadBMPData(wxImage * image, const BMPDesc& desc,
                     }
                     else
                     {
+                        if ( aByte >= ncolors )
+                            return false;
                         ptr[poffset    ] = cmap[aByte].r;
                         ptr[poffset + 1] = cmap[aByte].g;
                         ptr[poffset + 2] = cmap[aByte].b;

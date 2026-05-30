@@ -1187,6 +1187,83 @@ TEST_CASE_METHOD(ImageHandlersInit, "wxImage::ReadCorruptedTGA", "[image]")
     */
     corruptTGA[18] = 0x7f;
     REQUIRE( !tgaImage.LoadFile(memIn) );
+
+    /*
+    A colour-mapped TGA with a non-zero colour-map origin.
+    Older code allocated the palette using paletteLength only, but
+    indexed it using paletteStart + i, leading to OOB writes.
+    */
+    static const unsigned char badPaletteTGA[] =
+    {
+        0,          // ID length
+        1,          // Color map type
+        1,          // Image type = color mapped
+
+        1, 0,       // Color map origin (paletteStart = 1)
+        1, 0,       // Color map length = 1 entry
+        24,         // Color map entry size
+
+        0, 0,       // X-origin
+        0, 0,       // Y-origin
+
+        1, 0,       // Width = 1
+        1, 0,       // Height = 1
+
+        8,          // Bits per pixel
+        0,          // Image descriptor
+
+        // One palette entry (BGR)
+        0xff, 0x00, 0x00,
+
+        // One pixel index
+        0x00
+    };
+
+    wxMemoryInputStream badPaletteStream(
+        badPaletteTGA,
+        WXSIZEOF(badPaletteTGA)
+    );
+
+    REQUIRE( badPaletteStream.IsOk() );
+
+    REQUIRE(
+        !tgaImage.LoadFile(badPaletteStream, wxBITMAP_TYPE_TGA)
+    );
+}
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadBMPPaletteIndex", "[image][bmp][error]")
+{
+    // A 4-bit BMP that declares only a single palette entry (biClrUsed = 1)
+    // but uses a higher nibble value as the pixel index. The 8-bit decode
+    // path rejects indices >= ncolors, but the 4-bit path used to read
+    // cmap[index] for any 0..15 nibble, running past the palette array.
+    static const unsigned char data[] =
+    {
+        'B','M',
+        0x3e,0,0,0,         // file size = 62
+        0,0,0,0,            // reserved
+        0x3a,0,0,0,         // pixel data offset = 58
+
+        0x28,0,0,0,         // DIB header size = 40
+        1,0,0,0,            // width = 1
+        1,0,0,0,            // height = 1
+        1,0,                // planes
+        4,0,                // bpp = 4
+        0,0,0,0,            // compression = BI_RGB
+        0,0,0,0,            // image size
+        0,0,0,0,            // x ppm
+        0,0,0,0,            // y ppm
+        1,0,0,0,            // biClrUsed = 1
+        0,0,0,0,            // biClrImportant
+
+        0,0,0,0,            // single palette entry (BGRA)
+
+        0xf0,0,0,0          // one scanline, high nibble = 15
+    };
+
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_BMP) );
 }
 
 #if wxUSE_GIF
@@ -1310,7 +1387,327 @@ TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadGIF", "[image][gif][error]")
     CHECK( image.GetSize() == wxSize(1200, 800) );
 }
 
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadGIFLZWMinCodeSize",
+                 "[image][gif][error]")
+{
+    // The LZW minimum code size byte that follows the local colour table is
+    // not validated. dgif() sizes ab_prefix/ab_tail for codes up to 12 bits
+    // (allocSize == 4096+1), so a code size of 12 makes ab_free start at 4098
+    // and the first alphabet update then writes one entry past the end of
+    // both arrays. The 2x1 image below is the minimum needed to exercise the
+    // second LZW iteration where the alphabet update happens.
+    static const unsigned char data[] =
+    {
+        0x47, 0x49, 0x46, 0x38, 0x39, 0x61,             // "GIF89a"
+        0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,       // LSDB: 2x1, no GCT
+        0x2c,                                           // image separator
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, // 2x1 frame at 0,0
+        0x80,                                           // LCT, depth=0 (2 col)
+        0x00, 0x00, 0x00, 0xff, 0xff, 0xff,             // LCT entries
+        0x0c,                                           // LZW min code size=12
+        0x04, 0x00, 0x20, 0x00, 0x00,                   // sub-block: codes 0,1
+        0x00,                                           // sub-block terminator
+        0x3b,                                           // trailer
+    };
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_GIF) );
+}
+
 #endif // wxUSE_GIF
+
+#if wxUSE_PCX
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadPCX", "[image][pcx][error]")
+{
+    // A PCX header where width (read from xmin/xmax) exceeds
+    // bytesperline*nplanes (the per-line buffer size). The decode loop
+    // used to read past the buffer end.
+    static const unsigned char data[] =
+    {
+        0x0a,0x05,0x01,0x08,0x00,0x00,0x00,0x00,0x08,0x00,0x00,0x00,
+        0x48,0x00,0x48,0x00,0x00,0x00,0x00,0x00,0x00,0xf3,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x01,0x02,0x00,0x01,0x00,0x00,0x0a,0x97,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x0a,0x97,0x00,0x00,0x00,0x04,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0xc1,0x00,0x00,
+    };
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_PCX) );
+}
+
+#endif // wxUSE_PCX
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadANI", "[image][ani][error]")
+{
+    static const unsigned char data[] =
+    {
+        'R','I','F','F',
+        0x74,0x43,0x00,0x00,
+        'A','C','O','N',
+
+        'a','n','i','h',
+        0x24,0x00,0x00,0x00,
+
+        0x24,0x00,0x00,0x00,
+
+        // nFrames = 4
+        0x04,0x00,0x00,0x00,
+
+        // nSteps = 4
+        0x04,0x00,0x00,0x00,
+
+        0,0,0,0,
+        0,0,0,0,
+        0,0,0,0,
+        0,0,0,0,
+        0x0A,0x00,0x00,0x00,
+        0x01,0x00,0x00,0x00,
+
+        // rate chunk
+        'r','a','t','e',
+        0x10,0x00,0x00,0x00,
+
+        0x0A,0x00,0x00,0x00,
+        0x09,0x00,0x00,0x00,
+        0x09,0x00,0x00,0x00,
+        0x09,0x00,0x00,0x00,
+
+        // seq chunk
+        's','e','q',' ',
+        0x10,0x00,0x00,0x00,
+
+        0x00,0x00,0x00,0x00,
+        0x01,0x00,0x00,0x00,
+        0x02,0x00,0x00,0x00,
+
+        // invalid index 999
+        0xE7,0x03,0x00,0x00,
+
+        // LIST chunk copied from horse.ani
+        'L','I','S','T',
+        0x1C,0x43,0x00,0x00,
+        'f','r','a','m',
+
+        // copy remaining bytes from horse.ani...
+    };
+
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+
+    wxImage img;
+
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_ANI) );
+}
+
+#if wxUSE_XPM
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadXPM", "[image][xpm][error]")
+{
+    // An XPM-like payload that opens a /* comment without ever closing
+    // it. The comment-stripping loop used to call strlen() past the end
+    // of the wxCharBuffer once it ran off the end without finding '*/'.
+    static const unsigned char data[] =
+    {
+        0x2f,0x2a,0x20,0xa8,0xaf,0xb2,0xdf,0xd5,0xd0,0xdf,0xce,0x2f,
+        0x0a,0x74,0x61,0x74,0x69,0x63,0x20,0x63,0x68,0x61,0x74,0x5b,
+        0x5d,0x3d,0x7b,0x7b,0x0a,0x20,0x31,0x20,0x31,0x20,0x31,0x22,
+        0x2c,0x0a,0x22,0x61,0x20,0x63,0x20,0x23,0x66,0x66,0x66,0x66,
+        0x66,0x66,0x22,0x2c,0x0a,0x22,0x61,0x22,0x61,0x22,0x7d,0x3b,
+        0x0a,
+    };
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_XPM) );
+}
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadXPMUnterminatedQuote",
+                 "[image][xpm][error]")
+{
+    // A payload whose final " is never closed: the quote-stripping loop in
+    // wxXPMDecoder::ReadFile() advanced p past the buffer terminator after
+    // strncpy() and then dereferenced one byte further on the next outer
+    // for-loop iteration, reading past the end of the wxCharBuffer.
+    static const unsigned char data[] =
+    {
+        0x22,0x61,0x62,0x63,
+    };
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_XPM) );
+}
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadXPMWidthOverflow",
+                 "[image][xpm][error]")
+{
+    // width * chars_per_pixel was computed in 32-bit unsigned in
+    // wxXPMDecoder::ReadData() and used to check that each image line is long
+    // enough, but the per-pixel index uses size_t arithmetic. With width =
+    // 68174085 and chars_per_pixel = 63 the product is 4 294 967 355, which
+    // wraps to 59, so a one-pixel image line passes the length check and the
+    // key-reading loop then runs off the end of the buffer. Loading such a
+    // file must be rejected.
+    const std::string key(63, 'a');
+    const std::string xpm =
+        "/* XPM */\n"
+        "\"68174085 1 1 63\"\n"
+        "\"" + key + " c #ffffff\"\n"
+        "\"" + key + "\"\n";
+    wxMemoryInputStream mis(xpm.data(), xpm.size());
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_XPM) );
+}
+
+#endif // wxUSE_XPM
+
+#if wxUSE_IFF
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadIFF", "[image][iff][error]")
+{
+    // A FORM/ILBM file whose BMHD transparent-colour field is 0x4000 while
+    // the palette only has 2 entries (1 bitplane and no CMAP chunk). The
+    // transparent index used to be applied to the palette without a bounds
+    // check, writing past the end of the palette buffer; loading such a file
+    // must now be rejected.
+    static const unsigned char data[] =
+    {
+        0x46,0x4f,0x52,0x4d,0x00,0x00,0x00,0x2e,
+        0x49,0x4c,0x42,0x4d,0x42,0x4d,0x48,0x44,
+        0x00,0x00,0x00,0x14,0x00,0x01,0x00,0x01,
+        0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,
+        0x40,0x00,0x00,0x00,0x00,0x01,0x00,0x01,
+        0x42,0x4f,0x44,0x59,0x00,0x00,0x00,0x02,
+        0x00,0x00,
+    };
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_IFF) );
+}
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadIFFBmhdOverflow",
+                 "[image][iff][error]")
+{
+    // BMHD width = 21849, height = 65535 gives bmhd_width * bmhd_height * 3
+    // = 4 295 622 645, which overflows the 32-bit signed int product used by
+    // wxIFFDecoder::ReadIFF() to size the pixel buffer and wraps down to
+    // 655 349. The subsequent BODY decode loop writes 3 * bmhd_width bytes
+    // per scanline, so a BODY chunk containing 10 lineskips' worth of zeros
+    // (lineskip = 2732 for this width, total 27320 bytes) is enough to
+    // overrun the undersized heap allocation. The fix rejects the file at
+    // BMHD validation time.
+    wxImage::AddHandler(new wxIFFHandler);
+
+    static const unsigned char header[] =
+    {
+        0x46,0x4f,0x52,0x4d,            // "FORM"
+        0x00,0x00,0x6a,0xe0,            // FORM length = 27360
+        0x49,0x4c,0x42,0x4d,            // "ILBM"
+        0x42,0x4d,0x48,0x44,            // "BMHD"
+        0x00,0x00,0x00,0x14,            // BMHD chunk length = 20
+        0x55,0x59,                      // width  = 21849
+        0xff,0xff,                      // height = 65535
+        0x00,0x00,0x00,0x00,            // x, y
+        0x01,                           // nPlanes
+        0x00,                           // masking
+        0x00,                           // compression (BI_RGB, uncompressed)
+        0x00,                           // pad
+        0x00,0x00,                      // transparentColor
+        0x00,0x00,                      // x/y aspect
+        0x00,0x00,0x00,0x00,            // page width / height
+        0x42,0x4f,0x44,0x59,            // "BODY"
+        0x00,0x00,0x6a,0xb8,            // BODY chunk length = 27320
+    };
+    std::vector<unsigned char> data(header, header + WXSIZEOF(header));
+    data.resize(data.size() + 27320, 0);
+
+    wxMemoryInputStream mis(data.data(), data.size());
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_IFF) );
+}
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadIFFBodyTruncated",
+                 "[image][iff][error]")
+{
+    // A BODY chunk that declares more data than the file actually contains:
+    // dataptr + 8 + chunkLen > dataend, so the truncated branch in
+    // wxIFFDecoder::ReadIFF() runs and used to set chunkLen = dataend - dataptr,
+    // which is 8 too large (the chunk header is 8 bytes). The non-RLE BODY
+    // decode loop then reads up to 8 bytes past the heap-allocated input
+    // buffer. width = 16 with 1 bitplane gives lineskip = 2, and the second
+    // half of the scanline (j = 8..15) reads bodyptr[1], one byte past dataend.
+    // transparentColor = 0x4000 ensures ConvertToImage() also rejects the
+    // resulting image so the test fails cleanly with the fix applied.
+    wxImage::AddHandler(new wxIFFHandler);
+
+    static const unsigned char data[] =
+    {
+        0x46,0x4f,0x52,0x4d,            // "FORM"
+        0x00,0x00,0x00,0x29,            // FORM length (not validated)
+        0x49,0x4c,0x42,0x4d,            // "ILBM"
+        0x42,0x4d,0x48,0x44,            // "BMHD"
+        0x00,0x00,0x00,0x14,            // BMHD chunk length = 20
+        0x00,0x10,                      // width  = 16
+        0x00,0x01,                      // height = 1
+        0x00,0x00,0x00,0x00,            // x, y
+        0x01,                           // nPlanes
+        0x00,                           // masking
+        0x00,                           // compression (uncompressed)
+        0x00,                           // pad
+        0x40,0x00,                      // transparentColor = 0x4000
+        0x00,0x00,                      // x/y aspect
+        0x00,0x00,0x00,0x00,            // page width / height
+        0x42,0x4f,0x44,0x59,            // "BODY"
+        0x00,0x00,0x00,0x64,            // BODY chunk length = 100 (lie)
+        0xff,                           // 1 byte of body data
+    };
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_IFF) );
+}
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BadIFFRLEBody",
+                 "[image][iff][error]")
+{
+    // A run-length encoded (compression == 1) BODY whose data is a single
+    // replicate control byte (0xFF) with no following data byte. decomprle()
+    // only checked that one source byte remained before reading the replicate
+    // packet's data byte, so it read bodyptr[1], one byte past the end of the
+    // heap-allocated input buffer. transparentColor = 0x4000 makes
+    // ConvertToImage() reject the result so the load fails with the fix.
+    wxImage::AddHandler(new wxIFFHandler);
+
+    static const unsigned char data[] =
+    {
+        0x46,0x4f,0x52,0x4d,            // "FORM"
+        0x00,0x00,0x00,0x29,            // FORM length (not validated)
+        0x49,0x4c,0x42,0x4d,            // "ILBM"
+        0x42,0x4d,0x48,0x44,            // "BMHD"
+        0x00,0x00,0x00,0x14,            // BMHD chunk length = 20
+        0x00,0x08,                      // width  = 8
+        0x00,0x01,                      // height = 1
+        0x00,0x00,0x00,0x00,            // x, y
+        0x01,                           // nPlanes
+        0x00,                           // masking
+        0x01,                           // compression = 1 (RLE)
+        0x00,                           // pad
+        0x40,0x00,                      // transparentColor = 0x4000
+        0x00,0x00,                      // x/y aspect
+        0x00,0x00,0x00,0x00,            // page width / height
+        0x42,0x4f,0x44,0x59,            // "BODY"
+        0x00,0x00,0x00,0x64,            // BODY chunk length = 100 (lie)
+        0xff,                           // lone replicate control byte
+    };
+    wxMemoryInputStream mis(data, WXSIZEOF(data));
+    wxImage img;
+    REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_IFF) );
+}
+
+#endif // wxUSE_IFF
 
 TEST_CASE_METHOD(ImageHandlersInit, "wxImage::DibPadding", "[image]")
 {
@@ -1677,6 +2074,26 @@ TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BMP", "[image][bmp]")
                            wxBITMAP_TYPE_BMP);
         LoadMalformedImage("image/badrle4.bmp", wxBITMAP_TYPE_BMP);
         LoadMalformedImage("image/width-times-height-overflow.bmp", wxBITMAP_TYPE_BMP);
+    }
+    SECTION("8bpp colour index past end of palette")
+    {
+        // An 8bpp BMP whose pixel stream contains a colour index larger
+        // than the palette colour count. Used to read past the palette
+        // buffer in the decode loops.
+        static const unsigned char data[] =
+        {
+            0x42,0x4d,0x3a,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x09,0x00,
+            0x00,0x00,0x28,0x00,0x00,0x00,0x28,0x00,0x00,0x00,0x01,0x00,
+            0x00,0x00,0x01,0x00,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+            0x42,0x4d,0x3a,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x00,
+            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x2b,0x00,
+            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x05,
+            0x00,0x00,0x00,0x00,0x00,0x28,0x00,0x00,0x00,0x01,0x00,0x00,
+        };
+        wxMemoryInputStream mis(data, WXSIZEOF(data));
+        wxImage img;
+        REQUIRE( !img.LoadFile(mis, wxBITMAP_TYPE_BMP) );
     }
     wxImage image;
     SECTION("32bpp alpha")

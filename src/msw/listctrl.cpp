@@ -845,6 +845,24 @@ bool wxListCtrl::SetColumnWidth(int col, int width)
     else if ( width == wxLIST_AUTOSIZE_USEHEADER)
         width = LVSCW_AUTOSIZE_USEHEADER;
 
+    if ( m_inResize )
+    {
+        // Changing column width while handling WM_SIZE seems to be break
+        // something inside the native control, resulting in it not redrawing
+        // at all any longer in some circumstances, see #26394, so defer the
+        // call until resizing is done.
+        CallAfter([this, col, width]()
+        {
+            // This is a recursive call but it shouldn't recurse for ever (or,
+            // normally, more than once) as m_inResize should be reset "soon".
+            SetColumnWidth(col, width);
+        });
+
+        // Optimistically assume setting the column width later will succeed:
+        // better this than returning a bogus failure.
+        return true;
+    }
+
     if ( !ListView_SetColumnWidth(GetHwnd(), col, width) )
         return false;
 
@@ -3734,6 +3752,46 @@ wxListCtrl::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
             // PRF_CHILDREN flag, so leave it to the native control itself
             return MSWDefWindowProc(nMsg, wParam, lParam);
 
+        case WM_NCPAINT:
+            // In dark mode the corner between the 2 scrollbars is not drawn in
+            // the correct colour by default, so paint it over if necessary.
+            if ( wxMSWDarkMode::IsActive() )
+            {
+                // Let the control paint itself first.
+                auto const rc =
+                    wxListCtrlBase::MSWWindowProc(nMsg, wParam, lParam);
+
+                WinStruct<SCROLLBARINFO> sbiV, sbiH;
+
+                // Check if both scrollbars are actually visible.
+                if ( ::GetScrollBarInfo(GetHwnd(), OBJID_VSCROLL, &sbiV) &&
+                     ::GetScrollBarInfo(GetHwnd(), OBJID_HSCROLL, &sbiH) &&
+                        !(sbiV.rgstate[0] & STATE_SYSTEM_INVISIBLE) &&
+                        !(sbiH.rgstate[0] & STATE_SYSTEM_INVISIBLE) )
+                {
+                    // They are, so now paint the corner between them.
+                    wxWindowDC dc(this);
+                    dc.SetPen(*wxTRANSPARENT_PEN);
+
+                    // We don't have any wxSYS_COLOUR_XXX value matching this.
+                    dc.SetBrush(wxColour(0x17, 0x17, 0x17));
+
+                    // SCROLLBARINFO::rcScrollBar contains screen coordinates,
+                    // but we need client ones, so subtract the window origin.
+                    const RECT rcWin = wxGetWindowRect(GetHwnd());
+
+                    int x = sbiV.rcScrollBar.left - rcWin.left;
+                    int y = sbiH.rcScrollBar.top - rcWin.top;
+                    int width = sbiV.rcScrollBar.right - sbiV.rcScrollBar.left;
+                    int height = sbiH.rcScrollBar.bottom - sbiH.rcScrollBar.top;
+
+                    dc.DrawRectangle(x, y, width, height);
+                }
+
+                return rc;
+            }
+            break;
+
         case WM_CONTEXTMENU:
             // because this message is propagated upwards the child-parent
             // chain, we get it for the right clicks on the header window but
@@ -3742,7 +3800,13 @@ wxListCtrl::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
             // so just ignore them
             if ( (HWND)wParam == ListView_GetHeader(GetHwnd()) )
                 return 0;
-            //else: break
+            break;
+
+        case WM_SIZE:
+            m_inResize++;
+            auto const rc = wxListCtrlBase::MSWWindowProc(nMsg, wParam, lParam);
+            m_inResize--;
+            return rc;
     }
 
     return wxListCtrlBase::MSWWindowProc(nMsg, wParam, lParam);

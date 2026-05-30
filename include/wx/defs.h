@@ -496,7 +496,7 @@ int wxSsize(const C& c)
 #   endif
 #endif
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
     #define WX_ATTRIBUTE_UNUSED __attribute__ ((unused))
 #else
     #define WX_ATTRIBUTE_UNUSED
@@ -995,31 +995,9 @@ typedef double wxFloat64;
 
 typedef double wxDouble;
 
-/*
-    Some (non standard) compilers typedef wchar_t as an existing type instead
-    of treating it as a real fundamental type, set wxWCHAR_T_IS_REAL_TYPE to 0
-    for them and to 1 for all the others.
- */
-#ifndef wxWCHAR_T_IS_REAL_TYPE
-    /*
-        VC++ typedefs wchar_t as unsigned short by default until VC8, that is
-        unless /Za or /Zc:wchar_t option is used in which case _WCHAR_T_DEFINED
-        is defined.
-     */
-#   if defined(__VISUALC__) && !defined(_NATIVE_WCHAR_T_DEFINED)
-#       define wxWCHAR_T_IS_REAL_TYPE 0
-#   else /* compiler having standard-conforming wchar_t */
-#       define wxWCHAR_T_IS_REAL_TYPE 1
-#   endif
-#endif /* !defined(wxWCHAR_T_IS_REAL_TYPE) */
-
-/* Helper macro for doing something dependent on whether wchar_t is or isn't a
-   typedef inside another macro. */
-#if wxWCHAR_T_IS_REAL_TYPE
-    #define wxIF_WCHAR_T_TYPE(x) x
-#else /* !wxWCHAR_T_IS_REAL_TYPE */
-    #define wxIF_WCHAR_T_TYPE(x)
-#endif /* wxWCHAR_T_IS_REAL_TYPE/!wxWCHAR_T_IS_REAL_TYPE */
+/* Macros not used by wx any more but still defined here for compatibility. */
+#define wxWCHAR_T_IS_REAL_TYPE 1
+#define wxIF_WCHAR_T_TYPE(x) x
 
 /*
    Deprecated constant existing only for compatibility, use nullptr directly in
@@ -1041,7 +1019,7 @@ typedef double wxDouble;
     m(unsigned long) \
     wxIF_LONG_LONG_TYPE( m(wxLongLong_t) ) \
     wxIF_LONG_LONG_TYPE( m(wxULongLong_t) ) \
-    wxIF_WCHAR_T_TYPE( m(wchar_t) )
+    m(wchar_t)
 
 /*
     Same as wxDO_FOR_INT_TYPES() but does include char and unsigned char.
@@ -1071,7 +1049,7 @@ typedef double wxDouble;
     m(unsigned long, arg) \
     wxIF_LONG_LONG_TYPE( m(wxLongLong_t, arg) ) \
     wxIF_LONG_LONG_TYPE( m(wxULongLong_t, arg) ) \
-    wxIF_WCHAR_T_TYPE( m(wchar_t, arg) )
+    m(wchar_t, arg)
 
 /*
     Combination of wxDO_FOR_CHAR_INT_TYPES() and wxDO_FOR_INT_TYPES_1():
@@ -2443,13 +2421,13 @@ enum wxPaperSize
     wxPAPER_10X11,              /*  10 x 11 in */
     wxPAPER_15X11,              /*  15 x 11 in */
     wxPAPER_ENV_INVITE,         /*  Envelope Invite 220 x 220 mm */
-    wxPAPER_LETTER_EXTRA,       /*  Letter Extra 9 \275 x 12 in */
-    wxPAPER_LEGAL_EXTRA,        /*  Legal Extra 9 \275 x 15 in */
-    wxPAPER_TABLOID_EXTRA,      /*  Tabloid Extra 11.69 x 18 in */
+    wxPAPER_LETTER_EXTRA,       /*  Letter Extra 9.5 x 12 in */
+    wxPAPER_LEGAL_EXTRA,        /*  Legal Extra 9.5 x 15 in */
+    wxPAPER_TABLOID_EXTRA,      /*  Tabloid Extra 12 x 18 in */
     wxPAPER_A4_EXTRA,           /*  A4 Extra 9.27 x 12.69 in */
-    wxPAPER_LETTER_TRANSVERSE,  /*  Letter Transverse 8 \275 x 11 in */
+    wxPAPER_LETTER_TRANSVERSE,  /*  Letter Transverse 8.5 x 11 in */
     wxPAPER_A4_TRANSVERSE,      /*  A4 Transverse 210 x 297 mm */
-    wxPAPER_LETTER_EXTRA_TRANSVERSE, /*  Letter Extra Transverse 9\275 x 12 in */
+    wxPAPER_LETTER_EXTRA_TRANSVERSE, /*  Letter Extra Transverse 9.5 x 12 in */
     wxPAPER_A_PLUS,             /*  SuperA/SuperA/A4 227 x 356 mm */
     wxPAPER_B_PLUS,             /*  SuperB/SuperB/A3 305 x 487 mm */
     wxPAPER_LETTER_PLUS,        /*  Letter Plus 8.5 x 12.69 in */

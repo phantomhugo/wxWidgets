@@ -1082,6 +1082,17 @@ void wxWindowBase::DoGetScreenPosition(int *x, int *y) const
         *y = 0;
 
     ClientToScreen(x, y);
+
+    if ( x && GetLayoutDirection() == wxLayout_RightToLeft )
+    {
+        // In RTL layout, ClientToScreen(0, 0) correctly returns the upper-right corner
+        // of the window (for non TLWs). But the window position relative to the desktop
+        // surface should be expressed by its upper-left corner because position (0, 0)
+        // of the desktop surface is always at the upper-left even in RTL.
+        int width;
+        DoGetSize(&width, nullptr);
+        *x -= width;
+    }
 }
 
 void wxWindowBase::SendSizeEvent(int flags)
@@ -3887,19 +3898,11 @@ wxAccStatus wxWindowAccessible::GetName(int childId, wxString* name)
     if (childId > 0)
         return wxACC_NOT_IMPLEMENTED;
 
-    // This will eventually be replaced by specialised
-    // accessible classes, one for each kind of wxWidgets
-    // control or window.
-#if wxUSE_BUTTON
-    if (wxDynamicCast(GetWindow(), wxButton))
-        title = ((wxButton*) GetWindow())->GetLabel();
-    else
-#endif
-        title = GetWindow()->GetName();
+    title = GetWindow()->GetLabel();
 
     if (!title.empty())
     {
-        *name = title;
+        *name = wxStripMenuCodes(title, wxStrip_Mnemonics);
         return wxACC_OK;
     }
     else

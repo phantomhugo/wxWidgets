@@ -438,64 +438,32 @@ void wxDCImpl::DoGetClippingBox(wxCoord *x, wxCoord *y,
 // coordinate conversions and transforms
 // ----------------------------------------------------------------------------
 
-wxCoord wxDCImpl::DeviceToLogicalX(wxCoord x) const
-{
-    return wxRound( (double)((x - m_deviceOriginX - m_deviceLocalOriginX) * m_signX) / m_scaleX ) + m_logicalOriginX ;
-}
-
-wxCoord wxDCImpl::DeviceToLogicalY(wxCoord y) const
-{
-    return wxRound( (double)((y - m_deviceOriginY - m_deviceLocalOriginY) * m_signY) / m_scaleY ) + m_logicalOriginY ;
-}
-
-wxCoord wxDCImpl::DeviceToLogicalXRel(wxCoord x) const
-{
-    return wxRound((double)(x) / m_scaleX);
-}
-
-wxCoord wxDCImpl::DeviceToLogicalYRel(wxCoord y) const
-{
-    return wxRound((double)(y) / m_scaleY);
-}
-
-wxCoord wxDCImpl::LogicalToDeviceX(wxCoord x) const
-{
-    return wxRound( (double)((x - m_logicalOriginX) * m_signX) * m_scaleX) + m_deviceOriginX + m_deviceLocalOriginX;
-}
-
-wxCoord wxDCImpl::LogicalToDeviceY(wxCoord y) const
-{
-    return wxRound( (double)((y - m_logicalOriginY) * m_signY) * m_scaleY) + m_deviceOriginY + m_deviceLocalOriginY;
-}
-
-wxCoord wxDCImpl::LogicalToDeviceXRel(wxCoord x) const
-{
-    return wxRound((double)(x) * m_scaleX);
-}
-
-wxCoord wxDCImpl::LogicalToDeviceYRel(wxCoord y) const
-{
-    return wxRound((double)(y) * m_scaleY);
-}
-
 wxPoint wxDCImpl::DeviceToLogical(wxCoord x, wxCoord y) const
 {
-    return wxPoint(DeviceToLogicalX(x), DeviceToLogicalY(y));
+    return wxRealPoint
+           (
+            ((x - m_deviceOriginX - m_deviceLocalOriginX) * m_signX) / m_scaleX + m_logicalOriginX,
+            ((y - m_deviceOriginY - m_deviceLocalOriginY) * m_signY) / m_scaleY + m_logicalOriginY
+           );
 }
 
 wxPoint wxDCImpl::LogicalToDevice(wxCoord x, wxCoord y) const
 {
-    return wxPoint(LogicalToDeviceX(x), LogicalToDeviceY(y));
+    return wxRealPoint
+           (
+            (x - m_logicalOriginX) * m_signX * m_scaleX + m_deviceOriginX + m_deviceLocalOriginX,
+            (y - m_logicalOriginY) * m_signY * m_scaleY + m_deviceOriginY + m_deviceLocalOriginY
+           );
 }
 
 wxSize wxDCImpl::DeviceToLogicalRel(int x, int y) const
 {
-    return wxSize(DeviceToLogicalXRel(x), DeviceToLogicalYRel(y));
+    return wxSize(wxRound(x / m_scaleX), wxRound(y / m_scaleY));
 }
 
 wxSize wxDCImpl::LogicalToDeviceRel(int x, int y) const
 {
-    return wxSize(LogicalToDeviceXRel(x), LogicalToDeviceYRel(y));
+    return wxSize(wxRound(x * m_scaleX), wxRound(y * m_scaleY));
 }
 
 void wxDCImpl::ComputeScaleAndOrigin()
@@ -1291,45 +1259,6 @@ void wxDC::DrawLabel(const wxString& text,
     if ( AreAutomaticBoundingBoxUpdatesEnabled() )
         m_pimpl->CalcBoundingBox(wxPoint(x0, y0), wxSize(width0, height));
 }
-
-/*
-Notes for wxWidgets DrawEllipticArcRot(...)
-
-wxDCBase::DrawEllipticArcRot(...) draws a rotated elliptic arc or an ellipse.
-It uses wxDCBase::CalculateEllipticPoints(...) and wxDCBase::Rotate(...),
-which are also new.
-
-All methods are generic, so they can be implemented in wxDCBase.
-
-CalculateEllipticPoints(...) fills a given list of wxPoints with some points
-of an elliptic arc. The algorithm is pixel-based: In every row (in flat
-parts) or every column (in steep parts) only one pixel is calculated.
-Trigonometric calculation (sin, cos, tan, atan) is only done if the
-starting angle is not equal to the ending angle. The calculation of the
-pixels is done using simple arithmetic only and should perform not too
-bad even on devices without floating point processor. I didn't test this yet.
-
-Rotate(...) rotates a list of point pixel-based, you will see rounding errors.
-For instance: an ellipse rotated 180 degrees is drawn
-slightly different from the original.
-
-The points are then moved to an array and used to draw a polyline and/or polygon
-(with center added, the pie).
-The result looks quite similar to the native ellipse, only e few pixels differ.
-
-The performance on a desktop system (Athlon 1800, WinXP) is about 7 times
-slower as DrawEllipse(...), which calls the native API.
-An rotated ellipse outside the clipping region takes nearly the same time,
-while an native ellipse outside takes nearly no time to draw.
-
-If you draw an arc with this new method, you will see the starting and ending angles
-are calculated properly.
-If you use DrawEllipticArc(...), you will see they are only correct for circles
-and not properly calculated for ellipses.
-
-Peter Lenhard
-p.lenhard@t-online.de
-*/
 
 float wxDCImpl::GetFontPointSizeAdjustment(float dpi)
 {

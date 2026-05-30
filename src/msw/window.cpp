@@ -93,6 +93,10 @@
     #include "wx/caret.h"
 #endif // wxUSE_CARET
 
+#if wxUSE_CONTROLS
+    #include "wx/control.h"
+#endif // wxUSE_CONTROLS
+
 #if wxUSE_SPINCTRL
     #include "wx/spinctrl.h"
 #endif // wxUSE_SPINCTRL
@@ -110,9 +114,7 @@
 
 #include <windowsx.h>
 
-#if wxUSE_UXTHEME
-    #include "wx/msw/uxtheme.h"
-#endif
+#include "wx/msw/uxtheme.h"
 
 #ifndef MAPVK_VK_TO_CHAR
     // Contrary to MS claims that this is present starting with Win2k, it is
@@ -140,12 +142,10 @@ extern wxMenu *wxCurrentPopupMenu;
 extern wxPopupWindow* wxCurrentPopupWindow;
 #endif // wxUSE_POPUPWIN
 
-#if wxUSE_UXTHEME
 // This is a hack used by the owner-drawn wxButton implementation to ensure
 // that the brush used for erasing its background is correctly aligned with the
 // control.
 wxWindowMSW *wxWindowBeingErased = nullptr;
-#endif // wxUSE_UXTHEME
 
 // Set to the key code of the pressed key if we need to ignore it but couldn't
 // return 1 from the keyboard hook because we had to leave the IME edit this
@@ -1474,13 +1474,11 @@ wxBorder wxWindowMSW::DoTranslateBorder(wxBorder border) const
         if ( wxMSWDarkMode::IsActive() )
             return wxBORDER_SIMPLE;
 
-#if wxUSE_UXTHEME
         if (CanApplyThemeBorder())
         {
             if ( wxUxThemeIsActive() )
                 return wxBORDER_THEME;
         }
-#endif // wxUSE_UXTHEME
 
         return wxBORDER_SUNKEN;
     }
@@ -1497,7 +1495,10 @@ WXDWORD wxWindowMSW::MSWGetStyle(long flags, WXDWORD *exstyle) const
     // wxTopLevelWindow) should remove WS_CHILD in their MSWGetStyle()
     WXDWORD style = WS_CHILD;
 
-    if ( !IsThisEnabled() )
+    // For creation, check not only the enable state of this window, but also
+    // its parent hierarchy when setting this style, as any disabled parent
+    // logically disables this window.
+    if ( !IsEnabled() )
         style |= WS_DISABLED;
 
     // using this flag results in very significant reduction in flicker,
@@ -3521,6 +3522,12 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
             processed = HandleTouch(wParam, lParam);
             break;
 
+        case WM_POINTERDOWN:
+        case WM_POINTERUP:
+        case WM_POINTERUPDATE:
+            processed = HandlePointer(message, wParam, lParam);
+            break;
+
         // CTLCOLOR messages are sent by children to query the parent for their
         // colors
         case WM_CTLCOLORMSGBOX:
@@ -3557,7 +3564,17 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
             break;
 
         case WM_SETTINGCHANGE:
-            processed = HandleSettingChange(wParam, lParam);
+            // Check for the special case of the message which notifies about
+            // the colours change.
+            // Note that "ImmersiveColorSet" is set both when switching between
+            // light and dark themes and also when changing high contrast mode,
+            // for which an additional message with "WindowsThemeElement" is
+            // also sent, but we don't need to check for it as handling this
+            // one is enough
+            if ( lParam && wxStrcmp((TCHAR*)lParam, wxT("ImmersiveColorSet")) == 0 )
+                processed = HandleSysColorChange();
+            else
+                processed = HandleSettingChange(wParam, lParam);
             break;
 
         case WM_QUERYNEWPALETTE:
@@ -3800,7 +3817,6 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
             break;
 #endif
 
-#if wxUSE_UXTHEME
         // If we want the default themed border then we need to draw it ourselves
         case WM_NCCALCSIZE:
             {
@@ -3913,8 +3929,6 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
                 }
             }
             break;
-
-#endif // wxUSE_UXTHEME
 
         default:
             // try a custom message handler
@@ -5096,6 +5110,9 @@ bool wxWindowMSW::HandleSysColorChange()
 
     (void)HandleWindowEvent(event);
 
+    if ( IsTopLevel() )
+        Refresh();
+
     // always let the system carry on the default processing to allow the
     // native controls to react to the colours update
     return false;
@@ -5193,14 +5210,7 @@ bool wxWindowMSW::HandleCaptureChanged(WXHWND hWndGainedCapture)
 
 bool wxWindowMSW::HandleSettingChange(WXWPARAM wParam, WXLPARAM lParam)
 {
-    // Check for the special case of changing the system light/dark mode.
-    if ( lParam && wxStrcmp((TCHAR*)lParam, wxT("ImmersiveColorSet")) == 0 )
-    {
-        // Forward to the existing function generating an event for this.
-        HandleSysColorChange();
-    }
-
-    // Another special case: even with this wParam value is sent when the user
+    // Another special case: event with this wParam value is sent when the user
     // changes the mouse pointer size in the Control Panel.
     if ( wParam == 0x2029 )
     {
@@ -5229,6 +5239,17 @@ bool wxWindowMSW::HandleSettingChange(WXWPARAM wParam, WXLPARAM lParam)
 
         node = node->GetNext();
     }
+
+    // We don't always need to refresh the window as many settings don't affect
+    // its appearance (e.g. we could avoid it for wParam==SPI_SETDESKWALLPAPER
+    // as we're not affected by the desktop background change), but it is
+    // difficult to determine when we need to do it or not, so just always do
+    // as it's less bad to refresh the window unnecessarily than to fail to do
+    // it when we should.
+    //
+    // Note that only TLWs need to be refreshed, as refresh is recursive.
+    if ( IsTopLevel() )
+        Refresh();
 
     // let the system handle it
     return false;
@@ -5375,6 +5396,17 @@ wxStack<wxMSWImpl::PaintData> wxMSWImpl::paintStack;
 
 bool wxWindowMSW::HandlePaint()
 {
+    // Don't bother painting a window that is being destroyed: this is more
+    // than optimization, as its state may be partially torn down and event
+    // handlers may crash.
+    if ( IsBeingDeleted() )
+    {
+        // Validate the window so that Windows doesn't send WM_PAINT again (and
+        // again...).
+        ::ValidateRect(GetHwnd(), nullptr);
+        return true;
+    }
+
     HRGN hRegion = ::CreateRectRgn(0, 0, 0, 0); // Dummy call to get a handle
     if ( !hRegion )
     {
@@ -5587,8 +5619,9 @@ wxWindowMSW::MSWGetBgBrushForChild(WXHDC hDC, wxWindowMSW *child)
         return hbrush;
     }
 
-    // Otherwise see if we have a custom background colour.
-    if ( m_hasBgCol )
+    // Otherwise see if we have a custom background colour or if we're a TLW,
+    // as nothing else would provide the brush in the latter case.
+    if ( m_hasBgCol || IsTopLevel() )
     {
         wxBrush *
             brush = wxTheBrushList->FindOrCreateBrush(GetBackgroundColour());
@@ -5603,10 +5636,7 @@ WXHBRUSH wxWindowMSW::MSWGetBgBrush(WXHDC hDC)
 {
     // Use the special wxWindowBeingErased variable if it is set as the child
     // being erased.
-    wxWindowMSW * const child =
-#if wxUSE_UXTHEME
-                                wxWindowBeingErased ? wxWindowBeingErased :
-#endif
+    wxWindowMSW * const child = wxWindowBeingErased ? wxWindowBeingErased :
                                 this;
 
     for ( wxWindowMSW *win = this; win; win = win->GetParent() )
@@ -6366,6 +6396,100 @@ bool wxWindowMSW::HandleTouch(WXWPARAM wParam, WXLPARAM lParam)
     }
 
     return allHandled;
+}
+
+bool wxWindowMSW::HandlePointer(WXUINT message, WXWPARAM wParam, WXLPARAM lParam)
+{
+    wxUnusedVar(lParam);
+    wxEventType type;
+    switch( message )
+    {
+        case WM_POINTERDOWN:
+            type = wxEVT_STYLUS_DOWN;
+            break;
+        case WM_POINTERUP:
+            type = wxEVT_STYLUS_UP;
+            break;
+        case WM_POINTERUPDATE:
+            type = wxEVT_STYLUS_UPDATE;
+            break;
+        default:
+            wxFAIL_MSG( wxT("Unexpected pointer message") );
+            return false;
+    }
+
+    // GetPointerType() and GetPointerPenInfo() are only available on Windows 8+.
+    // To maintain backward compatibility with legacy Windows versions, a runtime
+    // availability check must be performed for these API functions.
+    typedef BOOL (WINAPI *GetPointerType_t)(UINT32 pointerId, POINTER_INPUT_TYPE *pointerType);
+    typedef BOOL (WINAPI *GetPointerPenInfo_t)(UINT32 pointerId, POINTER_PEN_INFO *penInfo);
+    static GetPointerType_t s_pfnGetPointerType = nullptr;
+    static GetPointerPenInfo_t s_pfnGetPointerPenInfo = nullptr;
+
+    if ( !s_pfnGetPointerType )
+    {
+        wxLoadedDLL dllUser32("user32.dll");
+        wxDL_INIT_FUNC(s_pfn, GetPointerType, dllUser32);
+        wxDL_INIT_FUNC(s_pfn, GetPointerPenInfo, dllUser32);
+
+        // Loading these function must succeed as this function is only called
+        // if the OS supports pointer input, which in turn is only supported on
+        // Windows 8 and later where these functions are guaranteed to be
+        // present.
+    }
+
+    const UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+    POINTER_INPUT_TYPE pType = 0;
+    if ( s_pfnGetPointerType(pointerId, &pType) )
+    {
+        if (pType != PT_PEN)
+        {
+            // we only expect a pen as source of event here
+            return false;
+        }
+    }
+
+    wxStylusEvent event(GetId(), type);
+    event.SetEventObject(this);
+
+    // here we already know we have a pen generated event
+    POINTER_PEN_INFO penInfo;
+    if ( s_pfnGetPointerPenInfo(pointerId, &penInfo) )
+    {
+        if (penInfo.penMask & PEN_MASK_PRESSURE)
+        {
+            wxDouble pressure = penInfo.pressure; // [0, 1024] in Windows
+            pressure /= 1024.0; // normalize
+            event.SetPressure(pressure);
+        }
+
+        if (penInfo.penMask & PEN_MASK_ROTATION)
+        {
+            wxDouble rotation = penInfo.rotation;
+            event.SetRotation(rotation);
+        }
+
+        if (penInfo.penMask & PEN_MASK_TILT_X)
+        {
+            wxDouble t = penInfo.tiltX;
+            event.SetTiltX(t);
+        }
+
+        if (penInfo.penMask & PEN_MASK_TILT_Y)
+        {
+            wxDouble t = penInfo.tiltY;
+            event.SetTiltY(t);
+        }
+
+        // set the eraser flag
+        event.SetUsingEraser( (penInfo.penFlags & PEN_FLAG_ERASER) != 0 );
+
+        const POINT& pt = penInfo.pointerInfo.ptPixelLocation;
+        wxPoint pos(pt.x, pt.y);
+        event.SetPosition( ScreenToClient(pos) );
+    }
+
+    return HandleWindowEvent(event);;
 }
 
 // ---------------------------------------------------------------------------

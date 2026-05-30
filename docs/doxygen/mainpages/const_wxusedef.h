@@ -126,7 +126,6 @@ library:
 @itemdef{wxUSE_GENERIC_DRAGIMAGE, Used in wxDragImage sample.}
 @itemdef{wxUSE_GENERIC_DRAWELLIPSE, See comment in wx/dc.h file.}
 @itemdef{wxUSE_GENERIC_MDI_AS_NATIVE, This is not a user-settable symbol, it is only used internally in wx/generic/mdig.h.}
-@itemdef{wxUSE_GEOMETRY, Use common geometry classes}
 @itemdef{wxUSE_GIF, Use GIF wxImageHandler}
 @itemdef{wxUSE_GLCANVAS, Enables OpenGL support.}
 @itemdef{wxUSE_GRAPHICS_CONTEXT, Use wxGraphicsContext and related classes.}
@@ -329,7 +328,6 @@ the other compilers. See also wxUSE_NO_MANIFEST.}
 @itemdef{wxUSE_RICHEDIT, Enable use of riched32.dll in wxTextCtrl}
 @itemdef{wxUSE_RICHEDIT2, Enable use of riched20.dll in wxTextCtrl}
 @itemdef{wxUSE_VC_CRTDBG, See wx/msw/msvcrt.h file.}
-@itemdef{wxUSE_UXTHEME, Enable support for XP themes.}
 @itemdef{wxUSE_WIN_METAFILES_ALWAYS, Use wxMetaFile even when wxUSE_ENH_METAFILE=1.}
 @itemdef{wxUSE_WINRT, Enable WinRT support.}
 @itemdef{wxUSE_WXDIB, Use wxDIB class.}

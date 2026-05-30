@@ -169,6 +169,11 @@ wxImage wxXPMDecoder::ReadFile(wxInputStream& stream)
                 break;
         }
 
+        // unterminated /*-comment: stop processing rather than reading past
+        // the end of the buffer in strlen() below.
+        if (*q == '\0')
+            break;
+
         // memmove allows overlaps (unlike strcpy):
         size_t cpylen = strlen(q + 2) + 1;
         memmove(p, q + 2, cpylen);
@@ -185,6 +190,12 @@ wxImage wxXPMDecoder::ReadFile(wxInputStream& stream)
         for (q = p + 1; *q != '\0'; q++)
             if (*q == '"')
                 break;
+
+        // unterminated quoted string: stop processing rather than reading
+        // past the end of the buffer when the outer loop next advances p.
+        if (*q == '\0')
+            break;
+
         strncpy(xpm_buffer + i, p + 1, q - p - 1);
         i += q - p - 1;
         xpm_buffer[i++] = '\n';
@@ -776,7 +787,8 @@ wxImage wxXPMDecoder::ReadData(const char* const* xpm_data)
         for (i = 0; i < width; i++, img_data += 3)
         {
             const char *xpmImgLine = xpm_data[1 + colors_cnt + j];
-            if ( !xpmImgLine || strlen(xpmImgLine) < width*chars_per_pixel )
+            if ( !xpmImgLine ||
+                    strlen(xpmImgLine) < (unsigned long long)width*chars_per_pixel )
             {
                 wxLogError(_("XPM: truncated image data at line %d!"),
                            (int)(1 + colors_cnt + j));

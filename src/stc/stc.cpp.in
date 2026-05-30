@@ -32,7 +32,6 @@
 #if wxUSE_STC
 
 #include "wx/stc/stc.h"
-#include "wx/stc/private.h"
 
 #ifndef WX_PRECOMP
     #include "wx/wx.h"
@@ -568,11 +567,11 @@ bool wxStyledTextCtrl::DoDropText(long x, long y, const wxString& data) {
 
 
 void wxStyledTextCtrl::SetUseAntiAliasing(bool useAA) {
-    m_swx->SetUseAntiAliasing(useAA);
+    SetFontQuality(useAA ? wxSTC_EFF_QUALITY_DEFAULT : wxSTC_EFF_QUALITY_NON_ANTIALIASED);
 }
 
 bool wxStyledTextCtrl::GetUseAntiAliasing() {
-    return m_swx->GetUseAntiAliasing();
+    return GetFontQuality() != wxSTC_EFF_QUALITY_NON_ANTIALIASED;
 }
 
 void wxStyledTextCtrl::AnnotationClearLine(int line) {
@@ -1057,7 +1056,7 @@ static void SetEventText(wxStyledTextEvent& evt, const char* text,
                          size_t length) {
     if(!text) return;
 
-    evt.SetString(stc2wx(text, length));
+    evt.SetString(wxString::FromUTF8(text, length));
 }
 
 

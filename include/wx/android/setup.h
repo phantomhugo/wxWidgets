@@ -1054,9 +1054,6 @@
 // Recommended setting: 1 if you need it, can be safely set to 0 otherwise
 #define wxUSE_DISPLAY       1
 
-// Miscellaneous geometry code: needed for Canvas library
-#define wxUSE_GEOMETRY            1
-
 // Use wxImageList. This class is needed by wxNotebook, wxTreeCtrl and
 // wxListCtrl.
 //
@@ -1602,9 +1599,6 @@
 //
 // Recommended setting: 1, set to 0 for a tiny library size reduction
 #define wxUSE_TASKBARICON_BALLOONS 1
-
-// Set to 1 to compile MS Windows XP theme engine support
-#define wxUSE_UXTHEME           1
 
 // Set to 1 to use InkEdit control (Tablet PC), if available
 #define wxUSE_INKEDIT  0

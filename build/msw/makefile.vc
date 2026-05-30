@@ -32,7 +32,7 @@ MAKEARGS = CC="$(CC)" CXX="$(CXX)" CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" \
 	WX_FLAVOUR="$(WX_FLAVOUR)" WX_LIB_FLAVOUR="$(WX_LIB_FLAVOUR)" CFG="$(CFG)" \
 	RUNTIME_LIBS="$(RUNTIME_LIBS)"
 WX_RELEASE_NODOT = 33
-WX_VERSION_NODOT = $(WX_RELEASE_NODOT)2
+WX_VERSION_NODOT = $(WX_RELEASE_NODOT)3
 COMPILER_PREFIX = vc
 OBJS = \
 	$(COMPILER_PREFIX)$(COMPILER_VERSION)$(ARCH_SUFFIX)_$(PORTNAME)$(WXUNIVNAME)u$(WXDEBUGFLAG)$(WXDLLFLAG)$(CFG)
@@ -1853,6 +1853,7 @@ RIBBONDLL_OBJECTS =  \
 	$(OBJS)\ribbondll_art_internal.obj \
 	$(OBJS)\ribbondll_art_msw.obj \
 	$(OBJS)\ribbondll_art_aui.obj \
+	$(OBJS)\ribbondll_art_msw_flat.obj \
 	$(OBJS)\ribbondll_bar.obj \
 	$(OBJS)\ribbondll_buttonbar.obj \
 	$(OBJS)\ribbondll_control.obj \
@@ -1881,6 +1882,7 @@ RIBBONLIB_OBJECTS =  \
 	$(OBJS)\ribbonlib_art_internal.obj \
 	$(OBJS)\ribbonlib_art_msw.obj \
 	$(OBJS)\ribbonlib_art_aui.obj \
+	$(OBJS)\ribbonlib_art_msw_flat.obj \
 	$(OBJS)\ribbonlib_bar.obj \
 	$(OBJS)\ribbonlib_buttonbar.obj \
 	$(OBJS)\ribbonlib_control.obj \
@@ -2435,6 +2437,7 @@ ____MONOLIB_GUI_SRC_FILENAMES_OBJECTS =  \
 	$(OBJS)\monodll_art_internal.obj \
 	$(OBJS)\monodll_art_msw.obj \
 	$(OBJS)\monodll_art_aui.obj \
+	$(OBJS)\monodll_art_msw_flat.obj \
 	$(OBJS)\monodll_bar.obj \
 	$(OBJS)\monodll_ribbon_buttonbar.obj \
 	$(OBJS)\monodll_ribbon_control.obj \
@@ -2709,6 +2712,7 @@ ____CORE_SRC_FILENAMES_OBJECTS =  \
 	$(OBJS)\monodll_statlinecmn.obj \
 	$(OBJS)\monodll_stattextcmn.obj \
 	$(OBJS)\monodll_stockitem.obj \
+	$(OBJS)\monodll_svggc.obj \
 	$(OBJS)\monodll_tbarbase.obj \
 	$(OBJS)\monodll_textcmn.obj \
 	$(OBJS)\monodll_textentrycmn.obj \
@@ -3046,6 +3050,7 @@ ____CORE_SRC_FILENAMES_OBJECTS =  \
 	$(OBJS)\monodll_statlinecmn.obj \
 	$(OBJS)\monodll_stattextcmn.obj \
 	$(OBJS)\monodll_stockitem.obj \
+	$(OBJS)\monodll_svggc.obj \
 	$(OBJS)\monodll_tbarbase.obj \
 	$(OBJS)\monodll_textcmn.obj \
 	$(OBJS)\monodll_textentrycmn.obj \
@@ -3302,6 +3307,7 @@ ____MONOLIB_GUI_SRC_FILENAMES_1_OBJECTS =  \
 	$(OBJS)\monolib_art_internal.obj \
 	$(OBJS)\monolib_art_msw.obj \
 	$(OBJS)\monolib_art_aui.obj \
+	$(OBJS)\monolib_art_msw_flat.obj \
 	$(OBJS)\monolib_bar.obj \
 	$(OBJS)\monolib_ribbon_buttonbar.obj \
 	$(OBJS)\monolib_ribbon_control.obj \
@@ -3576,6 +3582,7 @@ ____CORE_SRC_FILENAMES_1_OBJECTS =  \
 	$(OBJS)\monolib_statlinecmn.obj \
 	$(OBJS)\monolib_stattextcmn.obj \
 	$(OBJS)\monolib_stockitem.obj \
+	$(OBJS)\monolib_svggc.obj \
 	$(OBJS)\monolib_tbarbase.obj \
 	$(OBJS)\monolib_textcmn.obj \
 	$(OBJS)\monolib_textentrycmn.obj \
@@ -3913,6 +3920,7 @@ ____CORE_SRC_FILENAMES_1_OBJECTS =  \
 	$(OBJS)\monolib_statlinecmn.obj \
 	$(OBJS)\monolib_stattextcmn.obj \
 	$(OBJS)\monolib_stockitem.obj \
+	$(OBJS)\monolib_svggc.obj \
 	$(OBJS)\monolib_tbarbase.obj \
 	$(OBJS)\monolib_textcmn.obj \
 	$(OBJS)\monolib_textentrycmn.obj \
@@ -4369,6 +4377,7 @@ ____CORE_SRC_FILENAMES_2_OBJECTS =  \
 	$(OBJS)\coredll_statlinecmn.obj \
 	$(OBJS)\coredll_stattextcmn.obj \
 	$(OBJS)\coredll_stockitem.obj \
+	$(OBJS)\coredll_svggc.obj \
 	$(OBJS)\coredll_tbarbase.obj \
 	$(OBJS)\coredll_textcmn.obj \
 	$(OBJS)\coredll_textentrycmn.obj \
@@ -4706,6 +4715,7 @@ ____CORE_SRC_FILENAMES_2_OBJECTS =  \
 	$(OBJS)\coredll_statlinecmn.obj \
 	$(OBJS)\coredll_stattextcmn.obj \
 	$(OBJS)\coredll_stockitem.obj \
+	$(OBJS)\coredll_svggc.obj \
 	$(OBJS)\coredll_tbarbase.obj \
 	$(OBJS)\coredll_textcmn.obj \
 	$(OBJS)\coredll_textentrycmn.obj \
@@ -5066,6 +5076,7 @@ ____CORE_SRC_FILENAMES_3_OBJECTS =  \
 	$(OBJS)\corelib_statlinecmn.obj \
 	$(OBJS)\corelib_stattextcmn.obj \
 	$(OBJS)\corelib_stockitem.obj \
+	$(OBJS)\corelib_svggc.obj \
 	$(OBJS)\corelib_tbarbase.obj \
 	$(OBJS)\corelib_textcmn.obj \
 	$(OBJS)\corelib_textentrycmn.obj \
@@ -5403,6 +5414,7 @@ ____CORE_SRC_FILENAMES_3_OBJECTS =  \
 	$(OBJS)\corelib_statlinecmn.obj \
 	$(OBJS)\corelib_stattextcmn.obj \
 	$(OBJS)\corelib_stockitem.obj \
+	$(OBJS)\corelib_svggc.obj \
 	$(OBJS)\corelib_tbarbase.obj \
 	$(OBJS)\corelib_textcmn.obj \
 	$(OBJS)\corelib_textentrycmn.obj \
@@ -6796,7 +6808,7 @@ $(SETUPHDIR)\wx\msw\rcdefs.h: $(SETUPHDIR)\wx\msw ..\..\include\wx\msw\genrcdefs
 build_cfg_file: $(SETUPHDIR)
 	@echo WXVER_MAJOR=3 >$(BUILD_CFG_FILE)
 	@echo WXVER_MINOR=3 >>$(BUILD_CFG_FILE)
-	@echo WXVER_RELEASE=2 >>$(BUILD_CFG_FILE)
+	@echo WXVER_RELEASE=3 >>$(BUILD_CFG_FILE)
 	@echo BUILD=$(BUILD) >>$(BUILD_CFG_FILE)
 	@echo MONOLITHIC=$(MONOLITHIC) >>$(BUILD_CFG_FILE)
 	@echo SHARED=$(SHARED) >>$(BUILD_CFG_FILE)
@@ -9356,6 +9368,9 @@ $(OBJS)\monodll_art_msw.obj: ..\..\src\ribbon\art_msw.cpp
 $(OBJS)\monodll_art_aui.obj: ..\..\src\ribbon\art_aui.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(MONODLL_CXXFLAGS) ..\..\src\ribbon\art_aui.cpp
 
+$(OBJS)\monodll_art_msw_flat.obj: ..\..\src\ribbon\art_msw_flat.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(MONODLL_CXXFLAGS) ..\..\src\ribbon\art_msw_flat.cpp
+
 $(OBJS)\monodll_bar.obj: ..\..\src\ribbon\bar.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(MONODLL_CXXFLAGS) ..\..\src\ribbon\bar.cpp
 
@@ -10372,6 +10387,11 @@ $(OBJS)\monodll_stattextcmn.obj: ..\..\src\common\stattextcmn.cpp
 !if "$(USE_GUI)" == "1"
 $(OBJS)\monodll_stockitem.obj: ..\..\src\common\stockitem.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(MONODLL_CXXFLAGS) ..\..\src\common\stockitem.cpp
+!endif
+
+!if "$(USE_GUI)" == "1"
+$(OBJS)\monodll_svggc.obj: ..\..\src\common\svggc.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(MONODLL_CXXFLAGS) ..\..\src\common\svggc.cpp
 !endif
 
 !if "$(USE_GUI)" == "1"
@@ -11976,6 +11996,9 @@ $(OBJS)\monolib_art_msw.obj: ..\..\src\ribbon\art_msw.cpp
 $(OBJS)\monolib_art_aui.obj: ..\..\src\ribbon\art_aui.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(MONOLIB_CXXFLAGS) ..\..\src\ribbon\art_aui.cpp
 
+$(OBJS)\monolib_art_msw_flat.obj: ..\..\src\ribbon\art_msw_flat.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(MONOLIB_CXXFLAGS) ..\..\src\ribbon\art_msw_flat.cpp
+
 $(OBJS)\monolib_bar.obj: ..\..\src\ribbon\bar.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(MONOLIB_CXXFLAGS) ..\..\src\ribbon\bar.cpp
 
@@ -12992,6 +13015,11 @@ $(OBJS)\monolib_stattextcmn.obj: ..\..\src\common\stattextcmn.cpp
 !if "$(USE_GUI)" == "1"
 $(OBJS)\monolib_stockitem.obj: ..\..\src\common\stockitem.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(MONOLIB_CXXFLAGS) ..\..\src\common\stockitem.cpp
+!endif
+
+!if "$(USE_GUI)" == "1"
+$(OBJS)\monolib_svggc.obj: ..\..\src\common\svggc.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(MONOLIB_CXXFLAGS) ..\..\src\common\svggc.cpp
 !endif
 
 !if "$(USE_GUI)" == "1"
@@ -15558,6 +15586,11 @@ $(OBJS)\coredll_stockitem.obj: ..\..\src\common\stockitem.cpp
 !endif
 
 !if "$(USE_GUI)" == "1"
+$(OBJS)\coredll_svggc.obj: ..\..\src\common\svggc.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(COREDLL_CXXFLAGS) ..\..\src\common\svggc.cpp
+!endif
+
+!if "$(USE_GUI)" == "1"
 $(OBJS)\coredll_tbarbase.obj: ..\..\src\common\tbarbase.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(COREDLL_CXXFLAGS) ..\..\src\common\tbarbase.cpp
 !endif
@@ -17338,6 +17371,11 @@ $(OBJS)\corelib_stockitem.obj: ..\..\src\common\stockitem.cpp
 !endif
 
 !if "$(USE_GUI)" == "1"
+$(OBJS)\corelib_svggc.obj: ..\..\src\common\svggc.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(CORELIB_CXXFLAGS) ..\..\src\common\svggc.cpp
+!endif
+
+!if "$(USE_GUI)" == "1"
 $(OBJS)\corelib_tbarbase.obj: ..\..\src\common\tbarbase.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(CORELIB_CXXFLAGS) ..\..\src\common\tbarbase.cpp
 !endif
@@ -18636,6 +18674,9 @@ $(OBJS)\ribbondll_art_msw.obj: ..\..\src\ribbon\art_msw.cpp
 $(OBJS)\ribbondll_art_aui.obj: ..\..\src\ribbon\art_aui.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(RIBBONDLL_CXXFLAGS) ..\..\src\ribbon\art_aui.cpp
 
+$(OBJS)\ribbondll_art_msw_flat.obj: ..\..\src\ribbon\art_msw_flat.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(RIBBONDLL_CXXFLAGS) ..\..\src\ribbon\art_msw_flat.cpp
+
 $(OBJS)\ribbondll_bar.obj: ..\..\src\ribbon\bar.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(RIBBONDLL_CXXFLAGS) ..\..\src\ribbon\bar.cpp
 
@@ -18671,6 +18712,9 @@ $(OBJS)\ribbonlib_art_msw.obj: ..\..\src\ribbon\art_msw.cpp
 
 $(OBJS)\ribbonlib_art_aui.obj: ..\..\src\ribbon\art_aui.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(RIBBONLIB_CXXFLAGS) ..\..\src\ribbon\art_aui.cpp
+
+$(OBJS)\ribbonlib_art_msw_flat.obj: ..\..\src\ribbon\art_msw_flat.cpp
+	$(CXX) /c /nologo /TP /Fo$@ $(RIBBONLIB_CXXFLAGS) ..\..\src\ribbon\art_msw_flat.cpp
 
 $(OBJS)\ribbonlib_bar.obj: ..\..\src\ribbon\bar.cpp
 	$(CXX) /c /nologo /TP /Fo$@ $(RIBBONLIB_CXXFLAGS) ..\..\src\ribbon\bar.cpp

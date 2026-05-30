@@ -572,12 +572,20 @@ public:
 
     /**
         Gets information about this column.
+
         See SetItem() for more information.
 
         @beginWxPerlOnly
         In wxPerl this method takes only the @a col parameter and
         returns a @c Wx::ListItem (or @c undef).
         @endWxPerlOnly
+
+        @param col The column index. It must be valid, i.e. positive or 0 and
+            strictly less than GetColumnCount(). The function asserts if this
+            is not the case.
+        @param item Output parameter filled with the information about the
+            column on successful return.
+        @return Always @true if the column index is valid.
     */
     bool GetColumn(int col, wxListItem& item) const;
 
@@ -1096,6 +1104,12 @@ public:
 
         In small or normal icon view, @a col must be -1, and the column width is set
         for all columns.
+
+        @note In wxMSW, the width of the column may not change immediately when
+            calling this function from wxEVT_SIZE handler due to the native
+            control limitations and calling GetColumnWidth() immediately after
+            SetColumnWidth() may still return the old width. The width is
+            still guaranteed to be updated after the event handler returns.
     */
     bool SetColumnWidth(int col, int width);
 

@@ -39,9 +39,7 @@
 
 #include "wx/msw/private/darkmode.h"
 
-#if wxUSE_UXTHEME
-    #include "wx/msw/uxtheme.h"
-#endif
+#include "wx/msw/uxtheme.h"
 
 // ----------------------------------------------------------------------------
 // macros
@@ -123,9 +121,7 @@ wxEND_EVENT_TABLE()
 // common part of all ctors
 void wxNotebook::Init()
 {
-#if wxUSE_UXTHEME
     m_hbrBackground = nullptr;
-#endif // wxUSE_UXTHEME
 
 #if USE_NOTEBOOK_ANTIFLICKER
     m_hasSubclassedUpdown = false;
@@ -163,17 +159,6 @@ bool wxNotebook::Create(wxWindow *parent,
     {
         style |= wxBK_TOP;
     }
-
-#if !wxUSE_UXTHEME
-    // ComCtl32 notebook tabs simply don't work unless they're on top if we
-    // have uxtheme, we can work around it later (after control creation), but
-    // if we have been compiled without uxtheme support, we have to clear those
-    // styles
-    if ( HasTroubleWithNonTopTabs() )
-    {
-        style &= ~(wxBK_BOTTOM | wxBK_LEFT | wxBK_RIGHT);
-    }
-#endif //wxUSE_UXTHEME
 
     LPCTSTR className = WC_TABCONTROL;
 
@@ -251,7 +236,6 @@ bool wxNotebook::Create(wxWindow *parent,
             SetBackgroundColour(colBg);
     }
 
-#if wxUSE_UXTHEME
     if ( HasFlag(wxNB_NOPAGETHEME) ||
             wxSystemOptions::IsFalse(wxT("msw.notebook.themed-background")) )
     {
@@ -278,7 +262,6 @@ bool wxNotebook::Create(wxWindow *parent,
             SetBackgroundColour(GetThemeBackgroundColour());
         }
     }
-#endif // wxUSE_UXTHEME
 
     return true;
 }
@@ -316,10 +299,8 @@ wxNotebook::~wxNotebook()
     // half-destroyed object.
     Unbind(wxEVT_PAINT, &wxNotebook::OnPaint, this);
 
-#if wxUSE_UXTHEME
     if ( m_hbrBackground )
         ::DeleteObject((HBRUSH)m_hbrBackground);
-#endif // wxUSE_UXTHEME
 }
 
 // ----------------------------------------------------------------------------
@@ -388,6 +369,11 @@ void wxNotebook::UpdateSelection(int selNew)
     }
 
     m_selection = selNew;
+
+  // We need to update the tabs after the selection change when drawing
+  // them ourselves, otherwise the previously selected tab is not redrawn.
+  if ( wxMSWDarkMode::IsActive() )
+      Refresh();
 }
 
 int wxNotebook::ChangeSelection(size_t nPage)
@@ -716,9 +702,7 @@ bool wxNotebook::InsertPage(size_t nPage,
     // so the first panel gets the correct themed background
     if ( m_pages.empty() )
     {
-#if wxUSE_UXTHEME
         UpdateBgBrush();
-#endif // wxUSE_UXTHEME
     }
 
     // succeeded: save the pointer to the page
@@ -1545,10 +1529,8 @@ void wxNotebook::OnSize(wxSizeEvent& event)
         InvalidateBestSize();
     }
 
-#if wxUSE_UXTHEME
     // background bitmap size has changed, update the brush using it too
     UpdateBgBrush();
-#endif // wxUSE_UXTHEME
 
     (void)TabCtrl_AdjustRect(GetHwnd(), false, &rc);
 
@@ -1708,9 +1690,7 @@ bool wxNotebook::SetBackgroundColour(const wxColour& colour)
     if ( !wxNotebookBase::SetBackgroundColour(colour) )
         return false;
 
-#if wxUSE_UXTHEME
     UpdateBgBrush();
-#endif // wxUSE_UXTHEME
 
 #if USE_NOTEBOOK_ANTIFLICKER
     Unbind(wxEVT_ERASE_BACKGROUND, &wxNotebook::OnEraseBackground, this);
@@ -1722,8 +1702,6 @@ bool wxNotebook::SetBackgroundColour(const wxColour& colour)
 
     return true;
 }
-
-#if wxUSE_UXTHEME
 
 WXHBRUSH wxNotebook::QueryBgBitmap()
 {
@@ -1834,8 +1812,6 @@ bool wxNotebook::MSWPrintChild(WXHDC hDC, wxWindow *child)
     return wxNotebookBase::MSWPrintChild(hDC, child);
 }
 
-#endif // wxUSE_UXTHEME
-
 // Windows only: attempts to get colour for UX theme page background
 wxColour wxNotebook::GetThemeBackgroundColour() const
 {
@@ -1847,7 +1823,6 @@ wxColour wxNotebook::GetThemeBackgroundColour() const
         return GetBackgroundColour();
     }
 
-#if wxUSE_UXTHEME
     if (wxUxThemeIsActive())
     {
         wxUxThemeHandle hTheme(this, L"TAB");
@@ -1868,7 +1843,6 @@ wxColour wxNotebook::GetThemeBackgroundColour() const
                 return colour;
         }
     }
-#endif // wxUSE_UXTHEME
 
     return GetBackgroundColour();
 }
@@ -1935,14 +1909,7 @@ bool wxNotebook::MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM* result)
   // Change the selection before generating the event as its handler should
   // already see the new page selected.
   if ( hdr->code == TCN_SELCHANGE )
-  {
       UpdateSelection(event.GetSelection());
-
-      // We need to update the tabs after the selection change when drawing
-      // them ourselves, otherwise the previously selected tab is not redrawn.
-      if ( wxMSWDarkMode::IsActive() )
-          Refresh();
-  }
 
   bool processed = HandleWindowEvent(event);
   *result = !event.IsAllowed();

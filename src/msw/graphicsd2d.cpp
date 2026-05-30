@@ -3322,16 +3322,24 @@ wxCOMPtr<IDWriteTextLayout> wxD2DFontData::CreateTextLayout(const wxString& text
 
     wxCOMPtr<IDWriteTextLayout> textLayout;
 
+#if wxUSE_UNICODE_WCHAR
+    const wchar_t* const wstr = text.c_str();
+    const size_t wlen = text.length();
+#else // wxUSE_UNICODE_UTF8
+    const wxWCharBuffer wstr = text.wc_str();
+    const size_t wlen = wstr.length();
+#endif
+
     hr = wxDWriteFactory()->CreateTextLayout(
-        text.c_str(),
-        text.length(),
+        wstr,
+        wlen,
         m_textFormat,
         MAX_WIDTH,
         MAX_HEIGHT,
         &textLayout);
     wxCHECK2_HRESULT_RET(hr, wxCOMPtr<IDWriteTextLayout>(nullptr));
 
-    DWRITE_TEXT_RANGE textRange = { 0, (UINT32) text.length() };
+    DWRITE_TEXT_RANGE textRange = { 0, (UINT32) wlen };
 
     if (m_underlined)
     {
@@ -4059,6 +4067,8 @@ private:
     bool m_isClipBoxValid;
     double m_clipX1, m_clipY1, m_clipX2, m_clipY2;
 
+    wxLayoutDirection m_layoutDir = wxLayout_Default;
+
 private:
     wxDECLARE_NO_COPY_CLASS(wxD2DContext);
 };
@@ -4117,6 +4127,9 @@ wxD2DContext::wxD2DContext(wxGraphicsRenderer* renderer,
     RECT r = wxGetWindowRect(hwnd);
     m_width = r.right - r.left;
     m_height = r.bottom - r.top;
+
+    m_layoutDir = window->GetLayoutDirection();
+
     Init();
 }
 
@@ -4146,6 +4159,8 @@ wxD2DContext::wxD2DContext(wxGraphicsRenderer* renderer,
     wxPoint org = dc.GetDeviceOrigin();
     m_inheritedTransform = D2D1::Matrix3x2F::Translation(org.x / sx, org.y / sy);
 
+    m_layoutDir = dc.GetLayoutDirection();
+
     Init();
 }
 
@@ -4162,6 +4177,10 @@ wxD2DContext::wxD2DContext(wxGraphicsRenderer* renderer, ID2D1Factory* direct2dF
     }
     m_width = r.right - r.left;
     m_height = r.bottom - r.top;
+
+    m_layoutDir = (::GetLayout(hdc) & LAYOUT_RTL) != 0
+                ? wxLayout_RightToLeft : wxLayout_LeftToRight;
+
     Init();
 }
 
@@ -4814,11 +4833,36 @@ void wxD2DContext::DoDrawText(const wxString& str, wxDouble x, wxDouble y)
 
     wxCOMPtr<IDWriteTextLayout> textLayout = fontData->CreateTextLayout(str);
 
+    wxGraphicsMatrix oldMatrix;
+
+    if ( m_layoutDir == wxLayout_RightToLeft )
+    {
+        wxDouble width;
+        GetTextExtent(str, &width, nullptr, nullptr, nullptr);
+
+        oldMatrix = GetTransform(); // save old matrix
+        wxGraphicsMatrix matrixRTL = CreateMatrix();
+        // Alternatively, we can translate to (x+width, y) and pass (0, 0) to
+        // GetRenderTarget()->DrawTextLayout() below.
+        matrixRTL.Translate(2*x+width, 0);
+        matrixRTL.Scale(-1, 1);
+        ConcatTransform(matrixRTL);
+
+        textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_RIGHT_TO_LEFT);
+        textLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+    }
+
     // Render the text
     GetRenderTarget()->DrawTextLayout(
         D2D1::Point2F(x, y),
         textLayout,
         fontData->GetBrushData().GetBrush());
+
+    if ( m_layoutDir == wxLayout_RightToLeft )
+    {
+        // Restore old matrix
+        SetTransform(oldMatrix);
+    }
 }
 
 bool wxD2DContext::EnsureInitialized()

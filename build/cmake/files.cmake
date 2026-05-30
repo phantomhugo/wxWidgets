@@ -824,6 +824,7 @@ set(GUI_CMN_SRC
     src/common/statlinecmn.cpp
     src/common/stattextcmn.cpp
     src/common/stockitem.cpp
+    src/common/svggc.cpp
     src/common/tbarbase.cpp
     src/common/textcmn.cpp
     src/common/textentrycmn.cpp
@@ -1025,6 +1026,7 @@ set(GUI_CMN_HDR
     wx/statbox.h
     wx/stattext.h
     wx/statusbr.h
+    wx/svggc.h
     wx/systhemectrl.h
     wx/taskbarbutton.h
     wx/testing.h
@@ -2798,6 +2800,7 @@ set(RIBBON_SRC
     src/ribbon/art_internal.cpp
     src/ribbon/art_msw.cpp
     src/ribbon/art_aui.cpp
+    src/ribbon/art_msw_flat.cpp
     src/ribbon/bar.cpp
     src/ribbon/buttonbar.cpp
     src/ribbon/control.cpp

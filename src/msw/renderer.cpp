@@ -168,8 +168,6 @@ private:
 // wxRendererXP: wxRendererNative implementation for Windows XP and later
 // ----------------------------------------------------------------------------
 
-#if wxUSE_UXTHEME
-
 class wxRendererXP : public wxRendererMSWBase
 {
 public:
@@ -310,8 +308,6 @@ private:
     wxDECLARE_NO_COPY_CLASS(wxRendererXP);
 };
 
-#endif // wxUSE_UXTHEME
-
 
 // ============================================================================
 // wxRendererMSWBase implementation
@@ -394,10 +390,8 @@ void wxRendererMSWBase::DrawComboBox(wxWindow* win,
 /* static */
 wxRendererNative& wxRendererNative::GetDefault()
 {
-#if wxUSE_UXTHEME
     if ( wxUxThemeIsActive() )
         return wxRendererXP::Get();
-#endif // wxUSE_UXTHEME
 
     return wxRendererMSW::Get();
 }
@@ -570,8 +564,6 @@ int wxRendererMSW::GetHeaderButtonMargin(wxWindow *win)
 // ============================================================================
 // wxRendererXP implementation
 // ============================================================================
-
-#if wxUSE_UXTHEME
 
 namespace
 {
@@ -929,7 +921,7 @@ wxRendererXP::DrawItemSelectionRect(wxWindow *win,
                                     const wxRect& rect,
                                     int flags)
 {
-    wxUxThemeHandle hTheme(win, L"EXPLORER::LISTVIEW;LISTVIEW", L"DarkMode::LISTVIEW");
+    wxUxThemeHandle hTheme(win, L"EXPLORER::LISTVIEW;LISTVIEW", L"DarkMode_ItemsView::LISTVIEW");
 
     const int itemState = GetListItemState(flags);
 
@@ -956,7 +948,7 @@ void wxRendererXP::DrawItemText(wxWindow* win,
                                 int flags,
                                 wxEllipsizeMode ellipsizeMode)
 {
-    wxUxThemeHandle hTheme(win, L"EXPLORER::LISTVIEW;LISTVIEW");
+    wxUxThemeHandle hTheme(win, L"EXPLORER::LISTVIEW;LISTVIEW", L"DarkMode_ItemsView::LISTVIEW");
 
     const int itemState = GetListItemState(flags);
 
@@ -972,7 +964,7 @@ void wxRendererXP::DrawItemText(wxWindow* win,
         wxColour textColour = dc.GetTextForeground();
         if (flags & wxCONTROL_SELECTED)
         {
-            textColour = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXTEXT);
+            textColour = hTheme.GetColour(LVP_LISTITEM, TMT_TEXTCOLOR, LISS_SELECTED);
         }
         else if (flags & wxCONTROL_DISABLED)
         {
@@ -1287,5 +1279,3 @@ wxRendererXP::DrawSplitterSash(wxWindow *win,
 
     m_rendererNative.DrawSplitterSash(win, dc, size, position, orient, flags);
 }
-
-#endif // wxUSE_UXTHEME

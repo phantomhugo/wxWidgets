@@ -121,10 +121,12 @@ wxMessageDialog::HookFunction(int code, WXWPARAM wParam, WXLPARAM lParam)
         // too big to fit the display
         wnd->ReplaceStaticWithEdit();
 
+#ifdef wxHAS_ANY_BUTTON
         // update the labels if necessary: we need to do it before centering
         // the dialog as this can change its size
         if ( wnd->HasCustomLabels() )
             wnd->AdjustButtonLabels();
+#endif // wxHAS_ANY_BUTTON
 
         // centre the message box on its parent if requested
         if ( wnd->GetMessageDialogStyle() & wxCENTER )
@@ -262,6 +264,7 @@ void wxMessageDialog::ReplaceStaticWithEdit()
     }
 }
 
+#ifdef wxHAS_ANY_BUTTON
 void wxMessageDialog::AdjustButtonLabels()
 {
     // changing the button labels is the easy part but we also need to ensure
@@ -371,6 +374,7 @@ void wxMessageDialog::AdjustButtonLabels()
         rcBtn.right += wBtnNew + MARGIN_INNER;
     }
 }
+#endif // wxHAS_ANY_BUTTON
 
 /* static */
 wxFont wxMessageDialog::GetMessageFont()
@@ -589,7 +593,7 @@ wxTaskDialogCallback(HWND hwnd, UINT msg, WPARAM, LPARAM, LONG_PTR)
     switch ( msg )
     {
         case TDN_DIALOG_CONSTRUCTED:
-            wxMSWDarkMode::EnableForTLW(hwnd);
+            wxMSWDarkMode::ConfigureTLW(hwnd);
             break;
     }
 
@@ -646,13 +650,18 @@ void wxMSWTaskDialogConfig::MSWCommonTaskDialogInit(TASKDIALOGCONFIG &tdc)
     // fully shown for reasonably-sized words whereas without it using almost
     // any file system path in a message box would result in truncation.
     tdc.dwFlags = TDF_EXPAND_FOOTER_AREA |
-                  TDF_POSITION_RELATIVE_TO_WINDOW |
                   TDF_SIZE_TO_CONTENT;
     tdc.hInstance = wxGetInstance();
     tdc.pszWindowTitle = caption.t_str();
 
-    // use the top level window as parent if none specified
     tdc.hwndParent = parent ? GetHwndOf(parent) : nullptr;
+
+    // Don't use this flag if our parent window is minimized because this
+    // results in the task dialog being shown in the top left corner of the
+    // screen, which is completely unexpected, so prefer the default behaviour
+    // of centering the dialog on the screen in this case.
+    if ( parent && !::IsIconic(tdc.hwndParent) )
+        tdc.dwFlags |= TDF_POSITION_RELATIVE_TO_WINDOW;
 
     if ( wxApp::MSWGetDefaultLayout(parent) == wxLayout_RightToLeft )
         tdc.dwFlags |= TDF_RTL_LAYOUT;

@@ -435,6 +435,15 @@ WXDLLIMPEXP_BASE bool wxCopyFile(const wxString& src, const wxString& dest,
 // Remove file
 WXDLLIMPEXP_BASE bool wxRemoveFile(const wxString& file);
 
+// Move file or directory to trash/recycle bin
+#if defined(__WINDOWS__) || defined(__WXDARWIN_OSX__) || defined(__WXGTK__)
+    #define wxHAS_MOVE_TO_TRASH
+#endif
+
+#ifdef wxHAS_MOVE_TO_TRASH
+    WXDLLIMPEXP_CORE bool wxMoveToTrash(const wxString& path);
+#endif // wxHAS_MOVE_TO_TRASH
+
 // Rename file
 WXDLLIMPEXP_BASE bool wxRenameFile(const wxString& oldpath, const wxString& newpath, bool overwrite = true);
 

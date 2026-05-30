@@ -13,7 +13,7 @@ dnl ---------------------------------------------------------------------------
 dnl initialization
 dnl ---------------------------------------------------------------------------
 
-AC_INIT([wxWidgets], [3.3.2], [wx-dev@googlegroups.com])
+AC_INIT([wxWidgets], [3.3.3], [wx-dev@googlegroups.com])
 
 dnl the file passed to AC_CONFIG_SRCDIR should be specific to our package
 AC_CONFIG_SRCDIR([wx-config.in])
@@ -39,7 +39,7 @@ dnl wx_release_number += 1
 
 wx_major_version_number=3
 wx_minor_version_number=3
-wx_release_number=2
+wx_release_number=3
 wx_subrelease_number=0
 
 WX_RELEASE=$wx_major_version_number.$wx_minor_version_number
@@ -678,7 +678,6 @@ WX_ARG_DISABLE(pic,          [  --disable-pic           don't use position indep
 WX_ARG_ENABLE(no_rtti,       [  --enable-no_rtti        create code without RTTI information], wxUSE_NO_RTTI)
 WX_ARG_ENABLE(no_exceptions, [  --enable-no_exceptions  create code without C++ exceptions handling], wxUSE_NO_EXCEPTIONS)
 WX_ARG_ENABLE(permissive,    [  --enable-permissive     compile code disregarding strict ANSI], wxUSE_PERMISSIVE)
-WX_ARG_DISABLE(vararg_macros,[  --disable-vararg_macros don't use vararg macros, even if they are supported], wxUSE_VARARG_MACROS)
 
 if test "$USE_DARWIN" = 1; then
 WX_ARG_ENABLE_PARAM(universal_binary, [[  --enable-universal_binary=archs create universal binary for the specified (or all supported) architectures]], wxUSE_UNIVERSAL_BINARY)
@@ -747,7 +746,6 @@ if test "$USE_WIN32" = 1 -o "$USE_DARWIN"; then
 WX_ARG_FEATURE(fsvolume,      [  --enable-fsvolume       use wxFSVolume class], wxUSE_FSVOLUME)
 fi
 WX_ARG_FEATURE(fswatcher,     [  --enable-fswatcher      use wxFileSystemWatcher class], wxUSE_FSWATCHER)
-WX_ARG_FEATURE(geometry,      [  --enable-geometry       use geometry class], wxUSE_GEOMETRY)
 WX_ARG_FEATURE(log,           [  --enable-log            use logging system], wxUSE_LOG)
 WX_ARG_FEATURE(mimetype,      [  --enable-mimetype       use wxMimeTypesManager], wxUSE_MIMETYPE)
 WX_ARG_FEATURE(printfposparam,[  --enable-printfposparam use wxVsnprintf() which supports positional parameters], wxUSE_PRINTF_POS_PARAMS)
@@ -995,7 +993,6 @@ dnl ---------------------------------------------------------------------------
 dnl common dialogs
 dnl ---------------------------------------------------------------------------
 
-WX_ARG_FEATURE(commondlg,   [  --enable-commondlg      use all common dialogs], wxUSE_COMMONDLGS)
 WX_ARG_FEATURE(aboutdlg,    [  --enable-aboutdlg       use wxAboutBox], wxUSE_ABOUTDLG)
 WX_ARG_FEATURE(choicedlg,   [  --enable-choicedlg      use wxChoiceDialog], wxUSE_CHOICEDLG)
 WX_ARG_FEATURE(coldlg,      [  --enable-coldlg         use wxColourDialog], wxUSE_COLOURDLG)
@@ -1060,7 +1057,6 @@ WX_ARG_FEATURE(dccache,     [  --enable-dccache        cache temporary wxDC obje
 WX_ARG_FEATURE(ps-in-msw,   [  --enable-ps-in-msw      use PS printing in wxMSW (Win32 only)], wxUSE_POSTSCRIPT_ARCHITECTURE_IN_MSW)
 WX_ARG_FEATURE(ownerdrawn,  [  --enable-ownerdrawn     use owner drawn controls (Win32 and OS/2 only)], wxUSE_OWNER_DRAWN)
 WX_ARG_FEATURE(taskbarbutton,[  --enable-taskbarbutton  enable wxTaskBarButton (Win32 only)], wxUSE_TASKBARBUTTON)
-WX_ARG_FEATURE(uxtheme,     [  --enable-uxtheme        enable support for Windows XP themed look (Win32 only)], wxUSE_UXTHEME)
 WX_ARG_FEATURE(wxdib,       [  --enable-wxdib          use wxDIB class (Win32 only)], wxUSE_DIB)
 
 dnl Turn off MSW-only IE webview backend here to avoid reporting it as "on" in
@@ -1584,11 +1580,6 @@ dnl Note: non-empty last parameter makes check compile-only,
 dnl   skipping worthless preprocessing check
 AC_CHECK_HEADERS(langinfo.h wchar.h,,, [AC_INCLUDES_DEFAULT])
 
-dnl maybe wchar_t is in wcstr.h if we don't have wchar.h?
-if test "$ac_cv_header_wchar_h" != "yes"; then
-    AC_CHECK_HEADERS([wcstr.h],,, [AC_INCLUDES_DEFAULT()])
-fi
-
 if test "$USE_UNIX" = 1 ; then
     dnl POSIX needs this for select(), but old systems don't have it
     AC_CHECK_HEADERS([sys/select.h],,, [AC_INCLUDES_DEFAULT()])
@@ -1641,12 +1632,10 @@ AC_CHECK_SIZEOF(wchar_t, 0,
         #if defined(__DJGPP__) && !( (__GNUC_MINOR__ >= 8 && __GNUC__ == 2 ) || __GNUC__ >= 3 )
         #  error "fake wchar_t"
         #endif
-        #ifdef HAVE_WCHAR_H
-        #  ifdef __CYGWIN__
-        #    include <stddef.h>
-        #  endif
-        #  include <wchar.h>
+        #ifdef __CYGWIN__
+        #  include <stddef.h>
         #endif
+        #include <wchar.h>
         #ifdef HAVE_STDLIB_H
         #  include <stdlib.h>
         #endif
@@ -2684,7 +2673,7 @@ if test "$wxUSE_LIBTIFF" != "no" ; then
             tiff_jpeg_option=--with-jpeg-from-wx
         fi
 
-        dnl if you ever want to enable webp, check if it clashes with the wxUSE_LIBWBP setting
+        dnl if you ever want to enable webp, check if it clashes with the wxUSE_LIBWEBP setting
         AX_SUBDIRS_CONFIGURE([src/tiff],
             [[--disable-jbig],
              [--disable-lerc],
@@ -3747,7 +3736,7 @@ destdir=\$1
 libdir=\$2
 bindir=\$3
 build_libdir=\$4
-libnames=\$(cd \${build_libdir}; printf '%s\n' libwx*${WX_RELEASE}.dylib)
+libnames=\$(cd \${build_libdir}; printf '%s\n' libwx*-${WX_RELEASE}.dylib)
 changes=''
 for libname in \${libnames} ; do
     target=\$(readlink \${build_libdir}/\$(readlink \${build_libdir}/\${libname}))
@@ -3881,30 +3870,6 @@ else
     if test "$wx_cv_size_t_is_ulong" = "yes"; then
         AC_DEFINE(wxSIZE_T_IS_ULONG)
     fi
-fi
-
-AC_CACHE_CHECK([if wchar_t is separate type],
-    wx_cv_wchar_t_is_separate_type,
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <wchar.h>],
-        [
-            return 0; }
-
-            struct Foo { void foo(wchar_t);
-                         void foo(unsigned short);
-                         void foo(unsigned int);
-                         void foo(unsigned long); };
-
-            int bar() {
-        ])],
-        wx_cv_wchar_t_is_separate_type=yes,
-        wx_cv_wchar_t_is_separate_type=no
-    )
-)
-
-if test "$wx_cv_wchar_t_is_separate_type" = "yes"; then
-    AC_DEFINE(wxWCHAR_T_IS_REAL_TYPE, 1)
-else
-    AC_DEFINE(wxWCHAR_T_IS_REAL_TYPE, 0)
 fi
 
 AC_LANG_POP() dnl C++
@@ -4088,21 +4053,9 @@ if test "$wx_cv_func_vsscanf" = "yes"; then
 fi
 AC_LANG_POP()
 
-dnl also look if we have wide char IO functions, notice that [f]putws are
-dnl declared in special widec.h under Solaris
-wchar_headers="#include <stdio.h>
-#include <wchar.h>"
-case "${host}" in
-    *-*-solaris2* )
-        AC_CHECK_HEADERS(widec.h,,, [AC_INCLUDES_DEFAULT()])
-        if test "$ac_cv_header_widec_h" = "yes"; then
-            wchar_headers="$wchar_headers
-#include <widec.h>"
-        fi
-esac
-
-WX_CHECK_FUNCS(putws fputws wprintf vswprintf vswscanf,,,
-               [$wchar_headers])
+WX_CHECK_FUNCS(fputws wprintf vswprintf vswscanf,,,
+               [#include <stdio.h>
+                #include <wchar.h>])
 
 dnl MinGW has a vswprintf with a different prototype, and
 dnl a _vsnwprintf with the correct prototype, but AC_CHECK_FUNCS
@@ -4670,7 +4623,7 @@ if test "$TOOLKIT" != "MSW"; then
     dnl do other tests only if we are using threads
     if test "$wxUSE_THREADS" = "yes" ; then
         AC_CHECK_FUNCS(pthread_setconcurrency,
-            AC_DEFINE(HAVE_PTHREAD_SET_CONCURRENCY),
+            AC_DEFINE(HAVE_PTHREAD_SETCONCURRENCY),
             [
                 AC_CHECK_FUNCS(thr_setconcurrency,
                     AC_DEFINE(HAVE_THR_SETCONCURRENCY),
@@ -4854,39 +4807,11 @@ dnl AC_CHECK_FUNC(getaddrinfo, AC_DEFINE(HAVE_GETADDRINFO), [
     dnl related functions (taken from python's configure.in)
     dnl sigh -- gethostbyname_r is a mess; it can have 3, 5 or 6 arguments
       AX_FUNC_WHICH_GETHOSTBYNAME_R
-      if test "x$ac_cv_func_which_gethostbyname_r" = "xno" -o \
-              "x$ac_cv_func_which_gethostbyname_r" = "xunknown" ; then
-          AC_CHECK_FUNC(gethostbyname, [ AC_DEFINE(HAVE_GETHOSTBYNAME) ],
-              [
-                  dnl Under HaikuOS it is not yet detected
-                  case "${host}" in
-                  *-*-haiku* )
-                    AC_DEFINE(HAVE_GETHOSTBYNAME)
-                    AC_MSG_WARN([Defining HAVE_GETHOSTBYNAME unconditionally under ${host}.])
-                    ;;
-                  esac
-              ]
-           )
-      fi
       dnl A similar test for getservbyname_r
       dnl I'm tempted to just not do this test which is taking much time and
       dnl do something similar as for gethostbyaddr_r, but OTOH the macro
       dnl doing the test already exists, so using it is easy enough.     - SN
       AC_raf_FUNC_WHICH_GETSERVBYNAME_R
-      if test "x$ac_cv_func_which_getservbyname_r" = "xno" -o \
-              "x$ac_cv_func_which_getservbyname_r" = "xunknown" ; then
-          AC_CHECK_FUNCS(getservbyname,[ AC_DEFINE(HAVE_GETSERVBYNAME) ],
-              [
-                  dnl Under HaikuOS it is not yet detected
-                  case "${host}" in
-                  *-*-haiku* )
-                    AC_DEFINE(HAVE_GETSERVBYNAME)
-                    AC_MSG_WARN([Defining HAVE_GETSERVBYNAME unconditionally under ${host}.])
-                    ;;
-                  esac
-              ]
-           )
-      fi
       dnl For gethostbyaddr_r, we currently do no separate test, instead, we
       dnl silently assume it's available exactly if gethostbyname_r is
       dnl available and always requires two more arguments than
@@ -5674,7 +5599,11 @@ if test "$wxUSE_CONFIG" = "yes" ; then
     AC_MSG_WARN(wxConfig requires wxTextFile... disabled)
   else
     AC_DEFINE(wxUSE_CONFIG)
-    AC_DEFINE(wxUSE_CONFIG_NATIVE)
+    if test "$wxUSE_MSW" = 1 -a "$wxUSE_REGKEY" != 1; then
+        AC_DEFINE(wxUSE_CONFIG_NATIVE, 0)
+    else
+        AC_DEFINE(wxUSE_CONFIG_NATIVE, 1)
+    fi
     SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS config"
   fi
 fi
@@ -5745,10 +5674,6 @@ if test "$wxUSE_LOG" = "yes"; then
 
     dnl the keyboard sample requires wxUSE_LOG
     SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS keyboard"
-fi
-
-if test "$wxUSE_GEOMETRY" = "yes"; then
-  AC_DEFINE(wxUSE_GEOMETRY)
 fi
 
 if test "$wxUSE_BASE64" = "yes"; then
@@ -6891,7 +6816,7 @@ if test "$wxUSE_PRIVATE_FONTS" = "yes"; then
                               ],
                               [AC_MSG_WARN([run-time font loading won't be supported by wxFont])])
         fi
-    elif test "$wxUSE_MAC" = 1 -o "$wxUSE_MSW" = 1; then
+    elif test "$wxUSE_QT" = 1 -o "$wxUSE_MAC" = 1 -o "$wxUSE_MSW" = 1; then
         dnl In these ports we don't need anything special.
         AC_DEFINE(wxUSE_PRIVATE_FONTS)
     fi
@@ -7415,10 +7340,6 @@ if test "$wxUSE_MSW" = 1 ; then
         AC_DEFINE(wxUSE_TASKBARBUTTON)
     fi
 
-    if test "$wxUSE_UXTHEME" = "yes"; then
-        AC_DEFINE(wxUSE_UXTHEME)
-    fi
-
 fi
 dnl wxUSE_MSW = 1
 
@@ -7815,7 +7736,7 @@ if test "$wxUSE_MAC" = 1 ; then
         fi
     fi
 fi
-if test "$USE_DARWIN" = 1 -a "$wxUSE_MAC" != 1 -a "$wxUSE_OLD_COCOA" != 1 ; then
+if test "$USE_DARWIN" = 1 -a "$wxUSE_MAC" != 1; then
     EXTRA_FRAMEWORKS="$EXTRA_FRAMEWORKS -framework AppKit -framework IOKit -framework CoreServices -framework System -framework ApplicationServices -framework Foundation"
 fi
 

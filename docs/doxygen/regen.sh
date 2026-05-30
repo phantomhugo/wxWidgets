@@ -40,8 +40,8 @@ fi
 #
 # Still allow using incompatible version if explicitly requested.
 if [[ -z $WX_SKIP_DOXYGEN_VERSION_CHECK ]]; then
-    doxygen_version=`$DOXYGEN --version`
-    doxygen_version_required=1.9.1
+    doxygen_version=`$DOXYGEN --version | cut -d ' ' -f 1`
+    doxygen_version_required=1.15.0
     if [[ $doxygen_version != $doxygen_version_required ]]; then
         echo "Doxygen version $doxygen_version is not officially supported."
         echo "Please use Doxygen $doxygen_version_required or export WX_SKIP_DOXYGEN_VERSION_CHECK."
@@ -77,6 +77,7 @@ export GENERATE_HTMLHELP="NO"
 export GENERATE_LATEX="NO"
 export GENERATE_QHP="NO"
 export GENERATE_XML="NO"
+export HTML_CODE_FOLDING="YES"
 export SEARCHENGINE="NO"
 export SERVER_BASED_SEARCH="NO"
 
@@ -90,6 +91,7 @@ case "$1" in
     chm)
         export GENERATE_HTML="YES"
         export GENERATE_HTMLHELP="YES"
+        export HTML_CODE_FOLDING="NO"
         ;;
     docset)
         export GENERATE_DOCSET="YES"
@@ -243,11 +245,7 @@ if [[ -s doxygen.log ]]; then
     topsrcdir=`cd ../.. && pwd`
     sed -i'' -e "s|$topsrcdir/||g" doxygen.log
 
-    # Filter out warnings from interface/wx/stc/stc.h for now, there are tons
-    # of them and it's not clear what to do about them, see #25603
-    if grep -q -v "interface/wx/stc/stc.h" doxygen.log; then
-        echo '*** There were warnings during docs generation ***'
-    fi
+    echo '*** There were warnings during docs generation ***'
 else
     # Don't leave empty file lying around.
     rm doxygen.log

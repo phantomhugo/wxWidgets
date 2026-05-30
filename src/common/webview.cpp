@@ -15,6 +15,7 @@
 #include "wx/webview.h"
 #include "wx/filesys.h"
 #include "wx/mstream.h"
+#include "wx/link.h"
 #include "wx/private/webview.h"
 
 #if defined(__WXOSX__)
@@ -269,6 +270,15 @@ wxString wxWebView::GetPageText() const
     RunScript("document.body.innerText;", &text);
     return text;
 }
+
+#if wxUSE_PRINTING_ARCHITECTURE
+void wxWebView::Print(const wxPrintData& WXUNUSED(printData),
+                      int WXUNUSED(flags))
+{
+    // Default implementation: fall back to the parameterless Print()
+    Print();
+}
+#endif // wxUSE_PRINTING_ARCHITECTURE
 
 bool wxWebView::CanCut() const
 {
@@ -534,5 +544,10 @@ void wxWebView::InitFactoryMap()
                                                        (new wxWebViewFactoryWebKit));
 #endif
 }
+
+// Ensure the wxWebViewChromiumModule is linked in in static builds
+#if wxUSE_WEBVIEW_CHROMIUM
+    wxFORCE_LINK_MODULE(WebViewChromium)
+#endif
 
 #endif // wxUSE_WEBVIEW

@@ -9,7 +9,7 @@
 
 #include "wx/wxprec.h"
 
-#if wxUSE_AUI && wxUSE_UXTHEME && !defined(__WXUNIVERSAL__)
+#if wxUSE_AUI && !defined(__WXUNIVERSAL__)
 
 #ifndef WX_PRECOMP
     #include "wx/dc.h"
@@ -269,11 +269,11 @@ wxSize wxAuiMSWTabArt::GetPageTabSize(wxReadOnlyDC& dc,
     if ( !m_closeBtnSize.IsFullySpecified() )
         InitSizes(wnd, dc);
 
-    wxCoord textWidth, textHeight, tmp;
+    wxCoord textWidth, textHeight;
 
     dc.SetFont(wnd->GetFont());
-    dc.GetTextExtent(page.caption, &textWidth, &tmp);
-    dc.GetTextExtent("ABCDEFXj", &tmp, &textHeight);
+    dc.GetTextExtent(page.caption, &textWidth, nullptr);
+    dc.GetTextExtent("ABCDEFXj", nullptr, &textHeight);
 
     wxCoord tabWidth = wxMax(m_tabSize.x, textWidth);
     wxCoord tabHeight = wxMax(m_tabSize.y, textHeight);
@@ -455,4 +455,4 @@ void wxAuiMSWTabArt::UpdateDpi()
     m_closeBtnSize = wxDefaultSize;
 }
 
-#endif // wxUSE_AUI && wxUSE_UXTHEME && !defined(__WXUNIVERSAL__)
+#endif // wxUSE_AUI && !defined(__WXUNIVERSAL__)

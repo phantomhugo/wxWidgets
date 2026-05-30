@@ -10,6 +10,7 @@
 
 class QPainter;
 class QImage;
+class QTransform;
 
 class WXDLLIMPEXP_FWD_CORE wxRegion;
 
@@ -140,7 +141,9 @@ protected:
 
     bool m_isClipBoxValid = false;
 
-    wxLayoutDirection m_layoutDir = wxLayout_Default;
+    // Used by LogicalToDevice()/DeviceToLogical()
+    std::unique_ptr<QTransform> m_matrixCurrent;
+    std::unique_ptr<QTransform> m_matrixCurrentInv;
 
 private:
     enum wxQtRasterColourOp

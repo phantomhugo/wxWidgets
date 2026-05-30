@@ -106,7 +106,9 @@ wxAutoScrollTimer::wxAutoScrollTimer(wxWindow *winToScroll,
 void wxAutoScrollTimer::Notify()
 {
     // only do all this as long as the window is capturing the mouse
-    if ( wxWindow::GetCapture() != m_win )
+    // or in withoutCapture mode
+    if ( wxWindow::GetCapture() != m_win &&
+         !m_scrollHelper->GetAutoscrollWithoutCapture() )
     {
         Stop();
     }
@@ -120,7 +122,11 @@ void wxAutoScrollTimer::Notify()
         // if no event needed, stop auto-scroll
         if ( !m_scrollHelper->AutoscrollTest(pt, horizontalEvent, verticalEvent) )
         {
-            Stop();
+            // if withoutCapture mode, continue watching mouse
+            if ( !m_scrollHelper->GetAutoscrollWithoutCapture() )
+            {
+                Stop();
+            }
             return;
         }
 
@@ -747,13 +753,15 @@ wxScrollHelperBase::AutoscrollTest(wxPoint clientPt,
     // can window can be scrolled in this direction?
     if ( m_win->HasScrollbar(wxHORIZONTAL) )
     {
+        const bool isRTL = m_win->GetLayoutDirection() == wxLayout_RightToLeft;
+
         if ( screenPt.x < inner.GetLeft() )
         {
-            evtHorzScroll = wxEVT_SCROLLWIN_LINEUP;
+            evtHorzScroll = isRTL ? wxEVT_SCROLLWIN_LINEDOWN : wxEVT_SCROLLWIN_LINEUP;
         }
         else if (screenPt.x >= inner.GetRight() )
         {
-            evtHorzScroll = wxEVT_SCROLLWIN_LINEDOWN;
+            evtHorzScroll = isRTL ? wxEVT_SCROLLWIN_LINEUP : wxEVT_SCROLLWIN_LINEDOWN;
         }
     }
 
@@ -771,6 +779,23 @@ wxScrollHelperBase::AutoscrollTest(wxPoint clientPt,
     }
 
     return true;
+}
+
+bool wxScrollHelperBase::GetAutoscrollWithoutCapture() const
+{
+    return m_autoscrollWithoutCapture;
+}
+
+void wxScrollHelperBase::EnableAutoscrollWithoutCapture()
+{
+    m_autoscrollWithoutCapture = true;
+    OnEnterAutoScrollRegion();
+}
+
+void wxScrollHelperBase::DisableAutoscrollWithoutCapture()
+{
+    m_autoscrollWithoutCapture = false;
+    OnLeaveAutoScrollRegion();
 }
 
 void wxScrollHelperBase::SetScrollRate( int xstep, int ystep )
@@ -1057,7 +1082,9 @@ void wxScrollHelperBase::OnMotion(wxMouseEvent& event)
     event.Skip();
 
     // if not dragging, no autoscroll
-    if ( wxWindow::GetCapture() != m_targetWindow )
+    // (unless in withoutCapture mode)
+    if ( wxWindow::GetCapture() != m_targetWindow &&
+         !GetAutoscrollWithoutCapture() )
     {
         return;
     }

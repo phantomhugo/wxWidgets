@@ -111,6 +111,9 @@ std::unique_ptr<wxDarkModeSettings> wxDarkModeModule::ms_settings;
 DwmSetWindowAttribute_t
 wxDarkModeModule::ms_pfnDwmSetWindowAttribute = (DwmSetWindowAttribute_t)-1;
 
+// Implemented here to ensure that it's generated inside the DLL.
+wxDarkModeSettings::~wxDarkModeSettings() = default;
+
 #if wxUSE_DARK_MODE
 
 #ifndef WX_PRECOMP
@@ -181,10 +184,12 @@ DWORD (WINAPI *SetPreferredAppMode)(DWORD) = nullptr;
 
 bool InitDarkMode()
 {
-    // In theory, dark mode support was added in v1809 (build 17763), so enable
+    // Enable dark mode for Windows 10 1903 (build 18362) and later.
+    // In theory, dark mode support was added in v1809 (build 17763). However,
+    // the undocumented functions changed in v1903. So enable
     // it for all later versions, even though in practice this code has been
     // mostly tested under v2004 ("20H1", build number 19041) and later ones.
-    if ( !wxCheckOsVersion(10, 0, 17763) )
+    if ( !wxCheckOsVersion(10, 0, 18362) )
     {
         wxLogTrace(TRACE_DARKMODE, "Unsupported due to OS version");
         return false;
@@ -294,11 +299,12 @@ wxApp::AppearanceResult wxApp::SetAppearance(Appearance appearance)
 // Default wxDarkModeSettings implementation
 // ----------------------------------------------------------------------------
 
-// Implemented here to ensure that it's generated inside the DLL.
-wxDarkModeSettings::~wxDarkModeSettings() = default;
-
 wxColour wxDarkModeSettings::GetColour(wxSystemColour index)
 {
+    // This code is currently only used under Windows 10 and 11, so if this is
+    // false, we must be using Windows 11.
+    static const bool isWindows10 = wxGetWinVersion() == wxWinVersion_10;
+
     // This is not great at all, but better than using light mode colours that
     // are not appropriate for the dark mode.
     //
@@ -312,10 +318,12 @@ wxColour wxDarkModeSettings::GetColour(wxSystemColour index)
 
         case wxSYS_COLOUR_ACTIVECAPTION:
         case wxSYS_COLOUR_APPWORKSPACE:
-        case wxSYS_COLOUR_INFOBK:
         case wxSYS_COLOUR_LISTBOX:
         case wxSYS_COLOUR_WINDOW:
-            return wxColour(0x202020);
+            return wxColour(isWindows10 ? 0x202020 : 0x191919);
+
+        case wxSYS_COLOUR_INFOBK:
+            return wxColour(isWindows10 ? 0x2b2b2b : 0x2e2e2e);
 
         case wxSYS_COLOUR_BTNTEXT:
         case wxSYS_COLOUR_CAPTIONTEXT:
@@ -325,7 +333,7 @@ wxColour wxDarkModeSettings::GetColour(wxSystemColour index)
         case wxSYS_COLOUR_LISTBOXTEXT:
         case wxSYS_COLOUR_MENUTEXT:
         case wxSYS_COLOUR_WINDOWTEXT:
-            return wxColour(0xe0e0e0);
+            return *wxWHITE;
 
         case wxSYS_COLOUR_HOTLIGHT:
             return wxColour(0xe48435);
@@ -346,8 +354,8 @@ wxColour wxDarkModeSettings::GetColour(wxSystemColour index)
             return wxColour(0x626262);
 
         case wxSYS_COLOUR_HIGHLIGHT:
-        case wxSYS_COLOUR_MENUHILIGHT:
-            return wxColour(0x9e5315);
+            // Selected text background in File Open dialog
+            return wxColour(isWindows10 ? 0xd77800 : 0xd47800);
 
         case wxSYS_COLOUR_BTNHIGHLIGHT:
             return wxColour(0x777777);
@@ -363,6 +371,7 @@ wxColour wxDarkModeSettings::GetColour(wxSystemColour index)
         case wxSYS_COLOUR_GRADIENTINACTIVECAPTION:
         case wxSYS_COLOUR_GRAYTEXT:
         case wxSYS_COLOUR_INACTIVEBORDER:
+        case wxSYS_COLOUR_MENUHILIGHT:
         case wxSYS_COLOUR_WINDOWFRAME:
             return wxColour();
 
@@ -416,13 +425,9 @@ bool IsActive()
     return wxMSWImpl::ShouldUseDarkMode();
 }
 
-void EnableForTLW(HWND hwnd)
+void ConfigureTLW(HWND hwnd)
 {
-    // Nothing to do, dark mode support not enabled or dark mode is not used.
-    if ( !wxMSWImpl::ShouldUseDarkMode() )
-        return;
-
-    BOOL useDarkMode = TRUE;
+    BOOL useDarkMode = wxMSWImpl::ShouldUseDarkMode();
 
     // DWMWA_USE_IMMERSIVE_DARK_MODE is 19 for v1809, but is 20 for later
     // versions, so to set title bar black for both v1809 and later versions,
@@ -448,7 +453,8 @@ void EnableForTLW(HWND hwnd)
     if ( FAILED(hr) )
         wxLogApiError("DwmSetWindowAttribute(USE_IMMERSIVE_DARK_MODE)", hr);
 
-    wxMSWImpl::AllowDarkModeForWindow(hwnd, true);
+    if ( wxMSWImpl::AllowDarkModeForWindow != nullptr )
+        wxMSWImpl::AllowDarkModeForWindow(hwnd, true);
 }
 
 void AllowForWindow(HWND hwnd, const wchar_t* themeName, const wchar_t* themeId)
@@ -675,7 +681,7 @@ HandleMenuMessage(WXLRESULT* result,
                 WinStruct<MENUITEMINFO> mii;
                 mii.fMask = MIIM_STRING;
                 mii.dwTypeData = buf;
-                mii.cch = sizeof(buf) - 1;
+                mii.cch = WXSIZEOF(buf);
 
                 // Note that we need to use the iPosition field of the
                 // undocumented struct here because DRAWITEMSTRUCT::itemID is
@@ -763,6 +769,21 @@ wxApp::AppearanceResult wxApp::SetAppearance(Appearance WXUNUSED(appearance))
     return AppearanceResult::Failure;
 }
 
+wxColour wxDarkModeSettings::GetColour(wxSystemColour WXUNUSED(index))
+{
+    return wxColour();
+}
+
+wxColour wxDarkModeSettings::GetMenuColour(wxMenuColour WXUNUSED(which))
+{
+    return wxColour();
+}
+
+wxPen wxDarkModeSettings::GetBorderPen()
+{
+    return wxPen{};
+}
+
 namespace wxMSWDarkMode
 {
 
@@ -771,11 +792,11 @@ bool IsActive()
     return false;
 }
 
-void EnableForTLW(HWND WXUNUSED(hwnd))
+void ConfigureTLW(HWND WXUNUSED(hwnd))
 {
 }
 
-void AllowForWindow(HWND WXUNUSED(hwnd), const wchar_t* WXUNUSED(themeClass))
+void AllowForWindow(HWND WXUNUSED(hwnd), const wchar_t* WXUNUSED(themeClass), const wchar_t* WXUNUSED(themeId))
 {
 }
 

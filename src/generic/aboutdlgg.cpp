@@ -80,15 +80,30 @@ wxString wxAboutDialogInfo::GetDescriptionAndCredits() const
     return s;
 }
 
-wxIcon wxAboutDialogInfo::GetIcon() const
+wxIcon wxAboutDialogInfo::GetIcon(const wxWindow* window) const
 {
-    wxIcon icon = m_icon;
-    if ( !icon.IsOk() )
+    wxBitmapBundle bundle(m_icon);
+    if ( !bundle.IsOk() )
     {
         const wxTopLevelWindow * const
             tlw = wxDynamicCast(wxApp::GetMainTopWindow(), wxTopLevelWindow);
         if ( tlw )
-            icon = tlw->GetIcon();
+        {
+            bundle = wxBitmapBundle::FromIconBundle(tlw->GetIcons());
+            if (window == nullptr)
+                window = tlw;
+        }
+    }
+    else if (window == nullptr)
+        window = wxApp::GetMainTopWindow();
+
+    wxIcon icon;
+    if (bundle.IsOk())
+    {
+        if (window)
+            icon = bundle.GetIconFor(window);
+        else
+            icon = bundle.GetIcon(wxDefaultSize);
     }
 
     return icon;
@@ -218,7 +233,7 @@ bool wxGenericAboutDialog::Create(const wxAboutDialogInfo& info, wxWindow* paren
     sizerIconAndText->AddSpacer(horzBorder);
 
 #if wxUSE_STATBMP
-    wxIcon icon = info.GetIcon();
+    wxIcon icon = info.GetIcon(parent);
     if ( icon.IsOk() )
     {
         sizerIconAndText->Add(new wxStaticBitmap(m_contents, wxID_ANY, icon),

@@ -21,6 +21,7 @@
 #include "wx/bitmap.h"
 #include "wx/image.h"
 #include <emscripten.h>
+#include <emscripten/em_js.h>
 #include <cstdlib>
 
 static int gs_canvasCounter = 0;
@@ -28,6 +29,130 @@ static int gs_canvasCounter = 0;
 std::string GenerateCanvasId()
 {
     return "wx_canvas_" + std::to_string(++gs_canvasCounter);
+}
+
+// ----------------------------------------------------------------------------
+// JS helpers for text measurement
+// ----------------------------------------------------------------------------
+
+EM_JS(double, wxWasmMeasureTextWidth, (const char* fontSpec, const char* text), {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    ctx.font = UTF8ToString(fontSpec);
+    return ctx.measureText(UTF8ToString(text)).width;
+});
+
+EM_JS(double, wxWasmMeasureCharHeight, (const char* fontSpec), {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    ctx.font = UTF8ToString(fontSpec);
+    var metrics = ctx.measureText('Mg');
+    var ascent = metrics.actualBoundingBoxAscent || 0;
+    var descent = metrics.actualBoundingBoxDescent || 0;
+    if (ascent === 0 && descent === 0) {
+        // Fallback: parse size from font spec (look for pt or px)
+        var match = ctx.font.match(/(\d+(?:\.\d+)?)\s*(px|pt)/i);
+        if (match) {
+            var size = parseFloat(match[1]);
+            var unit = match[2].toLowerCase();
+            if (unit === 'pt') size = size * 96 / 72;
+            return Math.round(size * 1.2);
+        }
+        return 12;
+    }
+    return ascent + descent;
+});
+
+EM_JS(double, wxWasmMeasureCharWidth, (const char* fontSpec), {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    ctx.font = UTF8ToString(fontSpec);
+    return ctx.measureText('M').width;
+});
+
+EM_JS(double, wxWasmMeasureDescent, (const char* fontSpec), {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    ctx.font = UTF8ToString(fontSpec);
+    var metrics = ctx.measureText('Mg');
+    return metrics.actualBoundingBoxDescent || 0;
+});
+
+EM_JS(double, wxWasmMeasureAscent, (const char* fontSpec), {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    ctx.font = UTF8ToString(fontSpec);
+    var metrics = ctx.measureText('Mg');
+    return metrics.actualBoundingBoxAscent || 0;
+});
+
+// ----------------------------------------------------------------------------
+// CSS font spec helper
+// ----------------------------------------------------------------------------
+
+static wxString GetCSSFontSpec(const wxFont& font)
+{
+    if (!font.IsOk())
+        return wxString("12px sans-serif");
+
+    wxString spec;
+
+    // Style
+    switch (font.GetStyle())
+    {
+        case wxFONTSTYLE_ITALIC:
+            spec += "italic ";
+            break;
+        case wxFONTSTYLE_SLANT:
+            spec += "oblique ";
+            break;
+        default:
+            break;
+    }
+
+    // Weight (numeric)
+    spec += wxString::Format("%d ", font.GetNumericWeight());
+
+    // Size
+    double size = font.GetFractionalPointSize();
+    if (size <= 0)
+        size = 12;
+    spec += wxString::Format("%.1fpt ", size);
+
+    // Face name or generic family
+    wxString face = font.GetFaceName();
+    if (face.empty())
+    {
+        switch (font.GetFamily())
+        {
+            case wxFONTFAMILY_ROMAN:
+                face = "serif";
+                break;
+            case wxFONTFAMILY_SCRIPT:
+                face = "cursive";
+                break;
+            case wxFONTFAMILY_DECORATIVE:
+                face = "fantasy";
+                break;
+            case wxFONTFAMILY_MODERN:
+            case wxFONTFAMILY_TELETYPE:
+                face = "monospace";
+                break;
+            case wxFONTFAMILY_SWISS:
+            default:
+                face = "sans-serif";
+                break;
+        }
+    }
+    else
+    {
+        face.Replace("\"", "\\\"");
+        face = wxString::Format("\"%s\"", face);
+    }
+
+    spec += face;
+
+    return spec;
 }
 
 wxWasmDCImpl::wxWasmDCImpl(wxDC *owner)
@@ -98,15 +223,13 @@ void wxWasmDCImpl::ApplyBrush()
 void wxWasmDCImpl::ApplyFont()
 {
     if (m_canvasId.empty()) return;
-    int size = m_font.IsOk() ? m_font.GetPointSize() : 12;
-    wxString face = m_font.IsOk() ? m_font.GetFaceName() : wxString("sans-serif");
-    if (face.empty()) face = wxT("sans-serif");
+    wxString fontSpec = GetCSSFontSpec(m_font);
     EM_ASM_({
         var canvas = document.getElementById(UTF8ToString($0));
         if (!canvas) return;
         var ctx = canvas.getContext('2d');
-        ctx.font = $1 + 'px ' + UTF8ToString($2);
-    }, m_canvasId.c_str(), size, face.ToUTF8().data());
+        ctx.font = UTF8ToString($1);
+    }, m_canvasId.c_str(), fontSpec.ToUTF8().data());
 }
 
 void wxWasmDCImpl::ApplyTextColour()
@@ -175,12 +298,16 @@ void wxWasmDCImpl::SetLogicalFunction(wxRasterOperationMode WXUNUSED(function))
 
 wxCoord wxWasmDCImpl::GetCharHeight() const
 {
-    return m_font.IsOk() ? m_font.GetPointSize() : 12;
+    wxString fontSpec = GetCSSFontSpec(m_font);
+    double h = wxWasmMeasureCharHeight(fontSpec.ToUTF8().data());
+    return wxCoord(h / m_scaleY);
 }
 
 wxCoord wxWasmDCImpl::GetCharWidth() const
 {
-    return m_font.IsOk() ? m_font.GetPointSize() / 2 : 6;
+    wxString fontSpec = GetCSSFontSpec(m_font);
+    double w = wxWasmMeasureCharWidth(fontSpec.ToUTF8().data());
+    return wxCoord(w / m_scaleX);
 }
 
 void wxWasmDCImpl::DoGetTextExtent(const wxString& string,
@@ -188,11 +315,27 @@ void wxWasmDCImpl::DoGetTextExtent(const wxString& string,
                                 wxCoord *descent, wxCoord *externalLeading,
                                 const wxFont *theFont) const
 {
-    int size = theFont && theFont->IsOk() ? theFont->GetPointSize() : (m_font.IsOk() ? m_font.GetPointSize() : 12);
-    if (x) *x = string.length() * size / 2;
-    if (y) *y = size;
-    if (descent) *descent = size / 4;
-    if (externalLeading) *externalLeading = 0;
+    wxFont font = (theFont && theFont->IsOk()) ? *theFont : m_font;
+    wxString fontSpec = GetCSSFontSpec(font);
+    const char* fontCStr = fontSpec.ToUTF8().data();
+
+    if (x)
+    {
+        double w = wxWasmMeasureTextWidth(fontCStr, string.ToUTF8().data());
+        *x = wxCoord(w / m_scaleX);
+    }
+    if (y)
+    {
+        double h = wxWasmMeasureCharHeight(fontCStr);
+        *y = wxCoord(h / m_scaleY);
+    }
+    if (descent)
+    {
+        double d = wxWasmMeasureDescent(fontCStr);
+        *descent = wxCoord(d / m_scaleY);
+    }
+    if (externalLeading)
+        *externalLeading = 0;
 }
 
 void wxWasmDCImpl::Clear()
@@ -458,12 +601,14 @@ void wxWasmDCImpl::DoDrawText(const wxString& text, wxCoord x, wxCoord y)
     EnsureCanvasCreated();
     ApplyTextColour();
     ApplyFont();
+    wxString fontSpec = GetCSSFontSpec(m_font);
+    double ascent = wxWasmMeasureAscent(fontSpec.ToUTF8().data());
     EM_ASM_({
         var canvas = document.getElementById(UTF8ToString($0));
         if (!canvas) return;
         var ctx = canvas.getContext('2d');
         ctx.fillText(UTF8ToString($1), $2, $3);
-    }, m_canvasId.c_str(), text.ToUTF8().data(), x, y);
+    }, m_canvasId.c_str(), text.ToUTF8().data(), x, y + (wxCoord)ascent);
 }
 
 void wxWasmDCImpl::DoDrawRotatedText(const wxString& text,
@@ -472,6 +617,8 @@ void wxWasmDCImpl::DoDrawRotatedText(const wxString& text,
     EnsureCanvasCreated();
     ApplyTextColour();
     ApplyFont();
+    wxString fontSpec = GetCSSFontSpec(m_font);
+    double ascent = wxWasmMeasureAscent(fontSpec.ToUTF8().data());
     EM_ASM_({
         var canvas = document.getElementById(UTF8ToString($0));
         if (!canvas) return;
@@ -481,7 +628,7 @@ void wxWasmDCImpl::DoDrawRotatedText(const wxString& text,
         ctx.rotate($4);
         ctx.fillText(UTF8ToString($1), 0, 0);
         ctx.restore();
-    }, m_canvasId.c_str(), text.ToUTF8().data(), x, y, angle * M_PI / 180.0);
+    }, m_canvasId.c_str(), text.ToUTF8().data(), x, y + (wxCoord)ascent, angle * M_PI / 180.0);
 }
 
 bool wxWasmDCImpl::DoBlit(wxCoord xdest, wxCoord ydest,

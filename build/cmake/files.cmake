@@ -3007,7 +3007,6 @@ set(WASM_SRC
     src/generic/fdrepdlg.cpp
     src/generic/filepickerg.cpp
     src/generic/fontpickerg.cpp
-    src/generic/icon.cpp
     src/generic/imaglist.cpp
     src/generic/prntdlgg.cpp
     src/generic/textmeasure.cpp

@@ -325,7 +325,10 @@ void wxMenuBar::SetMenuLabel(size_t pos, const wxString& label)
 
 wxString wxMenuBar::GetMenuLabel(size_t pos) const
 {
-    return wxMenuBarBase::GetMenuLabel(pos);
+    wxMenuList::compatibility_iterator node = m_menus.Item(pos);
+    wxCHECK_MSG(node, wxT("invalid"), wxT("menu not found"));
+    wxMenu* menu = node->GetData();
+    return menu->GetTitle();
 }
 
 void wxMenuBar::Attach(wxFrame *frame)

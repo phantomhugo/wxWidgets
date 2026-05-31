@@ -56,7 +56,7 @@ static const char* GetIconClass(long style)
 }
 
 // Función auxiliar para obtener las etiquetas de botones
-static wxString GetButtonLabel(int id, const wxString& customLabel)
+wxString wxMessageDialog::GetButtonLabel(int id, const wxString& customLabel)
 {
     if (!customLabel.empty())
         return customLabel;

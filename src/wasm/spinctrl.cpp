@@ -137,6 +137,21 @@ void wxSpinCtrlDouble::SetValue(double val)
 {
 }
 
+double wxSpinCtrlDouble::GetValue() const
+{
+    return 0.0;
+}
+
+double wxSpinCtrlDouble::GetMin() const
+{
+    return 0.0;
+}
+
+double wxSpinCtrlDouble::GetMax() const
+{
+    return 100.0;
+}
+
 double wxSpinCtrlDouble::GetIncrement() const
 {
     return 1.0;

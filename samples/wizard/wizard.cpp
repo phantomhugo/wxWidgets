@@ -119,7 +119,9 @@ class wxValidationPage : public wxWizardPageSimple
 public:
     wxValidationPage(wxWizard *parent) : wxWizardPageSimple(parent)
     {
+#ifdef wxHAS_SVG
         m_bitmap = wxBitmapBundle::FromSVGFile("wiztest2.svg", wxSize(116, 260));
+#endif
 
         m_checkbox = new wxCheckBox(this, wxID_ANY, "&Check me");
 
@@ -380,7 +382,11 @@ MyWizard::MyWizard(wxFrame *frame, bool useSizer)
     SetExtraStyle(wxWIZARD_EX_HELPBUTTON);
 
     Create(frame,wxID_ANY,"Absolutely Useless Wizard",
+#ifdef wxHAS_SVG
                    wxBitmapBundle::FromSVGFile("wiztest.svg", wxSize(116, 260)),
+#else
+                   wxNullBitmap,
+#endif
                    wxDefaultPosition,
                    wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
     SetIcon(wxICON(sample));

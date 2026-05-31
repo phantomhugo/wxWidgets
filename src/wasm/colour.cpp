@@ -16,6 +16,8 @@
 
 #include "wx/colour.h"
 
+wxIMPLEMENT_DYNAMIC_CLASS(wxColourImpl, wxColourBase);
+
 bool wxColourImpl::operator==(const wxColourImpl& color) const
 {
     return false;

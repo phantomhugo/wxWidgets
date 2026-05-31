@@ -62,6 +62,15 @@ wxPen::wxPen(const wxColour& col, int width, int style)
 {
 }
 
+wxPen::wxPen(const wxBitmap& WXUNUSED(stipple), int WXUNUSED(width))
+{
+    m_refData = new wxPenRefData();
+}
+
+wxPen::wxPen(const wxPenInfo& WXUNUSED(info))
+{
+    m_refData = new wxPenRefData();
+}
 
 bool wxPen::operator==(const wxPen& pen) const
 {

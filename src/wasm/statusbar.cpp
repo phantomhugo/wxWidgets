@@ -131,8 +131,6 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
 
 void wxStatusBar::SetMinHeight(int height)
 {
-    wxStatusBarBase::SetMinHeight(height);
-    
     // Aplicar altura mínima al DOM
     EM_ASM_({
         var statusBar = document.getElementById($0);

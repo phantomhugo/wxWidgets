@@ -68,3 +68,8 @@ wxString wxGUIAppTraits::GetDesktopEnvironment() const
 {
     return wxEmptyString;
 }
+
+int wxGUIAppTraits::WaitForChild(wxExecuteData& WXUNUSED(execData))
+{
+    return -1;
+}

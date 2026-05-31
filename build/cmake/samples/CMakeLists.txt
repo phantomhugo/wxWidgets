@@ -116,7 +116,9 @@ wx_add_sample(printing printing.cpp printing.h DEPENDS wxUSE_PRINTING_ARCHITECTU
 wx_add_sample(propgrid propgrid.cpp propgrid_minimal.cpp sampleprops.cpp
     sampleprops.h propgrid.h LIBRARIES wxpropgrid wxxrc NAME propgriddemo DEPENDS wxUSE_PROPGRID)
 wx_add_sample(render FOLDER render)
-wx_add_sample(render DLL renddll.cpp NAME renddll FOLDER render)
+if(NOT EMSCRIPTEN)
+    wx_add_sample(render DLL renddll.cpp NAME renddll FOLDER render)
+endif()
 wx_add_sample(ribbon ribbondemo.cpp LIBRARIES wxribbon NAME ribbondemo DEPENDS wxUSE_RIBBON)
 wx_add_sample(richtext LIBRARIES wxrichtext wxhtml wxxml NAME richtextdemo DEPENDS wxUSE_XML wxUSE_RICHTEXT)
 wx_add_sample(sashtest sashtest.cpp sashtest.h RES sashtest.rc DEPENDS wxUSE_SASH)

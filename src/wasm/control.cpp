@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/control.cpp
-// Author:      Peter Most, Mariano Reingart
-// Copyright:   (c) 2009 wxWidgets dev team
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

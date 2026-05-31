@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        include/wx/wasm/glcanvas.cpp
-// Author:      Hugo Castellanos
-// Copyright:   (c) Hugo Castellanos 2022
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

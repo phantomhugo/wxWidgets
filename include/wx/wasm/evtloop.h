@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/evtloop.h
-// Author:      Hugo Armando Castellanos
-// Copyright:   (c) 2023 Hugo Armando Castellanos Morales
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

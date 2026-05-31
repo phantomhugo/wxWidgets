@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/graphics.cpp
 // Purpose:     Graphics context methods for the Qt platform
-// Author:      Jay Nabonne
+// Author:      Hugo Armando Castellanos Morales
 // Created:     2018-12-13
-// Copyright:   (c) Jay Nabonne
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

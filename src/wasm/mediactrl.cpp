@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/mediactrl.cpp
-// Author:      Peter Most
-// Copyright:   (c) Peter Most
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

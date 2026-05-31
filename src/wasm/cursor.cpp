@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/cursor.cpp
-// Author:      Sean D'Epagnier
-// Copyright:   (c) Sean D'Epagnier 2014
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

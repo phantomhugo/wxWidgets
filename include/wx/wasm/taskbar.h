@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/taskbar.h
 // Purpose:     wxTaskBar classes
-// Author:      Hugo Castellanos
+// Author:      Hugo Armando Castellanos Morales
 // Created:     26.07.23
-// Copyright:   (c) 2023 Hugo Castellanos
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 

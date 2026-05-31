@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/app.h
 // Purpose:     wxApp class
-// Author:      Hugo Castellanos
+// Author:      Hugo Armando Castellanos Morales
 // Created:     17.06.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 

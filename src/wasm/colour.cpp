@@ -1,8 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/colour.cpp
 // Purpose:     wxColour class implementation for wxQt
-// Author:      Hugo Castellanos
-// Copyright:   (c) 2024 Hugo Castellanos
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

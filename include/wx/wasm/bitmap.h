@@ -1,8 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/bitmap.h
 // Purpose:     wxBitmap class
-// Author:      Hugo Castellanos
-// Copyright:   (c) 2024 wxWidgets dev team
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 

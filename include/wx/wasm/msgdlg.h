@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/msgdlg.h
 // Purpose:     wxMessageDialog class
-// Author:      Hugo Castellanos
+// Author:      Hugo Armando Castellanos Morales
 // Created:     17.07.21
-// Copyright:   (c) 2021-2024 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 

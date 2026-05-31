@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/colordlg.h
 // Author:      Hugo Armando Castellanos Morales
-// Copyright:   (c) Hugo Armando Castellanos Morales 2022
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/wasm/notebook.h
 // Purpose:     wxNotebook classes
-// Author:      Hugo Castellanos
+// Author:      Hugo Armando Castellanos Morales
 // Created:     19.07.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 

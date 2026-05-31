@@ -1,8 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        wx/qt/minifram.h
 // Purpose:     wxMiniFrame class
-// Author:      Mariano Reingart
-// Copyright:   (c) 2014 wxWidgets dev team
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

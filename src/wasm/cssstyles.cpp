@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/cssstyles.cpp
 // Purpose:     CSS Style management for WASM port
-// Author:      wxWidgets dev team
+// Author:      Hugo Armando Castellanos Morales
 // Created:     2024
-// Copyright:   (c) 2024 wxWidgets dev team
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

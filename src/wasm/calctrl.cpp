@@ -3,7 +3,7 @@
 // Purpose:     wxCalendarCtrl control implementation for wxWasm
 // Author:      Hugo Armando Castellanos Morales
 // Created:     2022-11-14
-// Copyright:   (c) 2022 Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

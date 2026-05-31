@@ -2,7 +2,7 @@
 // Name:        wx/wasm/anybutton.h
 // Purpose:     wxWASM wxAnyButton class declaration
 // Author:      Hugo Armando Castellanos Morales
-// Copyright:   (c) 2022 wxWidgets dev team
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

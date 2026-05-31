@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        src/wasm/menu.cpp
-// Author:      Peter Most, Mariano Reingart, Hugo Castellanos
-// Copyright:   (c) 2010 wxWidgets dev team, 2024 updates
+// Author:      Hugo Armando Castellanos Morales
+// Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 

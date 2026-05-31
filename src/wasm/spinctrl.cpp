@@ -56,6 +56,15 @@ int wxSpinCtrl::GetMax() const
 
 }
 
+int wxSpinCtrl::GetIncrement() const
+{
+    return 1;
+}
+
+void wxSpinCtrl::SetIncrement(int WXUNUSED(inc))
+{
+}
+
 void wxSpinCtrl::SetSnapToTicks(bool snap_to_ticks)
 {
 
@@ -122,8 +131,15 @@ void wxSpinCtrlDouble::SetValue( const wxString &value )
 
 void wxSpinCtrlDouble::SetValue(double val)
 {
-
 }
 
+double wxSpinCtrlDouble::GetIncrement() const
+{
+    return 1.0;
+}
+
+void wxSpinCtrlDouble::SetIncrement(double WXUNUSED(inc))
+{
+}
 
 #endif // wxUSE_SPINCTRL

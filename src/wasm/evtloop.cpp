@@ -75,7 +75,7 @@ int wxWasmEventLoopBase::DoRun()
         }
         emscripten_sleep(200);
     }
-    return true;
+    return m_exitcode;
 }
 
 void wxWasmEventLoopBase::ScheduleExit(int rc)
@@ -103,7 +103,8 @@ bool wxWasmEventLoopBase::Dispatch()
 
 int wxWasmEventLoopBase::DispatchTimeout(unsigned long timeout)
 {
-
+    wxUnusedVar(timeout);
+    return 0;
 }
 
 void wxWasmEventLoopBase::DoStop(int rc)

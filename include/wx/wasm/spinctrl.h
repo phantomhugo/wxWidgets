@@ -35,6 +35,7 @@ public:
     int GetMin() const;
     int GetMax() const;
     int GetIncrement() const;
+    void SetIncrement(int inc);
     wxString GetTextValue() const override;
     virtual bool SetBase(int base) override;
     void SetSnapToTicks(bool snap_to_ticks) override;
@@ -84,6 +85,7 @@ public:
     double GetMin() const;
     double GetMax() const;
     double GetIncrement() const;
+    void SetIncrement(double inc);
     virtual bool SetBase(int WXUNUSED(base)) override { return false; }
     virtual void SetValue(const wxString & val) override;
     virtual void SetValue(double val);

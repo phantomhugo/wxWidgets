@@ -59,6 +59,10 @@
 #include "wx/config.h"
 #include "wx/filename.h"
 
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/emscripten.h>
+#endif
+
 #include <memory>
 
 #include <pwd.h>
@@ -181,7 +185,9 @@ void wxSleep(int nSecs)
 
 void wxMicroSleep(unsigned long microseconds)
 {
-#if defined(HAVE_NANOSLEEP)
+#if defined(__EMSCRIPTEN__)
+    emscripten_sleep((microseconds + 999) / 1000);
+#elif defined(HAVE_NANOSLEEP)
     timespec tmReq;
     tmReq.tv_sec = (time_t)(microseconds / 1000000);
     tmReq.tv_nsec = (microseconds % 1000000) * 1000;

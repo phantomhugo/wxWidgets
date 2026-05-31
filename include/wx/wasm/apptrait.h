@@ -35,6 +35,7 @@ public:
     wxPortId GetToolkitVersion(int *majVer = nullptr,
                                int *minVer = nullptr,
                                int *microVer = nullptr) const override;
+    wxString GetDesktopEnvironment() const override;
 
 };
 

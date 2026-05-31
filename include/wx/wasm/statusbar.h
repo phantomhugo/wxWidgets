@@ -36,8 +36,8 @@ public:
     virtual void SetFieldsCount(int number = 1, const int* widths = nullptr) override;
     
     // Sobrescribir para actualizar DOM
-    virtual void PopStatusText(int field = 0) override;
-    virtual void PushStatusText(const wxString& text, int field = 0) override;
+    virtual void PopStatusText(int field = 0);
+    virtual void PushStatusText(const wxString& text, int field = 0);
 
 protected:
     virtual void DoUpdateStatusText(int number) override;

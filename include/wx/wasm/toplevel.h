@@ -43,6 +43,9 @@ public:
     // Styles
     virtual void SetWindowStyleFlag( long style ) override;
     virtual long GetWindowStyleFlag() const override;
+
+protected:
+    wxString m_title;
 };
 
 #endif // _WX_WASM_TOPLEVEL_H_

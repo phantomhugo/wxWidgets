@@ -428,6 +428,171 @@ static const char* g_defaultGTK3CSS = R"CSS(
 }
 
 /* ========================================
+   wxMessageDialog
+   ======================================== */
+
+/* Backdrop del diálogo modal */
+.wxMessageDialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+/* El diálogo mismo */
+.wxMessageDialog {
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    min-width: 300px;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Contenido del diálogo */
+.wxMessageDialog-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header con título */
+.wxMessageDialog-header {
+    background: linear-gradient(to bottom, #f6f5f4, #e8e7e6);
+    border-bottom: 1px solid #bfb8b1;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1c1c1c;
+    border-radius: 8px 8px 0 0;
+}
+
+/* Área del mensaje */
+.wxMessageDialog-message-area {
+    display: flex;
+    gap: 16px;
+    padding: 24px;
+    align-items: flex-start;
+}
+
+/* Icono */
+.wxMessageDialog-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f0f0f0;
+}
+
+/* Clases específicas para iconos */
+.wxMessageDialog-icon-error {
+    background: #ffebee;
+}
+
+.wxMessageDialog-icon-warning {
+    background: #fff3e0;
+}
+
+.wxMessageDialog-icon-question {
+    background: #e3f2fd;
+}
+
+.wxMessageDialog-icon-info {
+    background: #e8f5e9;
+}
+
+/* Contenedor de textos */
+.wxMessageDialog-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Mensaje principal */
+.wxMessageDialog-main-message {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #1c1c1c;
+}
+
+/* Mensaje extendido */
+.wxMessageDialog-extended-message {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #5c5c5c;
+}
+
+/* Área de botones */
+.wxMessageDialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+    background: #fafafa;
+    border-radius: 0 0 8px 8px;
+}
+
+/* Botones del diálogo */
+.wxMessageDialog-button {
+    padding: 8px 20px;
+    border: 1px solid #bfb8b1;
+    border-radius: 4px;
+    background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+    color: #1c1c1c;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 80px;
+}
+
+.wxMessageDialog-button:hover {
+    background: linear-gradient(to bottom, #f5f5f5, #e8e8e8);
+    border-color: #a0a0a0;
+}
+
+.wxMessageDialog-button:active {
+    background: #e0e0e0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Botón por defecto */
+.wxMessageDialog-button-default {
+    background: linear-gradient(to bottom, #3584e4, #1c6bc4);
+    color: white;
+    border-color: #1c6bc4;
+}
+
+.wxMessageDialog-button-default:hover {
+    background: linear-gradient(to bottom, #2a76d4, #165cad);
+}
+
+.wxMessageDialog-button-default:active {
+    background: #1c6bc4;
+}
+
+/* Botón de ayuda (va a la izquierda) */
+.wxMessageDialog-button-help {
+    margin-right: auto;
+    background: transparent;
+    border: none;
+    color: #3584e4;
+    min-width: auto;
+}
+
+.wxMessageDialog-button-help:hover {
+    background: rgba(53, 132, 228, 0.1);
+}
+
+/* ========================================
+   wxPanel
+   ======================================== */
+
+/* ========================================
    wxPanel
    ======================================== */
 
@@ -463,6 +628,196 @@ static const char* g_defaultGTK3CSS = R"CSS(
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1999;
+}
+
+/* ========================================
+   wxDialog - Diálogo modal nativo
+   ======================================== */
+.wxDialog {
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+    background: #ffffff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    min-width: 300px;
+}
+
+.wxDialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+}
+
+/* ========================================
+   wxGauge (progress bar)
+   ======================================== */
+
+.wxGauge {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    border-radius: 4px;
+    background: #e0e0e0;
+    overflow: hidden;
+}
+
+.wxGauge-horizontal {
+    width: 100%;
+    height: 16px;
+}
+
+.wxGauge-vertical {
+    width: 16px;
+    height: 100px;
+    transform: rotate(-90deg);
+    transform-origin: left bottom;
+}
+
+/* WebKit */
+.wxGauge::-webkit-progress-bar {
+    background: #e0e0e0;
+    border-radius: 4px;
+}
+
+.wxGauge::-webkit-progress-value {
+    background: linear-gradient(to bottom, #3584e4, #1c6bc4);
+    border-radius: 4px;
+    transition: width 0.15s ease;
+}
+
+/* Firefox */
+.wxGauge::-moz-progress-bar {
+    background: linear-gradient(to bottom, #3584e4, #1c6bc4);
+    border-radius: 4px;
+}
+
+/* ========================================
+   wxListCtrl (HTML table)
+   ======================================== */
+
+.wxListCtrl-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: inherit;
+    font-size: 13px;
+    color: #1c1c1c;
+}
+
+.wxListCtrl-head th {
+    background: linear-gradient(to bottom, #f6f5f4, #e8e7e6);
+    border-bottom: 1px solid #bfb8b1;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.wxListCtrl-body tr {
+    border-bottom: 1px solid #e8e7e6;
+    transition: background-color 0.1s ease;
+}
+
+.wxListCtrl-body tr:hover {
+    background-color: #e8f4fd;
+}
+
+.wxListCtrl-body tr.selected {
+    background-color: #3584e4;
+    color: white;
+}
+
+.wxListCtrl-body tr.focused {
+    outline: 1px solid #1c6bc4;
+    outline-offset: -1px;
+}
+
+.wxListCtrl-body td {
+    padding: 5px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ========================================
+   wxListCtrl - Grid modes (ICON, SMALL_ICON, LIST)
+   ======================================== */
+
+.wxListCtrl-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    overflow: auto;
+    align-content: flex-start;
+}
+
+.wxListCtrl-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    min-width: 60px;
+    max-width: 120px;
+    text-align: center;
+}
+
+.wxListCtrl-item:hover {
+    background-color: #e8f4fd;
+}
+
+.wxListCtrl-item.selected {
+    background-color: #3584e4;
+    color: white;
+}
+
+.wxListCtrl-item.focused {
+    outline: 1px solid #1c6bc4;
+    outline-offset: -1px;
+}
+
+.wxListCtrl-item-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.wxListCtrl-item-icon-large .wxListCtrl-item-icon {
+    font-size: 32px;
+    margin-bottom: 6px;
+}
+
+.wxListCtrl-item-label {
+    font-size: 12px;
+    line-height: 1.3;
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Popup flotante (context menu) */
+.wxMenu-popup-floating {
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-width: 220px;
+    background: #ffffff;
+    border: 1px solid #bfb8b1;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 6px 0;
+    z-index: 2000;
+    display: none;
+}
+
+/* Estado deshabilitado por wxWindowDisabler */
+.wx-disabled {
+    pointer-events: none !important;
+    opacity: 0.5;
 }
 )CSS";
 

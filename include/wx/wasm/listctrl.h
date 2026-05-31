@@ -260,6 +260,8 @@ public:
 
     virtual void *GetHandle() const override;
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     void Init();
 
@@ -270,6 +272,37 @@ protected:
     bool              m_hasCheckBoxes;
 
 private:
+    // Internal data structures for DOM table representation
+    struct ColumnInfo
+    {
+        wxString text;
+        int width;
+        wxListColumnFormat format;
+        int image;
+    };
+
+    struct ItemInfo
+    {
+        wxVector<wxString> texts;  // per-column text
+        wxUIntPtr data;
+        long state;
+        int image;
+        bool checked;
+    };
+
+    bool IsReportView() const { return HasFlag(wxLC_REPORT); }
+
+    void SyncColumnHeaders();
+    void SyncItemRow(long index);
+    void RemoveItemRow(long index);
+    void UpdateItemStateClass(long index);
+    void CreateItemDOM(long index);
+
+    wxVector<ColumnInfo> m_columns;
+    wxVector<ItemInfo> m_items;
+    wxArrayInt m_colOrder;
+    long m_editItem;
+
     wxDECLARE_DYNAMIC_CLASS( wxListCtrl );
 };
 

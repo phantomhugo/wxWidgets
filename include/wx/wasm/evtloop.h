@@ -16,18 +16,20 @@ public:
     ~wxWasmEventLoopBase()=default;
 
     virtual int DoRun() override;
-    virtual void ScheduleExit(int rc = 0) override;
+    virtual void ScheduleExit(int rc = 0);
     virtual bool Pending() const override;
     virtual bool Dispatch() override;
     virtual int DispatchTimeout(unsigned long timeout) override;
     virtual void WakeUp() override;
     virtual void DoYieldFor(long eventsToProcess) override;
+    virtual void DoStop(int rc) override;
 
     void ScheduleIdleCheck();
     friend void addEventFriend(int id,const std::string& eventType,int x,int y);
 private:
     static std::unique_ptr<wxWasmEventSink> m_sink;
     bool m_shouldExit;
+    int m_exitcode;
     wxDECLARE_NO_COPY_CLASS(wxWasmEventLoopBase);
 };
 

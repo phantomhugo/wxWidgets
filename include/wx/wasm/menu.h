@@ -18,12 +18,18 @@ public:
 
     virtual void *GetHandle() const;
 
+    // Each menu needs a unique DOM id for HTML element mapping.
+    // wxMenuBase doesn't inherit from wxWindow, so we add our own id.
+    int GetId() const { return m_id; }
+
 protected:
     virtual wxMenuItem *DoAppend(wxMenuItem *item) override;
     virtual wxMenuItem *DoInsert(size_t pos, wxMenuItem *item) override;
     virtual wxMenuItem *DoRemove(wxMenuItem *item) override;
 
 private:
+    int m_id;
+    static int GetNextMenuId();
 
     wxDECLARE_DYNAMIC_CLASS(wxMenu);
 };

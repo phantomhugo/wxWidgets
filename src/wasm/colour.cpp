@@ -16,48 +16,42 @@
 
 #include "wx/colour.h"
 
-bool wxColour::operator==(const wxColour& color) const
+bool wxColourImpl::operator==(const wxColourImpl& color) const
 {
-
+    return false;
 }
 
-bool wxColour::operator!=(const wxColour& color) const
-{
-    return !(*this == color);
-}
-
-unsigned long wxColour::GetPixel() const
+unsigned long wxColourImpl::GetPixel() const
 {
     return 0;
 }
 
-wxGDIRefData *wxColour::CreateGDIRefData() const
+wxGDIRefData *wxColourImpl::CreateGDIRefData() const
 {
-
+    return nullptr;
 }
-wxGDIRefData *wxColour::CloneGDIRefData(const wxGDIRefData *data) const
+wxGDIRefData *wxColourImpl::CloneGDIRefData(const wxGDIRefData *data) const
 {
-
+    return nullptr;
 }
-void wxColour::InitRGBA(ChannelType r, ChannelType g, ChannelType b, ChannelType a)
+void wxColourImpl::InitRGBA(ChannelType r, ChannelType g, ChannelType b, ChannelType a)
 {
-
-}
-
-bool wxColour::FromString(const wxString& str)
-{
-
 }
 
-unsigned char wxColour::Red() const
+bool wxColourImpl::FromString(const wxString& str)
 {
-
+    return false;
 }
-unsigned char wxColour::Green() const
-{
 
+unsigned char wxColourImpl::Red() const
+{
+    return 0;
 }
-unsigned char wxColour::Blue() const
+unsigned char wxColourImpl::Green() const
 {
-
+    return 0;
+}
+unsigned char wxColourImpl::Blue() const
+{
+    return 0;
 }

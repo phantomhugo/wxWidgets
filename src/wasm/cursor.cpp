@@ -51,6 +51,12 @@ wxCursor::wxCursor()
 
 }
 
+wxCursor::wxCursor(const wxBitmap& bitmap, const wxPoint& hotSpot)
+{
+    wxUnusedVar(bitmap);
+    wxUnusedVar(hotSpot);
+}
+
 wxCursor::wxCursor(const wxString& cursor_file,
                    wxBitmapType type,
                    int hotSpotX, int hotSpotY)

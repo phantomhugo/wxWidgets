@@ -24,21 +24,29 @@
 
 class wxBitmapRefData: public wxGDIRefData
 {
-    public:
-        wxBitmapRefData() { m_mask = nullptr; }
+public:
+    wxBitmapRefData()
+        : m_mask(nullptr), m_width(0), m_height(0), m_depth(0) {}
 
-        wxBitmapRefData( int width, int height, int depth )
-        {
+    wxBitmapRefData(int width, int height, int depth)
+        : m_mask(nullptr), m_width(width), m_height(height), m_depth(depth) {}
 
-        }
+    wxBitmapRefData(const wxBitmapRefData& other)
+        : wxGDIRefData(),
+          m_mask(other.m_mask ? new wxMask(*other.m_mask) : nullptr),
+          m_width(other.m_width),
+          m_height(other.m_height),
+          m_depth(other.m_depth) {}
 
-        virtual ~wxBitmapRefData() { delete m_mask; }
+    virtual ~wxBitmapRefData() { delete m_mask; }
 
-        wxMask *m_mask;
+    wxMask *m_mask;
+    int m_width;
+    int m_height;
+    int m_depth;
 
 private:
-    wxBitmapRefData(const wxBitmapRefData&other);
-    wxBitmapRefData& operator=(const wxBitmapRefData&other);
+    wxBitmapRefData& operator=(const wxBitmapRefData& other);
 };
 
 //-----------------------------------------------------------------------------
@@ -47,8 +55,10 @@ private:
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxBitmap, wxObject);
 
-#define M_PIXDATA ((wxBitmapRefData *)m_refData)->m_qtPixmap
 #define M_MASK ((wxBitmapRefData *)m_refData)->m_mask
+#define M_WIDTH ((wxBitmapRefData *)m_refData)->m_width
+#define M_HEIGHT ((wxBitmapRefData *)m_refData)->m_height
+#define M_DEPTH ((wxBitmapRefData *)m_refData)->m_depth
 
 void wxBitmap::InitStandardHandlers()
 {
@@ -60,6 +70,7 @@ wxBitmap::wxBitmap()
 
 wxBitmap::wxBitmap(const char bits[], int width, int height, int depth )
 {
+    Create(width, height, depth);
 }
 
 wxBitmap::wxBitmap(int width, int height, int depth)
@@ -80,6 +91,12 @@ wxBitmap::wxBitmap(int width, int height, const wxDC& dc)
 // Create a wxBitmap from xpm data
 wxBitmap::wxBitmap(const char* const* bits)
 {
+    if (bits)
+    {
+        int width = 0, height = 0, ncolors = 0, cpp = 0;
+        sscanf(bits[0], "%d %d %d %d", &width, &height, &ncolors, &cpp);
+        Create(width, height, 32);
+    }
 }
 
 wxBitmap::wxBitmap(const wxString &filename, wxBitmapType type )
@@ -89,17 +106,23 @@ wxBitmap::wxBitmap(const wxString &filename, wxBitmapType type )
 
 wxBitmap::wxBitmap(const wxImage& image, int depth, double scale)
 {
-
+    if (image.IsOk())
+    {
+        Create(image.GetWidth(), image.GetHeight(), depth);
+    }
 }
 
 wxBitmap::wxBitmap(const wxImage& image, const wxDC& dc)
 {
-
+    if (image.IsOk())
+    {
+        Create(image.GetWidth(), image.GetHeight());
+    }
 }
 
 wxBitmap::wxBitmap(const wxIcon& icon)
 {
-
+    CopyFromIcon(icon);
 }
 
 wxBitmap::wxBitmap(const wxCursor& cursor)
@@ -126,32 +149,41 @@ bool wxBitmap::Create(int width, int height, const wxDC& WXUNUSED(dc))
 
 int wxBitmap::GetHeight() const
 {
+    return m_refData ? M_HEIGHT : 0;
 }
 
 int wxBitmap::GetWidth() const
 {
+    return m_refData ? M_WIDTH : 0;
 }
 
 int wxBitmap::GetDepth() const
 {
+    return m_refData ? M_DEPTH : 0;
 }
 
 #if wxUSE_IMAGE
 wxImage wxBitmap::ConvertToImage() const
 {
-
+    // TODO: real pixel conversion when WASM bitmap stores pixel data
+    return wxImage();
 }
 
 #endif // wxUSE_IMAGE
 
 bool wxBitmap::CopyFromIcon(const wxIcon& icon)
 {
-
+    if (icon.IsOk())
+    {
+        Create(icon.GetWidth(), icon.GetHeight());
+        return true;
+    }
+    return false;
 }
 
 wxMask *wxBitmap::GetMask() const
 {
-    return M_MASK;
+    return m_refData ? M_MASK : nullptr;
 }
 
 void wxBitmap::SetMask(wxMask *mask)
@@ -163,64 +195,34 @@ void wxBitmap::SetMask(wxMask *mask)
 
 wxBitmap wxBitmap::GetSubBitmap(const wxRect& rect) const
 {
+    wxBitmap bmp;
+    if (IsOk() && rect.width > 0 && rect.height > 0)
+    {
+        bmp.Create(rect.width, rect.height, GetDepth());
+    }
+    return bmp;
 }
 
 
 bool wxBitmap::SaveFile(const wxString &name, wxBitmapType type,
               const wxPalette *WXUNUSED(palette) ) const
 {
+    wxUnusedVar(name);
+    wxUnusedVar(type);
+
     #if wxUSE_IMAGE
-    //Try to save using wx
     wxImage image = ConvertToImage();
     if (image.IsOk() && image.SaveFile(name, type))
         return true;
     #endif
 
-    //Try to save using Qt
-    const char* type_name = nullptr;
-    switch (type)
-    {
-        case wxBITMAP_TYPE_BMP:  type_name = "bmp";  break;
-        case wxBITMAP_TYPE_ICO:  type_name = "ico";  break;
-        case wxBITMAP_TYPE_JPEG: type_name = "jpeg"; break;
-        case wxBITMAP_TYPE_PNG:  type_name = "png";  break;
-        case wxBITMAP_TYPE_GIF:  type_name = "gif";  break;
-        case wxBITMAP_TYPE_CUR:  type_name = "cur";  break;
-        case wxBITMAP_TYPE_TIFF: type_name = "tif";  break;
-        case wxBITMAP_TYPE_XBM:  type_name = "xbm";  break;
-        case wxBITMAP_TYPE_PCX:  type_name = "pcx";  break;
-        case wxBITMAP_TYPE_BMP_RESOURCE:
-        case wxBITMAP_TYPE_ICO_RESOURCE:
-        case wxBITMAP_TYPE_CUR_RESOURCE:
-        case wxBITMAP_TYPE_XBM_DATA:
-        case wxBITMAP_TYPE_XPM:
-        case wxBITMAP_TYPE_XPM_DATA:
-        case wxBITMAP_TYPE_TIFF_RESOURCE:
-        case wxBITMAP_TYPE_GIF_RESOURCE:
-        case wxBITMAP_TYPE_PNG_RESOURCE:
-        case wxBITMAP_TYPE_JPEG_RESOURCE:
-        case wxBITMAP_TYPE_PNM:
-        case wxBITMAP_TYPE_PNM_RESOURCE:
-        case wxBITMAP_TYPE_PCX_RESOURCE:
-        case wxBITMAP_TYPE_PICT:
-        case wxBITMAP_TYPE_PICT_RESOURCE:
-        case wxBITMAP_TYPE_ICON:
-        case wxBITMAP_TYPE_ICON_RESOURCE:
-        case wxBITMAP_TYPE_ANI:
-        case wxBITMAP_TYPE_IFF:
-        case wxBITMAP_TYPE_TGA:
-        case wxBITMAP_TYPE_MACCURSOR:
-        case wxBITMAP_TYPE_MACCURSOR_RESOURCE:
-        case wxBITMAP_TYPE_MAX:
-        case wxBITMAP_TYPE_ANY:
-        default:
-            break;
-    }
-    return type_name;
+    return false;
 }
 
 bool wxBitmap::LoadFile(const wxString &name, wxBitmapType type)
 {
+    wxUnusedVar(name);
+    wxUnusedVar(type);
     //There is no real filesystem here, inmemory filesystem could be used, but in other time...
     return false;
 }
@@ -241,17 +243,20 @@ void wxBitmap::SetPalette(const wxPalette& WXUNUSED(palette))
 #if WXWIN_COMPATIBILITY_3_0
 void wxBitmap::SetHeight(int height)
 {
-
+    if (m_refData)
+        M_HEIGHT = height;
 }
 
 void wxBitmap::SetWidth(int width)
 {
-
+    if (m_refData)
+        M_WIDTH = width;
 }
 
 void wxBitmap::SetDepth(int depth)
 {
-
+    if (m_refData)
+        M_DEPTH = depth;
 }
 #endif
 
@@ -262,12 +267,15 @@ wxGDIRefData *wxBitmap::CreateGDIRefData() const
 
 wxGDIRefData *wxBitmap::CloneGDIRefData(const wxGDIRefData *data) const
 {
-
+    const wxBitmapRefData *bitmapData = dynamic_cast<const wxBitmapRefData *>(data);
+    if (bitmapData)
+        return new wxBitmapRefData(*bitmapData);
+    return new wxBitmapRefData;
 }
 
 bool wxBitmap::HasAlpha() const
 {
-
+    return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -278,37 +286,36 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxMask, wxObject);
 
 wxMask::wxMask()
 {
-
 }
 
 wxMask::wxMask(const wxMask &mask)
 {
-
+    wxUnusedVar(mask);
 }
 
 wxMask::wxMask(const wxBitmap& bitmap, const wxColour& colour)
 {
-
+    wxUnusedVar(bitmap);
+    wxUnusedVar(colour);
 }
 
 wxMask::wxMask(const wxBitmap& bitmap, int paletteIndex)
 {
-
+    wxUnusedVar(bitmap);
+    wxUnusedVar(paletteIndex);
 }
 
 wxMask::wxMask(const wxBitmap& bitmap)
 {
-
+    wxUnusedVar(bitmap);
 }
 
 wxMask::~wxMask()
 {
-
 }
 
 
 WXPixmap wxMask::GetBitmap() const
 {
-
+    return 0;
 }
-

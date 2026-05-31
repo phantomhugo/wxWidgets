@@ -58,7 +58,7 @@ extern "C"
     }
 }
 
-wxWasmEventLoopBase::wxWasmEventLoopBase():m_shouldExit(false)
+wxWasmEventLoopBase::wxWasmEventLoopBase():m_shouldExit(false), m_exitcode(0)
 {
     m_sink.reset(new wxWasmEventSink);
 }
@@ -81,6 +81,7 @@ int wxWasmEventLoopBase::DoRun()
 void wxWasmEventLoopBase::ScheduleExit(int rc)
 {
     m_shouldExit=true;
+    DoStop(rc);
 }
 
 bool wxWasmEventLoopBase::Pending() const
@@ -103,6 +104,11 @@ bool wxWasmEventLoopBase::Dispatch()
 int wxWasmEventLoopBase::DispatchTimeout(unsigned long timeout)
 {
 
+}
+
+void wxWasmEventLoopBase::DoStop(int rc)
+{
+    m_exitcode = rc;
 }
 
 void wxWasmEventLoopBase::WakeUp()

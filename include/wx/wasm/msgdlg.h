@@ -3,7 +3,7 @@
 // Purpose:     wxMessageDialog class
 // Author:      Hugo Castellanos
 // Created:     17.07.21
-// Copyright:   (c) 2021 Logo Texo S.A.S. (www.logotexo.com)
+// Copyright:   (c) 2021-2024 Logo Texo S.A.S. (www.logotexo.com)
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -22,10 +22,16 @@ public:
                     const wxPoint& pos = wxDefaultPosition);
     virtual ~wxMessageDialog();
 
-    // Reimplemented to translate return codes from Qt to wx
+    // Implementación usando elemento <dialog> de HTML5
     virtual int ShowModal() override;
 
 private:
+    // Crear el elemento DOM del diálogo
+    void CreateDialogElement();
+    
+    // Helper para obtener etiquetas de botones
+    static wxString GetButtonLabel(int id, const wxString& customLabel);
+    
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxMessageDialog);
 };
 

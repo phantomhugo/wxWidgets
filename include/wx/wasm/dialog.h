@@ -10,28 +10,26 @@
 #ifndef _WX_WASM_DIALOG_H_
 #define _WX_WASM_DIALOG_H_
 
-#include "wx/dialog.h"
-class QDialog;
-
 class WXDLLIMPEXP_CORE wxDialog : public wxDialogBase
 {
 public:
     wxDialog();
-    wxDialog( wxWindow *parent, wxWindowID id,
-            const wxString &title,
-            const wxPoint &pos = wxDefaultPosition,
-            const wxSize &size = wxDefaultSize,
-            long style = wxDEFAULT_DIALOG_STYLE,
-            const wxString &name = wxASCII_STR(wxDialogNameStr) );
+
+    wxDialog(wxWindow *parent, wxWindowID id,
+             const wxString &title,
+             const wxPoint &pos = wxDefaultPosition,
+             const wxSize &size = wxDefaultSize,
+             long style = wxDEFAULT_DIALOG_STYLE,
+             const wxString &name = wxASCII_STR(wxDialogNameStr));
 
     virtual ~wxDialog();
 
-    bool Create( wxWindow *parent, wxWindowID id,
-            const wxString &title,
-            const wxPoint &pos = wxDefaultPosition,
-            const wxSize &size = wxDefaultSize,
-            long style = wxDEFAULT_DIALOG_STYLE,
-            const wxString &name = wxASCII_STR(wxDialogNameStr) );
+    bool Create(wxWindow *parent, wxWindowID id,
+                const wxString &title,
+                const wxPoint &pos = wxDefaultPosition,
+                const wxSize &size = wxDefaultSize,
+                long style = wxDEFAULT_DIALOG_STYLE,
+                const wxString &name = wxASCII_STR(wxDialogNameStr));
 
     virtual int ShowModal() override;
     virtual void EndModal(int retCode) override;
@@ -41,9 +39,9 @@ public:
     void *GetDialogHandle() const;
 
 private:
+    bool m_isModal;
 
-    wxDECLARE_DYNAMIC_CLASS( wxDialog );
+    wxDECLARE_DYNAMIC_CLASS(wxDialog);
 };
-
 
 #endif // _WX_WASM_DIALOG_H_

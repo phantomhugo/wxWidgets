@@ -57,6 +57,11 @@ if(wxUSE_EXPAT STREQUAL "builtin")
     target_include_directories(wxexpat PRIVATE ${wxBINARY_DIR}/libs/expat)
     target_compile_definitions(wxexpat PRIVATE HAVE_EXPAT_CONFIG_H)
 
+    # Emscripten/WASM doesn't have high-quality entropy sources available
+    if(EMSCRIPTEN)
+        target_compile_definitions(wxexpat PRIVATE XML_POOR_ENTROPY)
+    endif()
+
     set(EXPAT_LIBRARIES wxexpat)
     set(EXPAT_INCLUDE_DIRS ${wxEXPAT_DIR}/lib)
 endif()

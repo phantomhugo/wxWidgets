@@ -30,17 +30,20 @@ class WXDLLIMPEXP_FWD_CORE wxColour;
 // wxColour
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxColour : public wxColourBase
+class WXDLLIMPEXP_CORE wxColourImpl : public wxColourBase
 {
 public:
     // constructors
     // ------------
-    DEFINE_STD_WXCOLOUR_CONSTRUCTORS
+    wxColourImpl() = default;
+    wxColourImpl(ChannelType r, ChannelType g, ChannelType b, ChannelType a = wxALPHA_OPAQUE)
+        { Set(r, g, b, a); }
+    wxColourImpl(const wxColourImpl& col) = default;
 
-    virtual ~wxColour() = default;
+    virtual ~wxColourImpl() = default;
 
-    bool operator==(const wxColour& col) const;
-    bool operator!=(const wxColour& col) const;
+    bool operator==(const wxColourImpl& col) const;
+    bool operator!=(const wxColourImpl& col) const { return !(*this == col); }
 
     unsigned char Red() const;
     unsigned char Green() const;
@@ -62,7 +65,7 @@ protected:
     virtual bool FromString(const wxString& str);
 
 private:
-    wxDECLARE_DYNAMIC_CLASS(wxColour);
+    wxDECLARE_DYNAMIC_CLASS(wxColourImpl);
 };
 
 #endif // _WX_COLOUR_H_

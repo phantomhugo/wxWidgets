@@ -33,13 +33,19 @@ static void CreateDOMElement(int id, const char* tag, const char* className,
 // wxMenu
 //##############################################################################
 
+int wxMenu::GetNextMenuId()
+{
+    static int s_nextId = 10000;  // Start well above standard wxID values
+    return s_nextId++;
+}
+
 wxMenu::wxMenu(long style)
-    : wxMenuBase(style)
+    : wxMenuBase(style), m_id(GetNextMenuId())
 {
 }
 
 wxMenu::wxMenu(const wxString& title, long style)
-    : wxMenuBase(title, style)
+    : wxMenuBase(title, style), m_id(GetNextMenuId())
 {
 }
 
@@ -191,9 +197,68 @@ bool wxMenuBar::Insert(size_t pos, wxMenu *menu, const wxString& title)
     if (!wxMenuBarBase::Insert(pos, menu, title))
         return false;
 
-    // TODO: Manejar inserción en posición específica en el DOM
-    // Por ahora, simplemente re-append todos los menús
-    
+    // Re-append all menus in correct DOM order
+    int menuBarId = GetId();
+    EM_ASM_({
+        var menuBar = document.getElementById($0);
+        if (!menuBar) return;
+        // Detach all existing menu containers
+        var containers = Array.from(menuBar.querySelectorAll('.wxMenuBar-menu'));
+        containers.forEach(function(c) { menuBar.removeChild(c); });
+    }, menuBarId);
+
+    const size_t count = GetMenuCount();
+    for (size_t i = 0; i < count; ++i)
+    {
+        wxMenu* m = GetMenu(i);
+        wxString lbl = GetMenuLabel(i);
+        int menuId = m->GetId();
+        wxCharBuffer titleBuffer = lbl.ToUTF8();
+        EM_ASM_({
+            var menuBar = document.getElementById($0);
+            if (!menuBar) return;
+            var menuContainer = document.createElement("div");
+            menuContainer.id = 'menubar_menu_' + $1;
+            menuContainer.className = 'wxMenuBar-menu';
+            var label = document.createElement("span");
+            label.className = 'wxMenuBar-label';
+            label.textContent = UTF8ToString($2);
+            menuContainer.appendChild(label);
+            var popup = document.createElement("div");
+            popup.id = $1;
+            popup.className = 'wxMenu-popup';
+            menuContainer.appendChild(popup);
+            var isOpen = false;
+            label.onclick = function(e) {
+                e.stopPropagation();
+                isOpen = !isOpen;
+                if (isOpen) {
+                    menuContainer.classList.add('open');
+                    document.querySelectorAll('.wxMenuBar-menu.open').forEach(function(m) {
+                        if (m !== menuContainer) m.classList.remove('open');
+                    });
+                } else {
+                    menuContainer.classList.remove('open');
+                }
+            };
+            document.addEventListener('click', function(e) {
+                if (isOpen && !menuContainer.contains(e.target)) {
+                    isOpen = false;
+                    menuContainer.classList.remove('open');
+                }
+            });
+            menuBar.appendChild(menuContainer);
+        }, menuBarId, menuId, titleBuffer.data());
+
+        // Recreate DOM items for this menu (they reference the popup container)
+        const wxMenuItemList& items = m->GetMenuItems();
+        for (wxMenuItemList::const_iterator it = items.begin(); it != items.end(); ++it)
+        {
+            wxMenuItem* item = *it;
+            item->CreateDOM(m);
+        }
+    }
+
     return true;
 }
 

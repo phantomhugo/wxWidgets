@@ -358,7 +358,9 @@ protected:
 #else // !wxUSE_GUI
     // we can't define wxEventLoop differently in GUI and base libraries so use
     // a #define to still allow writing wxEventLoop in the user code
-    #if wxUSE_CONSOLE_EVENTLOOP && (defined(__WINDOWS__) || defined(__UNIX__))
+    #if defined(__WXWASM__)
+        #define wxEventLoop wxGUIEventLoop
+    #elif wxUSE_CONSOLE_EVENTLOOP && (defined(__WINDOWS__) || defined(__UNIX__))
         #define wxEventLoop wxConsoleEventLoop
     #else // we still must define it somehow for the code below...
         #define wxEventLoop wxEventLoopBase

@@ -126,18 +126,6 @@ wxBitmapDataObject::wxBitmapDataObject( const wxBitmap &bitmap )
 }
 
 //#############################################################################
-// ----------------------------------------------------------------------------
-// wxTextDataObject
-// ---------------------------------------------------------------------------
-
-void wxTextDataObject::GetAllFormats(wxDataFormat *formats,
-    wxDataObjectBase::Direction WXUNUSED(dir)) const
-{
-    formats[0] = wxDataFormat(wxDF_UNICODETEXT);
-    formats[1] = wxDataFormat(wxDF_TEXT);
-}
-
-//#############################################################################
 
 wxFileDataObject::wxFileDataObject()
 {

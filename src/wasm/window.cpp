@@ -492,8 +492,47 @@ void wxWindowWasm::DoSetToolTip( wxToolTip *tip )
 #if wxUSE_MENUS
 bool wxWindowWasm::DoPopupMenu(wxMenu *menu, int x, int y)
 {
+    if (!menu)
+        return false;
+
     menu->UpdateUI();
-    //menu->GetHandle()->exec( GetHandle()->mapToGlobal( QPoint( x, y ) ) );
+
+    wxPoint screenPos = ClientToScreen(wxPoint(x, y));
+    int menuId = menu->GetId();
+
+    EM_ASM_({
+        var menuId = $0;
+        var x = $1;
+        var y = $2;
+
+        // Find or create floating popup container for this menu
+        var popup = document.getElementById(menuId);
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.id = menuId;
+            popup.className = 'wxMenu-popup wxMenu-popup-floating';
+            document.body.appendChild(popup);
+        }
+
+        // Position the popup at screen coordinates
+        popup.style.position = 'fixed';
+        popup.style.left = x + 'px';
+        popup.style.top = y + 'px';
+        popup.style.display = 'block';
+        popup.style.zIndex = '2000';
+
+        // Close on click outside
+        function closePopup(e) {
+            if (!popup.contains(e.target)) {
+                popup.style.display = 'none';
+                document.removeEventListener('click', closePopup);
+            }
+        }
+        // Delay to avoid immediate close from the triggering click
+        setTimeout(function() {
+            document.addEventListener('click', closePopup);
+        }, 100);
+    }, menuId, screenPos.x, screenPos.y);
 
     return true;
 }

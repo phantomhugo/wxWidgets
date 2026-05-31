@@ -29,8 +29,8 @@ public:
     virtual bool IsChecked() const override;
     virtual void SetBitmap(const wxBitmapBundle& bitmap) override;
 
-    virtual void *GetHandle() const override;
-    virtual void SetFont(const wxFont& font) override;
+    virtual void *GetHandle() const;
+    virtual void SetFont(const wxFont& font);
     
     // Métodos específicos de WASM
     void CreateDOM(wxMenu* parentMenu);

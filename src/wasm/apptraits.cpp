@@ -63,3 +63,8 @@ wxPortId wxGUIAppTraits::GetToolkitVersion(int *majVer,
 
     return wxPORT_WASM;
 }
+
+wxString wxGUIAppTraits::GetDesktopEnvironment() const
+{
+    return wxEmptyString;
+}

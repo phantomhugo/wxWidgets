@@ -47,6 +47,40 @@ set(BASE_UNIX_HDR
     wx/unix/mimetype.h
 )
 
+set(BASE_WASM_SRC
+    src/common/fdiodispatcher.cpp
+    src/common/selectdispatcher.cpp
+    src/unix/appunix.cpp
+    src/unix/dir.cpp
+    src/unix/evtloopunix.cpp
+    src/unix/fdiounix.cpp
+    src/unix/snglinst.cpp
+    src/unix/stackwalk.cpp
+    src/unix/timerunx.cpp
+    src/unix/threadpsx.cpp
+    src/unix/utilsunx.cpp
+    src/unix/wakeuppipe.cpp
+    src/unix/stdpaths.cpp
+    src/unix/mimetype.cpp
+    src/unix/secretstore.cpp
+    src/unix/uilocale.cpp
+)
+
+set(BASE_WASM_HDR
+    wx/unix/app.h
+    wx/unix/apptbase.h
+    wx/unix/apptrait.h
+    wx/unix/chkconf.h
+    wx/unix/evtloop.h
+    wx/unix/evtloopsrc.h
+    wx/unix/pipe.h
+    wx/unix/stackwalk.h
+    wx/unix/stdpaths.h
+    wx/unix/mimetype.h
+    wx/unix/fswatcher_inotify.h
+    wx/unix/fswatcher_kqueue.h
+)
+
 set(BASE_WIN32_SRC
     src/msw/basemsw.cpp
     src/msw/crashrpt.cpp
@@ -3071,6 +3105,7 @@ set(WASM_SRC
     src/wasm/scrolbar.cpp
     src/wasm/settings.cpp
     src/wasm/slider.cpp
+    src/wasm/sound.cpp
     src/wasm/spinbutt.cpp
     src/wasm/spinctrl.cpp
     src/wasm/statbmp.cpp

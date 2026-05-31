@@ -12,20 +12,22 @@
 
 class WXDLLIMPEXP_FWD_CORE wxRegion;
 
+std::string GenerateCanvasId();
+
 class WXDLLIMPEXP_CORE wxWasmDCImpl : public wxDCImpl
 {
 public:
     wxWasmDCImpl( wxDC *owner );
-    ~wxWasmDCImpl() = default;
+    virtual ~wxWasmDCImpl();
 
-    virtual bool CanDrawBitmap() const override;
-    virtual bool CanGetTextExtent() const override;
+    virtual bool CanDrawBitmap() const override { return true; }
+    virtual bool CanGetTextExtent() const override { return true; }
 
     virtual void DoGetSize(int *width, int *height) const override;
     virtual void DoGetSizeMM(int* width, int* height) const override;
 
-    virtual int GetDepth() const override;
-    virtual wxSize GetPPI() const override;
+    virtual int GetDepth() const override { return 32; }
+    virtual wxSize GetPPI() const override { return wxSize(96, 96); }
 
     virtual void SetFont(const wxFont& font) override;
     virtual void SetPen(const wxPen& pen) override;
@@ -104,7 +106,23 @@ public:
 
     virtual void ComputeScaleAndOrigin() override;
 
+    const std::string& GetCanvasId() const { return m_canvasId; }
+
 protected:
+    std::string m_canvasId;
+    wxSize m_size;
+    wxColour m_textColour;
+    wxColour m_penColour;
+    wxColour m_brushColour;
+    int m_penWidth;
+    wxFont m_font;
+    bool m_hasClipping;
+
+    void EnsureCanvasCreated();
+    void ApplyPen();
+    void ApplyBrush();
+    void ApplyFont();
+    void ApplyTextColour();
 
     wxRegion m_clippingRegion;
 private:

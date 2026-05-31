@@ -73,7 +73,7 @@
 
 /* Direct access to bitmap data is not implemented in all ports yet */
 #if defined(__WXGTK__) || defined(__WXMAC__) || defined(__WXDFB__) || \
-        defined(__WXMSW__) || defined(__WXQT__)
+        defined(__WXMSW__) || defined(__WXQT__) || defined(__WXWASM__)
 
     /*
        HP aCC for PA-RISC can't deal with templates in wx/rawbmp.h.

@@ -217,6 +217,11 @@ typedef wxPixelFormat<unsigned char, 24, 0, 1, 2> wxImagePixelFormat;
         enum { HasAlpha = false };
     };
     typedef wxPixelFormat<void, 1, -1, -1, -1, -1, bool> wxMonoPixelFormat;
+#elif defined(__WXWASM__)
+    // WASM stores pixels as RGBA in memory
+    typedef wxPixelFormat<unsigned char, 32, 0, 1, 2> wxNativePixelFormat;
+
+    #define wxPIXEL_FORMAT_ALPHA 3
 #endif
 
 // the (most common) native format for bitmaps with alpha channel

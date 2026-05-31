@@ -19,44 +19,33 @@
 
 void wxBell()
 {
-
 }
+
 #if wxUSE_GUI
-wxPoint wxGetMousePosition()
-{
-}
-
 void wxGetMousePosition( int *x, int *y )
 {
-    wxPoint position = wxGetMousePosition();
-
-    *x = position.x;
-    *y = position.y;
+    // WASM doesn't have native mouse position access from arbitrary contexts.
+    if ( x ) *x = 0;
+    if ( y ) *y = 0;
 }
 #endif
 
 #if wxUSE_GUI
-bool wxGetKeyState(wxKeyCode key)
+bool wxGetKeyState(wxKeyCode WXUNUSED(key))
 {
-
+    return false;
 }
+
 wxMouseState wxGetMouseState()
 {
     wxMouseState ms;
-
     return ms;
 }
 #endif
 
-
 wxWindow *wxFindWindowAtPoint(const wxPoint& pt)
 {
     return wxGenericFindWindowAtPoint( pt );
-}
-
-wxWindow *wxFindWindowAtPointer(wxPoint& pt)
-{
-    return wxFindWindowAtPoint( pt );
 }
 
 wxWindow *wxGetActiveWindow()

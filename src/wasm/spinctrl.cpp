@@ -65,6 +65,10 @@ void wxSpinCtrl::SetIncrement(int WXUNUSED(inc))
 {
 }
 
+void wxSpinCtrl::SetRange(int WXUNUSED(min), int WXUNUSED(max))
+{
+}
+
 void wxSpinCtrl::SetSnapToTicks(bool snap_to_ticks)
 {
 
@@ -139,6 +143,10 @@ double wxSpinCtrlDouble::GetIncrement() const
 }
 
 void wxSpinCtrlDouble::SetIncrement(double WXUNUSED(inc))
+{
+}
+
+void wxSpinCtrlDouble::SetRange(double WXUNUSED(min), double WXUNUSED(max))
 {
 }
 

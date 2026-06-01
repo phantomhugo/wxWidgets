@@ -10,6 +10,7 @@
 #ifndef _WX_WASM_CHOICE_H_
 #define _WX_WASM_CHOICE_H_
 
+#include <vector>
 
 class WXDLLIMPEXP_CORE wxChoice : public wxChoiceBase
 {
@@ -59,6 +60,8 @@ public:
 
     virtual WXWidget GetHandle() const override;
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     virtual int DoInsertItems(const wxArrayStringsAdapter & items,
                               unsigned int pos,
@@ -73,6 +76,8 @@ protected:
     virtual void DoDeleteOneItem(unsigned int pos) override;
 
 private:
+    wxArrayString m_choices;
+    std::vector<void*> m_clientData;
 
     wxDECLARE_DYNAMIC_CLASS(wxChoice);
 };

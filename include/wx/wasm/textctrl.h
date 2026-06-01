@@ -61,6 +61,8 @@ public:
 
     virtual WXWidget GetHandle() const override;
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     virtual wxSize DoGetBestSize() const override;
 

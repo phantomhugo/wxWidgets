@@ -81,6 +81,8 @@ public:
     virtual void Release();
     virtual void ChangeValue(bool value);
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     virtual void DoSet3StateValue(wxCheckBoxState WXUNUSED(state)) override;
     virtual wxCheckBoxState DoGet3StateValue() const override;

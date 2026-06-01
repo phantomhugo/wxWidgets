@@ -10,6 +10,7 @@
 
 #include "wx/statbox.h"
 #include "wx/window.h"
+#include <emscripten.h>
 
 
 wxStaticBox::wxStaticBox()
@@ -33,17 +34,48 @@ bool wxStaticBox::Create(wxWindow *parent, wxWindowID id,
             long style,
             const wxString& name)
 {
+    if ( !wxControl::Create(parent, id, pos, size, style, wxDefaultValidator, name) )
+        return false;
 
+    int domId = GetId();
+    wxCharBuffer labelBuffer = label.ToUTF8();
+
+    EM_ASM_({
+        var container = document.getElementById($0);
+        if (!container) return;
+
+        var fieldset = document.createElement('fieldset');
+        fieldset.className = 'wxStaticBox';
+
+        var legend = document.createElement('legend');
+        legend.textContent = UTF8ToString($1);
+
+        fieldset.appendChild(legend);
+        container.appendChild(fieldset);
+    }, domId, labelBuffer.data());
+
+    return true;
 }
 
 void wxStaticBox::SetLabel(const wxString& label)
 {
+    wxControl::SetLabel(label);
 
+    wxCharBuffer buffer = label.ToUTF8();
+    EM_ASM_({
+        var container = document.getElementById($0);
+        if (container) {
+            var legend = container.querySelector('.wxStaticBox legend');
+            if (legend) {
+                legend.textContent = UTF8ToString($1);
+            }
+        }
+    }, GetId(), buffer.data());
 }
 
 wxString wxStaticBox::GetLabel() const
 {
-
+    return wxControl::GetLabel();
 }
 
 void wxStaticBox::GetBordersForSizer(int *borderTop, int *borderOther) const
@@ -54,7 +86,16 @@ void wxStaticBox::GetBordersForSizer(int *borderTop, int *borderOther) const
     *borderTop += GetCharHeight();
 }
 
+wxSize wxStaticBox::DoGetBestSize() const
+{
+    return wxSize(50, 30);
+}
+
 WXWidget wxStaticBox::GetHandle() const
 {
+    return nullptr;
+}
 
+void wxStaticBox::WasmNotifyEvent(const wxWasmEvent& WXUNUSED(event))
+{
 }

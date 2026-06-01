@@ -79,6 +79,8 @@ public:
 
     virtual WXWidget GetHandle() const override;
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 private:
 
     wxDECLARE_DYNAMIC_CLASS(wxRadioBox);

@@ -44,6 +44,13 @@ public:
     virtual void SetValue(const wxString & val) override;
     virtual void SetValue(int val);
 
+    virtual WXWidget GetHandle() const override;
+
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
+protected:
+    virtual wxSize DoGetBestSize() const override;
+
 private:
     // Common part of all ctors.
     void Init()
@@ -92,9 +99,10 @@ public:
     virtual void SetValue(const wxString & val) override;
     virtual void SetValue(double val);
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 private:
     wxDECLARE_DYNAMIC_CLASS( wxSpinCtrlDouble );
 };
 
 #endif // _WX_WASM_SPINCTRL_H_
-

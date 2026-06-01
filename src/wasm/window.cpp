@@ -84,6 +84,32 @@ bool wxWindowWasm::Create( wxWindowWasm * parent, wxWindowID id, const wxPoint &
 
 void wxWindowWasm::PostCreation(bool generic)
 {
+    // Create the DOM element for this window if it doesn't exist yet.
+    // Top-level windows and child controls all need a container div.
+    EM_ASM_({
+        var id = $0;
+        var parentId = $1;
+        var elem = document.getElementById(id);
+        if (!elem) {
+            elem = document.createElement('div');
+            elem.id = id;
+            elem.className = 'wxWindow';
+            elem.style.position = 'absolute';
+            elem.style.boxSizing = 'border-box';
+            elem.style.overflow = 'hidden';
+            if (parentId >= 0) {
+                var parentElem = document.getElementById(parentId);
+                if (parentElem) {
+                    parentElem.appendChild(elem);
+                } else {
+                    document.body.appendChild(elem);
+                }
+            } else {
+                document.body.appendChild(elem);
+            }
+        }
+    }, GetId(), m_parent ? m_parent->GetId() : -1);
+
     wxWindowCreateEvent event(this);
     HandleWindowEvent(event);
 }

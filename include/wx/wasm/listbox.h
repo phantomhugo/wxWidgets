@@ -100,6 +100,8 @@ public:
     virtual int GetSelection() const override;
     virtual int GetSelections(wxArrayInt& aSelections) const override;
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     virtual void DoSetSelection(int n, bool select) override;
 
@@ -107,6 +109,7 @@ protected:
                               unsigned int pos,
                               void **clientData,
                               wxClientDataType type) override;
+    virtual int DoInsertOneItem(const wxString& item, unsigned int pos) override;
 
     virtual int DoListHitTest(const wxPoint& point) const override;
 
@@ -237,6 +240,8 @@ protected:
     // selection listboxes only the first element of it is used and contains
     // the current selection)
     wxArrayInt m_selections;
+
+    wxArrayString m_items;
 
     // and this one the client data (either void or wxClientData)
     wxArrayPtrVoid m_itemsClientData;

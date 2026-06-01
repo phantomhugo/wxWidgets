@@ -47,6 +47,9 @@ public:
 
     virtual bool DeleteAllPages() override;
 
+    virtual wxSize DoGetBestSize() const override;
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     virtual wxWindow *DoRemovePage(size_t page) override;
 

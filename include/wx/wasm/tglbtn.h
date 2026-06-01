@@ -37,6 +37,8 @@ public:
     virtual void SetValue(bool state) override;
     virtual bool GetValue() const override;
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 private:
     wxDECLARE_DYNAMIC_CLASS(wxToggleButton);
 

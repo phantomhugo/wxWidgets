@@ -36,6 +36,9 @@ public:
     virtual void SetLabel(const wxString& label) override;
     virtual wxString GetLabel() const override;
 
+    virtual wxSize DoGetBestSize() const override;
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
 
 private:

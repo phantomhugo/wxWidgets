@@ -8,6 +8,8 @@
 #ifndef _WX_WASM_TREECTRL_H_
 #define _WX_WASM_TREECTRL_H_
 
+#include <map>
+
 class WXDLLIMPEXP_CORE wxTreeCtrl : public wxTreeCtrlBase
 {
 public:
@@ -117,6 +119,8 @@ public:
 
     virtual void SetStateImages(const wxVector<wxBitmapBundle>& images);
 
+    virtual void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     virtual int DoGetItemState(const wxTreeItemId& item) const override;
     virtual void DoSetItemState(const wxTreeItemId& item, int state) override;
@@ -138,10 +142,29 @@ protected:
     virtual void OnImagesChanged() override;
 
 private:
+    struct wxTreeItemDataInternal
+    {
+        wxTreeItemId id;
+        wxString text;
+        wxTreeItemId parent;
+        wxTreeItemData *data;
+        bool expanded;
+    };
+
     void SendDeleteEvent(const wxTreeItemId &item);
     wxTreeItemId GetNext(const wxTreeItemId &item) const;
 
     void DoUpdateIconsSize(wxImageList *imageList);
+
+    void DeleteItemInternal(const wxTreeItemId &item);
+    wxTreeItemIdValue MakeItemIdValue();
+    wxTreeItemIdValue IntToItemIdValue(int id) const;
+
+    std::map<wxTreeItemIdValue, wxTreeItemDataInternal> m_items;
+    wxTreeItemId m_rootItem;
+    wxTreeItemId m_selectedItem;
+    wxTreeItemId m_focusedItem;
+    long m_nextId;
 
     wxDECLARE_DYNAMIC_CLASS(wxTreeCtrl);
 };

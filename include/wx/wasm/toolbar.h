@@ -66,6 +66,8 @@ protected:
     virtual void DoToggleTool(wxToolBarToolBase *tool, bool toggle) override;
     virtual void DoSetToggle(wxToolBarToolBase *tool, bool toggle) override;
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 private:
     void Init();
 

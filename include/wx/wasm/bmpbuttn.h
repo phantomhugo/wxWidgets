@@ -37,6 +37,8 @@ public:
                            wxWindowID winid,
                            const wxString& name = wxString());
 
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
 protected:
     wxDECLARE_DYNAMIC_CLASS(wxBitmapButton);
 

@@ -70,6 +70,7 @@ public:
 protected:
     // override all methods which add/delete items to update m_checks array as
     // well
+    virtual int DoInsertOneItem(const wxString& item, unsigned int pos) override;
     virtual void OnItemInserted(unsigned int pos) override;
     virtual void DoDeleteOneItem(unsigned int n) override;
     virtual void DoClear() override;
@@ -83,6 +84,8 @@ protected:
 
     // common part of all ctors
     void Init();
+
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
 
 private:
     // the array containing the checked status of the items

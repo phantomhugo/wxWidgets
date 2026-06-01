@@ -16,6 +16,7 @@
 #endif // WX_PRECOMP
 
 #include "wx/toolbar.h"
+#include <emscripten.h>
 
 class wxToolBarTool : public wxToolBarToolBase
 {
@@ -24,12 +25,14 @@ public:
                   const wxBitmapBundle& bitmap2, wxItemKind kind, wxObject *clientData,
                   const wxString& shortHelpString, const wxString& longHelpString)
         : wxToolBarToolBase(tbar, id, label, bitmap1, bitmap2, kind,
-                            clientData, shortHelpString, longHelpString)
+                            clientData, shortHelpString, longHelpString),
+          m_domElementId(0)
     {
     }
 
     wxToolBarTool(wxToolBar *tbar, wxControl *control, const wxString& label)
-        : wxToolBarToolBase(tbar, control, label)
+        : wxToolBarToolBase(tbar, control, label),
+          m_domElementId(0)
     {
     }
 
@@ -40,7 +43,7 @@ public:
     void ClearToolTip();
     void SetToolTip();
 
-
+    int m_domElementId;
 };
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxToolBar, wxControl);
@@ -87,20 +90,34 @@ bool wxToolBar::Create(wxWindow *parent, wxWindowID id, const wxPoint& pos,
 {
     SetWindowStyleFlag(style);
 
-    // not calling to wxWindow::Create, so do the rest of initialization:
-    if (parent)
-        parent->AddChild( this );
+    if (!wxControl::Create(parent, id, pos, size, style, wxDefaultValidator, name))
+        return false;
 
-    PostCreation();
+    EM_ASM_({
+        var container = document.getElementById($0);
+        if (!container) return;
 
-    return wxWindowBase::CreateBase( parent, id, pos, size, style, wxDefaultValidator, name );
+        var toolbar = document.createElement('div');
+        toolbar.className = 'wxToolBar';
+        toolbar.style.display = 'flex';
+        toolbar.style.flexDirection = 'row';
+        toolbar.style.alignItems = 'center';
+        toolbar.style.background = '#e8e7e6';
+        toolbar.style.borderBottom = '1px solid #bfb8b1';
+        toolbar.style.padding = '2px';
+        toolbar.style.height = '100%';
+        toolbar.style.width = '100%';
+        toolbar.style.boxSizing = 'border-box';
+
+        container.appendChild(toolbar);
+    }, GetId());
+
+    return true;
 }
 
 wxToolBarToolBase *wxToolBar::FindToolForPosition(wxCoord WXUNUSED(x),
                                                   wxCoord WXUNUSED(y)) const
 {
-//    actionAt(x, y);
-    wxFAIL_MSG( wxT("wxToolBar::FindToolForPosition() not implemented") );
     return nullptr;
 }
 
@@ -110,9 +127,6 @@ void wxToolBar::SetToolShortHelp( int id, const wxString& helpString )
     if ( tool )
     {
         (void)tool->SetShortHelp(helpString);
-        //TODO - other qt actions for tool tip string
-//        if (tool->m_item)
-//        {}
     }
 }
 
@@ -142,7 +156,6 @@ void wxToolBar::SetToolDisabledBitmap( int id, const wxBitmapBundle& bitmap )
 void wxToolBar::SetWindowStyleFlag( long style )
 {
     wxToolBarBase::SetWindowStyleFlag(style);
-
 }
 
 bool wxToolBar::Realize()
@@ -155,6 +168,79 @@ bool wxToolBar::Realize()
 
 bool wxToolBar::DoInsertTool(size_t pos, wxToolBarToolBase *toolBase)
 {
+    wxToolBarTool* tool = static_cast<wxToolBarTool*>(toolBase);
+    tool->m_domElementId = wxWindow::NewControlId();
+
+    int toolbarId = GetId();
+    int domId = tool->m_domElementId;
+
+    if (tool->IsSeparator())
+    {
+        EM_ASM_({
+            var container = document.getElementById($0);
+            if (!container) return;
+            var toolbar = container.querySelector('.wxToolBar');
+            if (!toolbar) return;
+
+            var sep = document.createElement('div');
+            sep.id = $1;
+            sep.className = 'wxToolBar-separator';
+            sep.style.width = '1px';
+            sep.style.background = '#bfb8b1';
+            sep.style.margin = '4px';
+            sep.style.alignSelf = 'stretch';
+
+            if ($2 >= 0 && $2 < toolbar.children.length) {
+                toolbar.insertBefore(sep, toolbar.children[$2]);
+            } else {
+                toolbar.appendChild(sep);
+            }
+        }, toolbarId, domId, (int)pos);
+    }
+    else if (tool->IsButton())
+    {
+        wxString label = tool->GetLabel();
+        wxCharBuffer labelBuf = label.ToUTF8();
+        int toolId = tool->GetId();
+
+        EM_ASM_({
+            var container = document.getElementById($0);
+            if (!container) return;
+            var toolbar = container.querySelector('.wxToolBar');
+            if (!toolbar) return;
+
+            var btn = document.createElement('button');
+            btn.id = $1;
+            btn.className = 'wxToolBar-tool';
+            btn.textContent = UTF8ToString($2);
+            btn.style.border = '1px solid transparent';
+            btn.style.background = 'transparent';
+            btn.style.padding = '4px 8px';
+            btn.style.cursor = 'pointer';
+            btn.style.fontSize = '14px';
+            btn.style.borderRadius = '3px';
+
+            btn.onclick = function(e) {
+                e.stopPropagation();
+                if (typeof Module !== 'undefined' && Module.ccall) {
+                    Module.ccall('addEvent', null,
+                        ['number', 'string', 'number', 'number'],
+                        [$0, 'click', $3, 0]);
+                }
+            };
+
+            if ($4 >= 0 && $4 < toolbar.children.length) {
+                toolbar.insertBefore(btn, toolbar.children[$4]);
+            } else {
+                toolbar.appendChild(btn);
+            }
+        }, toolbarId, domId, labelBuf.data(), toolId, (int)pos);
+    }
+    else if (tool->IsControl())
+    {
+        // Controls are handled by their own window creation;
+        // reparenting into the toolbar div could be added here.
+    }
 
     return true;
 }
@@ -163,6 +249,13 @@ bool wxToolBar::DoDeleteTool(size_t /* pos */, wxToolBarToolBase *toolBase)
 {
     wxToolBarTool* tool = static_cast<wxToolBarTool*>(toolBase);
 
+    EM_ASM_({
+        var elem = document.getElementById($0);
+        if (elem && elem.parentNode) {
+            elem.parentNode.removeChild(elem);
+        }
+    }, tool->m_domElementId);
+
     InvalidateBestSize();
     return true;
 }
@@ -170,11 +263,41 @@ bool wxToolBar::DoDeleteTool(size_t /* pos */, wxToolBarToolBase *toolBase)
 void wxToolBar::DoEnableTool(wxToolBarToolBase *toolBase, bool enable)
 {
     wxToolBarTool* tool = static_cast<wxToolBarTool*>(toolBase);
+
+    if (tool->IsButton())
+    {
+        EM_ASM_({
+            var btn = document.getElementById($0);
+            if (btn) {
+                btn.disabled = !$1;
+                btn.style.opacity = $1 ? '1' : '0.5';
+                btn.style.cursor = $1 ? 'pointer' : 'not-allowed';
+            }
+        }, tool->m_domElementId, enable);
+    }
 }
 
 void wxToolBar::DoToggleTool(wxToolBarToolBase *toolBase, bool toggle)
 {
     wxToolBarTool* tool = static_cast<wxToolBarTool*>(toolBase);
+
+    if (tool->IsButton())
+    {
+        EM_ASM_({
+            var btn = document.getElementById($0);
+            if (btn) {
+                if ($1) {
+                    btn.classList.add('active');
+                    btn.style.background = '#d0d0d0';
+                    btn.style.border = '1px solid #bfb8b1';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.background = 'transparent';
+                    btn.style.border = '1px solid transparent';
+                }
+            }
+        }, tool->m_domElementId, toggle);
+    }
 }
 
 void wxToolBar::DoSetToggle(wxToolBarToolBase * WXUNUSED(tool),
@@ -208,5 +331,15 @@ WXWidget wxToolBar::GetHandle() const
 
 }
 
-#endif // wxUSE_TOOLBAR
+void wxToolBar::WasmNotifyEvent(const wxWasmEvent& event)
+{
+    if (event.id == m_windowId && event.eventType == "click")
+    {
+        int toolId = event.x;
+        wxCommandEvent generatedEvent(wxEVT_TOOL, toolId);
+        generatedEvent.SetEventObject(this);
+        HandleWindowEvent(generatedEvent);
+    }
+}
 
+#endif // wxUSE_TOOLBAR

@@ -51,3 +51,7 @@ bool wxBitmapButton::Create(wxWindow *parent,
     return true;
 }
 
+void wxBitmapButton::WasmNotifyEvent(const wxWasmEvent& event)
+{
+    wxButton::WasmNotifyEvent(event);
+}

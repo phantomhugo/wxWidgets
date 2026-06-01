@@ -70,6 +70,8 @@ public:
     using wxCalendarCtrlBase::GenerateAllChangeEvents;
 
     virtual void *GetHandle() const override;
+    virtual wxSize DoGetBestSize() const override;
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
 
 protected:
     virtual void RefreshHolidays() override;

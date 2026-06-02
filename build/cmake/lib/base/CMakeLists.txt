@@ -83,6 +83,9 @@ if(APPLE)
     endif()
 elseif(UNIX)
     wx_lib_link_libraries(wxbase PRIVATE ${CMAKE_DL_LIBS})
+    if(ANDROID)
+        wx_lib_link_libraries(wxbase PUBLIC log)
+    endif()
 endif()
 
 

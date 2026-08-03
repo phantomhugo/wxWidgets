@@ -83,3 +83,34 @@ bool wxAcceleratorTable::IsOk() const
 {
     return (m_refData != nullptr);
 }
+
+const wxAcceleratorEntry* wxAcceleratorTable::FindEntry(int flags, int keyCode) const
+{
+    if ( !m_refData )
+        return nullptr;
+
+    for ( wxAccelList::const_iterator it = M_ACCELDATA->m_accels.begin();
+          it != M_ACCELDATA->m_accels.end(); ++it )
+    {
+        const wxAcceleratorEntry* entry = *it;
+
+        const int entryFlags = entry->GetFlags() &
+            (wxACCEL_ALT | wxACCEL_CTRL | wxACCEL_SHIFT);
+        if ( entryFlags != flags )
+            continue;
+
+        int entryKeyCode = entry->GetKeyCode();
+        // Case-insensitive comparison for letters, see the header comment.
+        if ( entryKeyCode < 128 && keyCode < 128 &&
+             wxIsalpha(entryKeyCode) && wxIsalpha(keyCode) )
+        {
+            entryKeyCode = wxToupper(entryKeyCode);
+            keyCode = wxToupper(keyCode);
+        }
+
+        if ( entryKeyCode == keyCode )
+            return entry;
+    }
+
+    return nullptr;
+}

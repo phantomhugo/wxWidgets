@@ -141,6 +141,8 @@ typedef void (wxEvtHandler::*wxHyperlinkEventFunction)(wxHyperlinkEvent&);
     #include "wx/gtk/hyperlink.h"
 #elif defined(__WXMSW__) && !defined(__WXUNIVERSAL__)
     #include "wx/msw/hyperlink.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/hyperlink.h"
 #else
     #include "wx/generic/hyperlink.h"
 

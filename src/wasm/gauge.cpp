@@ -37,7 +37,7 @@ bool wxGauge::Create(wxWindow *parent,
     if ( !wxControl::Create(parent, id, pos, size, style, validator, name) )
         return false;
 
-    // Reemplazar el <div> creado por wxControl/wxWindow con <progress>
+    // Replace the <div> created by wxControl/wxWindow with <progress>
     int domId = GetId();
     bool isVertical = HasFlag(wxGA_VERTICAL);
 
@@ -55,7 +55,7 @@ bool wxGauge::Create(wxWindow *parent,
             progress.max = $2;
             progress.value = 0;
 
-            // Transferir hijos existentes (por si acaso)
+            // Transfer existing children (just in case)
             while (oldDiv.firstChild) {
                 progress.appendChild(oldDiv.firstChild);
             }
@@ -65,7 +65,7 @@ bool wxGauge::Create(wxWindow *parent,
         }
     }, domId, isVertical ? 1 : 0, range);
 
-    // Inicializar estado base
+    // Initialize base state
     SetRange(range);
     SetValue(0);
 
@@ -102,7 +102,7 @@ void wxGauge::SetValue(int pos)
         var elem = document.getElementById($0);
         if (elem && elem.tagName === 'PROGRESS') {
             elem.value = $1;
-            // Asegurar que el modo indeterminado se desactive si se setea un valor
+            // Make sure indeterminate mode is deactivated when a value is set
             elem.removeAttribute('aria-valuenow');
         }
     }, GetId(), pos);

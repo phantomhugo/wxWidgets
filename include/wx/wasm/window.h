@@ -157,11 +157,17 @@ protected:
 private:
     void Init();
 
+    // Sends a synchronous wxPaintEvent to this window.
+    void SendPaintEvent();
+
+    // cached label (there is no native widget storing it for us)
+    wxString m_label;
+
     bool m_mouseInside;
 
-#if wxUSE_ACCEL
-    bool m_processingShortcut;
-#endif // wxUSE_ACCEL
+    // true while a "paint" pseudo-event for this window is queued in the
+    // event sink: coalesces multiple Refresh() calls into a single repaint
+    bool m_refreshPending;
 
     wxDECLARE_DYNAMIC_CLASS_NO_COPY( wxWindowWasm );
 };

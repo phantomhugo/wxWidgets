@@ -700,6 +700,18 @@ int wxScrollHelperBase::CalcScrollInc(wxScrollWinEvent& event)
 
 void wxScrollHelperBase::DoPrepareReadOnlyDC(wxReadOnlyDC& dc)
 {
+#ifdef __WXWASM__
+    // wxWasm scrolls the window natively: SetScrollbar() enables the
+    // overflow of the window's div (with a spacer div materializing the
+    // virtual size, see wxWindowWasm::SetScrollbar in src/wasm/window.cpp),
+    // so by the time a paint event is handled the browser has already
+    // shifted the canvas the window draws on. Applying the scroll position
+    // as device origin here as well would shift the drawing a second time,
+    // so only the user scale is set. This only affects DCs of the scrolled
+    // window itself, which are exactly the ones PrepareDC() is used with
+    // (typically in OnPaint; a wxMemoryDC never passes through here), so
+    // skipping the origin adjustment is always correct.
+#else // !__WXWASM__
     wxPoint pt = dc.GetDeviceOrigin();
 #if defined(__WXGTK__) && !defined(__WXGTK3__)
     // It may actually be correct to always query
@@ -712,6 +724,7 @@ void wxScrollHelperBase::DoPrepareReadOnlyDC(wxReadOnlyDC& dc)
 #endif
         dc.SetDeviceOrigin( pt.x - (m_xScrollPosition * m_xScrollPixelsPerLine) - m_xScrollPositionPixelOffset,
                             pt.y - (m_yScrollPosition * m_yScrollPixelsPerLine) - m_yScrollPositionPixelOffset );
+#endif // __WXWASM__
     dc.SetUserScale( m_scaleX, m_scaleY );
 }
 

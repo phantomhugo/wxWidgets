@@ -15,15 +15,15 @@
 #include "wx/wasm/cssstyles.h"
 #include <emscripten.h>
 
-// Variable estática para almacenar el resultado del diálogo
-static int gs_dialogReturnCode = wxID_CANCEL;
-static bool gs_dialogClosed = false;
+// The result of each modal dialog is published by JS in
+// window.wxMsgDlgResult_<key>, with a key derived from the dialog address,
+// so that nested modal dialogs don't overwrite each other's state.
 
-// Función auxiliar para obtener el ícono según el estilo
+// Helper function to get the icon for the style
 static const char* GetIconForStyle(long style)
 {
     if (style & wxICON_ERROR)
-        return "⚠️";  // O usar un icono SVG/emojis
+        return "⚠️";  // Or use an SVG icon/emoji
     else if (style & wxICON_WARNING)
         return "⚠️";
     else if (style & wxICON_QUESTION)
@@ -37,10 +37,10 @@ static const char* GetIconForStyle(long style)
     else if (style & wxICON_AUTH_NEEDED)
         return "🔒";
     else
-        return "";  // Sin icono
+        return "";  // No icon
 }
 
-// Función auxiliar para obtener la clase CSS del icono
+// Helper function to get the CSS class of the icon
 static const char* GetIconClass(long style)
 {
     if (style & wxICON_ERROR)
@@ -55,7 +55,7 @@ static const char* GetIconClass(long style)
         return "";
 }
 
-// Función auxiliar para obtener las etiquetas de botones
+// Helper function to get the button labels
 wxString wxMessageDialog::GetButtonLabel(int id, const wxString& customLabel)
 {
     if (!customLabel.empty())
@@ -98,11 +98,11 @@ wxIMPLEMENT_CLASS(wxMessageDialog, wxDialog);
 
 wxMessageDialog::~wxMessageDialog()
 {
-    // Limpiar el diálogo del DOM si aún existe
+    // Remove the dialog from the DOM if it still exists
     EM_ASM_({
         var dialog = document.getElementById($0);
         if (dialog) {
-            // Asegurarse de cerrarlo primero
+            // Make sure to close it first
             if (dialog.open) {
                 dialog.close();
             }
@@ -115,14 +115,14 @@ int wxMessageDialog::ShowModal()
 {
     wxCHECK_MSG(!GetMessage().empty(), wxID_CANCEL, "Message box must have a non-empty message");
 
-    // Crear el diálogo en el DOM
+    // The dialog result is published by JS in window.wxMsgDlgResult_<key>;
+    // use this dialog address as key.
+    const int key = (int)(size_t)this;
+
+    // Create the dialog in the DOM
     CreateDialogElement();
 
-    // Resetear estado
-    gs_dialogClosed = false;
-    gs_dialogReturnCode = wxID_CANCEL;
-
-    // Mostrar el diálogo modal usando HTML5 <dialog>
+    // Show the modal dialog using HTML5 <dialog>
     EM_ASM_({
         var dialog = document.getElementById($0);
         if (dialog && dialog.showModal) {
@@ -130,15 +130,23 @@ int wxMessageDialog::ShowModal()
         }
     }, GetId());
 
-    // Bucle de eventos síncrono para esperar el cierre del diálogo
-    // Emscripten requiere ceder el control periódicamente
-    while (!gs_dialogClosed)
+    // Synchronous wait: yield to the browser until the dialog is closed
+    while (EM_ASM_INT({
+        return window['wxMsgDlgResult_' + $0] === undefined ? 0 : 1;
+    }, key) == 0)
     {
-        // Procesar eventos pendientes
-        emscripten_sleep(10);  // Dormir 10ms, permite que el navegador procese eventos
+        emscripten_sleep(10);
     }
 
-    // Limpiar el diálogo del DOM
+    const int returnCode = EM_ASM_INT({
+        return window['wxMsgDlgResult_' + $0];
+    }, key);
+
+    EM_ASM_({
+        delete window['wxMsgDlgResult_' + $0];
+    }, key);
+
+    // Remove the dialog from the DOM
     EM_ASM_({
         var dialog = document.getElementById($0);
         if (dialog) {
@@ -146,7 +154,7 @@ int wxMessageDialog::ShowModal()
         }
     }, GetId());
 
-    return gs_dialogReturnCode;
+    return returnCode;
 }
 
 void wxMessageDialog::CreateDialogElement()
@@ -163,20 +171,20 @@ void wxMessageDialog::CreateDialogElement()
     const char* iconChar = GetIconForStyle(style);
     const char* iconClass = GetIconClass(style);
     
-    // Determinar qué botones crear
+    // Determine which buttons to create
     bool hasYesNo = (style & wxYES_NO) != 0;
     bool hasOk = (style & wxOK) != 0;
     bool hasCancel = (style & wxCANCEL) != 0;
     bool hasHelp = (style & wxHELP) != 0;
     
-    // Determinar el botón por defecto
+    // Determine the default button
     int defaultButton = wxID_OK;
     if (style & wxNO_DEFAULT)
         defaultButton = wxID_NO;
     else if (style & wxCANCEL_DEFAULT)
         defaultButton = wxID_CANCEL;
     else if (hasYesNo)
-        defaultButton = wxID_YES;  // YES es default por defecto cuando hay YES_NO
+        defaultButton = wxID_YES;  // YES is the default when there is YES_NO
     
     EM_ASM_({
         var dialogId = $0;
@@ -190,29 +198,35 @@ void wxMessageDialog::CreateDialogElement()
         var hasCancel = $8;
         var hasHelp = $9;
         var defaultButton = $10;
-        
-        // Crear elemento <dialog>
+        var resultKey = $16;
+        var yesCode = $17;
+        var noCode = $18;
+        var cancelCode = $19;
+        var okCode = $20;
+        var helpCode = $21;
+
+        // Create <dialog> element
         var dialog = document.createElement('dialog');
         dialog.id = dialogId;
         dialog.className = 'wxMessageDialog';
-        
-        // Crear estructura interna
+
+        // Create internal structure
         var content = document.createElement('div');
         content.className = 'wxMessageDialog-content';
-        
-        // Header con título si no es el default
+
+        // Header with title if it is not the default
         if (caption && caption !== 'Message') {
             var header = document.createElement('div');
             header.className = 'wxMessageDialog-header';
             header.textContent = caption;
             content.appendChild(header);
         }
-        
-        // Área del mensaje
+
+        // Message area
         var messageArea = document.createElement('div');
         messageArea.className = 'wxMessageDialog-message-area';
-        
-        // Icono
+
+        // Icon
         if (iconChar) {
             var iconElem = document.createElement('div');
             iconElem.className = 'wxMessageDialog-icon';
@@ -220,102 +234,106 @@ void wxMessageDialog::CreateDialogElement()
             iconElem.textContent = iconChar;
             messageArea.appendChild(iconElem);
         }
-        
-        // Contenedor de textos
+
+        // Text container
         var textContainer = document.createElement('div');
         textContainer.className = 'wxMessageDialog-text';
-        
-        // Mensaje principal
+
+        // Main message
         var mainMsg = document.createElement('div');
         mainMsg.className = 'wxMessageDialog-main-message';
         mainMsg.textContent = message;
         textContainer.appendChild(mainMsg);
-        
-        // Mensaje extendido si existe
+
+        // Extended message if any
         if (extendedMessage) {
             var extMsg = document.createElement('div');
             extMsg.className = 'wxMessageDialog-extended-message';
             extMsg.textContent = extendedMessage;
             textContainer.appendChild(extMsg);
         }
-        
+
         messageArea.appendChild(textContainer);
         content.appendChild(messageArea);
-        
-        // Botones
+
+        // Buttons
         var buttonArea = document.createElement('div');
         buttonArea.className = 'wxMessageDialog-buttons';
-        
-        // Helper para crear botón
+
+        // Publish the return code of this dialog instance and close it
+        var settled = false;
+        function finish(returnCode) {
+            if (settled) return;
+            settled = true;
+            Module.ccall('SetDialogReturnCode', null,
+                         (['number', 'number']), ([resultKey, returnCode]));
+            dialog.close();
+        }
+
+        // Helper to create a button
         function createButton(id, label, isDefault) {
             var btn = document.createElement('button');
             btn.className = 'wxMessageDialog-button';
             btn.textContent = label;
             btn.dataset.returnCode = id;
-            
+
             if (isDefault) {
                 btn.classList.add('wxMessageDialog-button-default');
                 btn.autofocus = true;
             }
-            
+
             btn.onclick = function() {
-                // Establecer código de retorno
-                Module.ccall('SetDialogReturnCode', null, ['number'], [id]);
-                dialog.close();
+                finish(id);
             };
-            
+
             return btn;
         }
-        
-        // Crear botones según el estilo
+
+        // Create buttons according to the style
         if (hasYesNo) {
-            var yesBtn = createButton(wxID_YES, UTF8ToString($11), defaultButton === wxID_YES);
-            var noBtn = createButton(wxID_NO, UTF8ToString($12), defaultButton === wxID_NO);
-            buttonArea.appendChild(noBtn);  // NO a la izquierda
-            buttonArea.appendChild(yesBtn); // YES a la derecha (estándar)
-            
+            var yesBtn = createButton(yesCode, UTF8ToString($11), defaultButton === yesCode);
+            var noBtn = createButton(noCode, UTF8ToString($12), defaultButton === noCode);
+            buttonArea.appendChild(noBtn);  // NO on the left
+            buttonArea.appendChild(yesBtn); // YES on the right (standard)
+
             if (hasCancel) {
-                var cancelBtn = createButton(wxID_CANCEL, UTF8ToString($13), defaultButton === wxID_CANCEL);
+                var cancelBtn = createButton(cancelCode, UTF8ToString($13), defaultButton === cancelCode);
                 buttonArea.appendChild(cancelBtn);
             }
         } else if (hasOk) {
-            var okBtn = createButton(wxID_OK, UTF8ToString($14), defaultButton === wxID_OK);
+            var okBtn = createButton(okCode, UTF8ToString($14), defaultButton === okCode);
             buttonArea.appendChild(okBtn);
-            
+
             if (hasCancel) {
-                var cancelBtn = createButton(wxID_CANCEL, UTF8ToString($13), defaultButton === wxID_CANCEL);
+                var cancelBtn = createButton(cancelCode, UTF8ToString($13), defaultButton === cancelCode);
                 buttonArea.insertBefore(cancelBtn, okBtn);
             }
         }
-        
+
         if (hasHelp) {
-            var helpBtn = createButton(wxID_HELP, UTF8ToString($15), false);
+            var helpBtn = createButton(helpCode, UTF8ToString($15), false);
             helpBtn.classList.add('wxMessageDialog-button-help');
-            // Help va a la izquierda
+            // Help goes on the left
             buttonArea.insertBefore(helpBtn, buttonArea.firstChild);
         }
-        
+
         content.appendChild(buttonArea);
         dialog.appendChild(content);
-        
-        // Evento close - cuando se cierra sin botón (ESC)
+
+        // Close event - when closed without a button (ESC)
         dialog.addEventListener('close', function() {
-            if (!Module.dialogReturnCodeSet) {
-                Module.ccall('SetDialogReturnCode', null, ['number'], [wxID_CANCEL]);
-            }
+            finish(cancelCode);
         });
-        
-        // Evento cancel (ESC presionado)
+
+        // Cancel event (ESC pressed)
         dialog.addEventListener('cancel', function(e) {
             e.preventDefault();
-            Module.ccall('SetDialogReturnCode', null, ['number'], [wxID_CANCEL]);
-            dialog.close();
+            finish(cancelCode);
         });
-        
+
         document.body.appendChild(dialog);
-        Module.dialogReturnCodeSet = false;
-        
-    }, 
+
+    },
     GetId(),
     msgBuffer.data(),
     extMsgBuffer.data(),
@@ -331,19 +349,23 @@ void wxMessageDialog::CreateDialogElement()
     GetButtonLabel(wxID_NO, GetCustomNoLabel()).ToUTF8().data(),
     GetButtonLabel(wxID_CANCEL, GetCustomCancelLabel()).ToUTF8().data(),
     GetButtonLabel(wxID_OK, GetCustomOKLabel()).ToUTF8().data(),
-    GetButtonLabel(wxID_HELP, GetCustomHelpLabel()).ToUTF8().data()
+    GetButtonLabel(wxID_HELP, GetCustomHelpLabel()).ToUTF8().data(),
+    (int)(size_t)this,
+    (int)wxID_YES,
+    (int)wxID_NO,
+    (int)wxID_CANCEL,
+    (int)wxID_OK,
+    (int)wxID_HELP
     );
 }
 
-// Función C expuesta para JavaScript
-extern "C" EMSCRIPTEN_KEEPALIVE void SetDialogReturnCode(int code)
+// Function exported to JavaScript: publishes the result of the dialog
+// identified by key in window.wxMsgDlgResult_<key>
+extern "C" EMSCRIPTEN_KEEPALIVE void SetDialogReturnCode(int key, int code)
 {
-    gs_dialogReturnCode = code;
-    gs_dialogClosed = true;
-    
-    EM_ASM({
-        Module.dialogReturnCodeSet = true;
-    });
+    EM_ASM_({
+        window['wxMsgDlgResult_' + $0] = $1;
+    }, key, code);
 }
 
 #endif // wxUSE_MSGDLG

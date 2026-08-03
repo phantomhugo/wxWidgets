@@ -48,6 +48,9 @@ protected:
 #elif defined(__WXOSX_COCOA__)
     #define wxHAS_NATIVE_ACTIVITYINDICATOR
     #include "wx/osx/activityindicator.h"
+#elif defined(__WXWASM__)
+    #define wxHAS_NATIVE_ACTIVITYINDICATOR
+    #include "wx/wasm/activityindicator.h"
 #endif
 #endif // !__WXUNIVERSAL__
 

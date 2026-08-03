@@ -30,12 +30,22 @@ public:
     virtual bool IsSupported( const wxDataFormat& format ) override;
     virtual bool IsSupportedAsync(wxEvtHandler *sink) override;
 
+    // Sends wxEVT_CLIPBOARD_CHANGED to the current sink, reporting text as
+    // supported or not, and releases the sink. Public because it is called
+    // from the extern "C" JavaScript callback in clipbrd.cpp.
+    void SendClipboardEvent(bool hasText);
+
 private:
     int Mode();
 
     wxEvtHandlerRef    m_sink;
 
     bool m_open;
+
+    // Local copy of the last text put on the clipboard: the browser
+    // clipboard API is asynchronous, so this cache is what makes
+    // copy/paste work synchronously inside the application.
+    wxString m_textCache;
 
     wxDECLARE_DYNAMIC_CLASS(wxClipboard);
 };

@@ -238,4 +238,8 @@ void wxCheckListBox::WasmNotifyEvent(const wxWasmEvent& event)
         evt.SetInt(n);
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }

@@ -96,6 +96,7 @@ WXWidget wxStaticBox::GetHandle() const
     return nullptr;
 }
 
-void wxStaticBox::WasmNotifyEvent(const wxWasmEvent& WXUNUSED(event))
+void wxStaticBox::WasmNotifyEvent(const wxWasmEvent& event)
 {
+    wxWindowWasm::WasmNotifyEvent(event);
 }

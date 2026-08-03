@@ -206,8 +206,8 @@ bool wxNotebook::DeleteAllPages()
 
         var tabs = container.querySelector('.wxNotebook-tabs');
         var pages = container.querySelector('.wxNotebook-pages');
-        if (tabs) tabs.innerHTML = '';
-        if (pages) pages.innerHTML = '';
+        if (tabs) tabs.innerHTML = "";
+        if (pages) pages.innerHTML = "";
     }, domId);
 
     m_images.clear();
@@ -302,6 +302,10 @@ void wxNotebook::WasmNotifyEvent(const wxWasmEvent& event)
             wxBookCtrlEvent notebookEvent(wxEVT_NOTEBOOK_PAGE_CHANGED, m_windowId, newSel, oldSel);
             HandleWindowEvent(notebookEvent);
         }
+    }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
     }
 }
 

@@ -303,12 +303,10 @@ void wxTextCtrl::WasmNotifyEvent(const wxWasmEvent& event)
             evt.SetString(GetValue());
             HandleWindowEvent(evt);
         }
-        else if (event.eventType == "change")
-        {
-            wxCommandEvent evt(wxEVT_TEXT_ENTER, m_windowId);
-            evt.SetString(GetValue());
-            HandleWindowEvent(evt);
-        }
+        // Note: 'change' (fired when the control loses focus) deliberately
+        // does NOT generate wxEVT_TEXT_ENTER: Enter already emits it via the
+        // 'enter' keydown event, so mapping 'change' too produced a duplicate
+        // wxEVT_TEXT_ENTER on Enter followed by blur.
         else if (event.eventType == "enter")
         {
             if (m_windowStyle & wxTE_PROCESS_ENTER)
@@ -318,5 +316,13 @@ void wxTextCtrl::WasmNotifyEvent(const wxWasmEvent& event)
                 HandleWindowEvent(evt);
             }
         }
+        else
+        {
+            wxWindowWasm::WasmNotifyEvent(event);
+        }
+    }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
     }
 }

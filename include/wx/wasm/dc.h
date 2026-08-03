@@ -56,6 +56,7 @@ public:
 
     virtual void DoSetDeviceClippingRegion(const wxRegion& region) override;
     virtual void DestroyClippingRegion() override;
+    virtual bool DoGetClippingRect(wxRect& rect) const override;
 
     virtual bool DoFloodFill(wxCoord x, wxCoord y, const wxColour& col,
                              wxFloodFillStyle style = wxFLOOD_SURFACE) override;
@@ -97,6 +98,25 @@ public:
                         wxCoord xsrcMask = wxDefaultCoord,
                         wxCoord ysrcMask = wxDefaultCoord) override;
 
+    virtual bool DoStretchBlit(wxCoord xdest, wxCoord ydest,
+                               wxCoord dstWidth, wxCoord dstHeight,
+                               wxDC *source,
+                               wxCoord xsrc, wxCoord ysrc,
+                               wxCoord srcWidth, wxCoord srcHeight,
+                               wxRasterOperationMode rop = wxCOPY,
+                               bool useMask = false,
+                               wxCoord xsrcMask = wxDefaultCoord,
+                               wxCoord ysrcMask = wxDefaultCoord) override;
+
+    virtual void DoGradientFillLinear(const wxRect& rect,
+                                      const wxColour& initialColour,
+                                      const wxColour& destColour,
+                                      wxDirection nDirection = wxEAST) override;
+    virtual void DoGradientFillConcentric(const wxRect& rect,
+                                          const wxColour& initialColour,
+                                          const wxColour& destColour,
+                                          const wxPoint& circleCenter) override;
+
     virtual void DoDrawLines(int n, const wxPoint points[],
                              wxCoord xoffset, wxCoord yoffset ) override;
 
@@ -114,9 +134,25 @@ protected:
     wxColour m_textColour;
     wxColour m_penColour;
     wxColour m_brushColour;
+    wxColour m_backgroundColour;
+    int m_backgroundMode;
+    wxRasterOperationMode m_logicalFunction;
     int m_penWidth;
+    wxPenStyle m_penStyle;
+    wxBrushStyle m_brushStyle;
+
+    // Copy of the current pen dash pattern: wxPen does not own the dash
+    // array it is given (it just stores the pointer), so the values are
+    // copied here in SetPen() to keep them valid after the pen is gone.
+    std::vector<int> m_penDashes;
+
     wxFont m_font;
-    bool m_hasClipping;
+
+    // True if this DC owns its canvas and must remove it from the DOM when
+    // destroyed (memory DCs and anonymous canvases). False for window DCs:
+    // their canvas is shared by all DCs of the same window and persists
+    // after the DC is destroyed, so what was drawn stays visible.
+    bool m_canvasOwnedByDC;
 
     void EnsureCanvasCreated();
     void ApplyPen();
@@ -124,7 +160,36 @@ protected:
     void ApplyFont();
     void ApplyTextColour();
 
-    wxRegion m_clippingRegion;
+    // True when the current pen/brush must not be drawn with: either it is
+    // transparent or its style is invalid (an invalid pen/brush draws
+    // nothing, as in the other ports).
+    bool IsPenTransparent() const
+    {
+        return m_penStyle == wxPENSTYLE_TRANSPARENT ||
+               m_penStyle == wxPENSTYLE_INVALID;
+    }
+    bool IsBrushTransparent() const
+    {
+        return m_brushStyle == wxBRUSHSTYLE_TRANSPARENT ||
+               m_brushStyle == wxBRUSHSTYLE_INVALID;
+    }
+
+    // Called by EnsureCanvasCreated() (i.e. before every drawing operation)
+    // to give derived classes a chance to re-synchronize the canvas pixel
+    // buffer with its display size. Does nothing by default; wxWindowDCImpl
+    // overrides it to keep the buffer sharp when the window is resized.
+    virtual void SyncCanvasBuffer() {}
+
+    // Records the device-space clip box on the canvas element; the clip is
+    // actually applied to the 2D context by EnsureCanvasCreated() before
+    // each drawing operation.
+    void SetCanvasClip(int x, int y, int w, int h);
+
+    // Clipping state, in device coordinates. Kept here (and not in the base
+    // class members, which are private) so that successive clips can be
+    // intersected and DoGetClippingRect() can return them.
+    bool m_hasClip;
+    wxRect m_clipRectDev;
 private:
 
     void ApplyRasterColourOp();

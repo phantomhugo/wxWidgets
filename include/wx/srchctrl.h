@@ -16,7 +16,7 @@
 
 #include "wx/textctrl.h"
 
-#if (!defined(__WXMAC__) && !defined(__WXGTK__)) || defined(__WXUNIVERSAL__)
+#if (!defined(__WXMAC__) && !defined(__WXGTK__) && !defined(__WXWASM__)) || defined(__WXUNIVERSAL__)
     // no native version, use the generic one
     #define wxUSE_NATIVE_SEARCH_CONTROL 0
 
@@ -44,6 +44,11 @@
     };
 
     #define wxSearchCtrlBaseBaseClass wxGTKSearchCtrlBase
+#elif defined(__WXWASM__)
+    // Use the native <input type="search"> element of the browser.
+    #define wxUSE_NATIVE_SEARCH_CONTROL 1
+
+    #define wxSearchCtrlBaseBaseClass wxTextCtrl
 #endif
 
 // ----------------------------------------------------------------------------
@@ -98,6 +103,8 @@ private:
         #include "wx/osx/srchctrl.h"
     #elif defined(__WXGTK__)
         #include "wx/gtk/srchctrl.h"
+    #elif defined(__WXWASM__)
+        #include "wx/wasm/srchctrl.h"
     #endif
 #else
     #include "wx/generic/srchctlg.h"

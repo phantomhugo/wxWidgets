@@ -109,4 +109,8 @@ void wxRadioButton::WasmNotifyEvent(const wxWasmEvent& event)
         wxCommandEvent evt(wxEVT_RADIOBUTTON, m_windowId);
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }

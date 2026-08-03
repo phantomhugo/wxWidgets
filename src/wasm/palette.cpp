@@ -48,5 +48,6 @@ wxGDIRefData *wxPalette::CloneGDIRefData(const wxGDIRefData *WXUNUSED(data)) con
 
 int wxPalette::GetColoursCount() const
 {
-
+    // Stub port: palettes are not stored, report an empty one.
+    return 0;
 }

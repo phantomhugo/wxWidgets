@@ -176,4 +176,8 @@ void wxCheckBox::WasmNotifyEvent(const wxWasmEvent& event)
         evt.SetInt(GetValue() ? wxCHK_CHECKED : wxCHK_UNCHECKED);
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }

@@ -38,7 +38,22 @@ public:
     virtual void ActivateNext() override;
     virtual void ActivatePrevious() override;
 
+    virtual void Cascade() override;
+    virtual void Tile(wxOrientation orient = wxHORIZONTAL) override;
+    virtual void ArrangeIcons() override;
+
+#if wxUSE_MENUS
+    // Override these to keep the "Window" menu in the current menu bar, as
+    // the generic MDI implementation does.
+    virtual void SetWindowMenu(wxMenu *menu) override;
+    virtual void SetMenuBar(wxMenuBar *menuBar) override;
+#endif // wxUSE_MENUS
+
 protected:
+#if wxUSE_MENUS
+    void AddWindowMenu(wxMenuBar *menuBar);
+    void RemoveWindowMenu(wxMenuBar *menuBar);
+#endif // wxUSE_MENUS
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxMDIParentFrame);
@@ -50,6 +65,7 @@ class WXDLLIMPEXP_CORE wxMDIChildFrame : public wxMDIChildFrameBase
 {
 public:
     wxMDIChildFrame();
+    virtual ~wxMDIChildFrame();
     wxMDIChildFrame(wxMDIParentFrame *parent,
                     wxWindowID id,
                     const wxString& title,

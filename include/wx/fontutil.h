@@ -157,6 +157,11 @@ public :
     bool          strikethrough;
     wxString      faceName;
     wxFontEncoding encoding;
+
+    // Pixel size of the font when it was specified in pixels rather than in
+    // points, wxDefaultSize otherwise. Only used by the ports relying on
+    // this generic implementation (e.g. wxWasm).
+    wxSize        pixelSize;
 #endif // platforms
 
 #ifndef __WXQT__

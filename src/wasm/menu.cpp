@@ -13,22 +13,6 @@
 #include "wx/menuitem.h"
 #include <emscripten.h>
 
-// Helper para crear elementos DOM
-static void CreateDOMElement(int id, const char* tag, const char* className, 
-                              int parentId)
-{
-    EM_ASM_({
-        var elem = document.createElement(UTF8ToString($1));
-        elem.id = $0;
-        elem.className = UTF8ToString($2);
-        
-        var parent = document.getElementById($3);
-        if (parent) {
-            parent.appendChild(elem);
-        }
-    }, id, tag, className, parentId);
-}
-
 //##############################################################################
 // wxMenu
 //##############################################################################
@@ -54,7 +38,7 @@ wxMenuItem *wxMenu::DoAppend(wxMenuItem *item)
     if (wxMenuBase::DoAppend(item) == nullptr)
         return nullptr;
     
-    // Crear elemento DOM para el item
+    // Create DOM element for the item
     item->CreateDOM(this);
     
     return item;
@@ -74,9 +58,10 @@ wxMenuItem *wxMenu::DoRemove(wxMenuItem *item)
     if (wxMenuBase::DoRemove(item) == nullptr)
         return nullptr;
 
-    // Remover del DOM
+    // Remove from the DOM (item element ids are namespaced, see
+    // wxMenuItem::CreateDOM in src/wasm/menuitem.cpp)
     EM_ASM_({
-        var elem = document.getElementById($0);
+        var elem = document.getElementById('wxMenuItem_' + $0);
         if (elem) elem.remove();
     }, item->GetId());
 
@@ -107,13 +92,13 @@ void wxMenuBar::wxWasmCreateMenuBar(long style)
         return;
     }
 
-    // Crear el elemento DOM del MenuBar
+    // Create the MenuBar DOM element
     EM_ASM_({
         var menuBar = document.createElement("div");
         menuBar.id = $0;
         menuBar.className = 'wxMenuBar';
         
-        // Insertar en el div de parentless inicialmente
+        // Insert into the parentless div initially
         var parentlessDiv = document.getElementById("wxParentlessTags");
         if (parentlessDiv) {
             parentlessDiv.appendChild(menuBar);
@@ -131,12 +116,28 @@ wxMenuBar::wxMenuBar(size_t count, wxMenu *menus[], const wxString titles[], lon
     PostCreation(false);
 }
 
+wxMenuBar::~wxMenuBar()
+{
+    // Remove the document click listeners registered per menu container
+    // (see Append/Insert), otherwise they would leak on document.
+    EM_ASM_({
+        var menuBar = document.getElementById($0);
+        if (!menuBar) return;
+        menuBar.querySelectorAll('.wxMenuBar-menu').forEach(function(c) {
+            if (c._wxDocClickHandler) {
+                document.removeEventListener('click', c._wxDocClickHandler);
+                c._wxDocClickHandler = null;
+            }
+        });
+    }, GetId());
+}
+
 bool wxMenuBar::Append(wxMenu *menu, const wxString& title)
 {
     if (!wxMenuBarBase::Append(menu, title))
         return false;
 
-    // Crear el contenedor del menú en el DOM
+    // Create the menu container in the DOM
     int menuId = menu->GetId();
     wxCharBuffer titleBuffer = title.ToUTF8();
     
@@ -144,24 +145,28 @@ bool wxMenuBar::Append(wxMenu *menu, const wxString& title)
         var menuBar = document.getElementById($0);
         if (!menuBar) return;
         
-        // Crear contenedor del menú
+        // Create the menu container
         var menuContainer = document.createElement("div");
         menuContainer.id = 'menubar_menu_' + $1;
         menuContainer.className = 'wxMenuBar-menu';
         
-        // Crear label
+        // Create label
         var label = document.createElement("span");
         label.className = 'wxMenuBar-label';
         label.textContent = UTF8ToString($2);
         menuContainer.appendChild(label);
         
-        // Crear popup del menú (contenedor de items)
+        // Create the menu popup (item container). The id uses the
+        // 'wxMenuPopup_' namespace shared with DoPopupMenu (window.cpp)
+        // and the sub-menu aliases (menuitem.cpp) so that menu ids never
+        // collide with the numeric wxWindowID element ids; items find this
+        // container by that id in wxMenuItem::CreateDOM.
         var popup = document.createElement("div");
-        popup.id = $1;  // Usar ID del menú para que los items se agreguen aquí
+        popup.id = 'wxMenuPopup_' + $1;
         popup.className = 'wxMenu-popup';
         menuContainer.appendChild(popup);
         
-        // Eventos para abrir/cerrar el menú
+        // Events to open/close the menu
         var isOpen = false;
         
         label.onclick = function(e) {
@@ -169,7 +174,7 @@ bool wxMenuBar::Append(wxMenu *menu, const wxString& title)
             isOpen = !isOpen;
             if (isOpen) {
                 menuContainer.classList.add('open');
-                // Cerrar otros menús
+                // Close other menus
                 document.querySelectorAll('.wxMenuBar-menu.open').forEach(function(m) {
                     if (m !== menuContainer) m.classList.remove('open');
                 });
@@ -178,13 +183,18 @@ bool wxMenuBar::Append(wxMenu *menu, const wxString& title)
             }
         };
         
-        // Cerrar al hacer click fuera
-        document.addEventListener('click', function(e) {
+        // Close when clicking outside. The handler is stored as a named
+        // reference on the container so it can be removed later (on
+        // Insert/Remove/destruction) instead of accumulating anonymous
+        // listeners on document, cf. the popup cleanup in window.cpp.
+        var docClickHandler = function(e) {
             if (isOpen && !menuContainer.contains(e.target)) {
                 isOpen = false;
                 menuContainer.classList.remove('open');
             }
-        });
+        };
+        menuContainer._wxDocClickHandler = docClickHandler;
+        document.addEventListener('click', docClickHandler);
         
         menuBar.appendChild(menuContainer);
     }, GetId(), menuId, titleBuffer.data());
@@ -202,9 +212,17 @@ bool wxMenuBar::Insert(size_t pos, wxMenu *menu, const wxString& title)
     EM_ASM_({
         var menuBar = document.getElementById($0);
         if (!menuBar) return;
-        // Detach all existing menu containers
+        // Detach all existing menu containers, removing their document
+        // click listeners first (they close over the container and would
+        // otherwise leak and reference detached elements).
         var containers = Array.from(menuBar.querySelectorAll('.wxMenuBar-menu'));
-        containers.forEach(function(c) { menuBar.removeChild(c); });
+        containers.forEach(function(c) {
+            if (c._wxDocClickHandler) {
+                document.removeEventListener('click', c._wxDocClickHandler);
+                c._wxDocClickHandler = null;
+            }
+            menuBar.removeChild(c);
+        });
     }, menuBarId);
 
     const size_t count = GetMenuCount();
@@ -225,7 +243,7 @@ bool wxMenuBar::Insert(size_t pos, wxMenu *menu, const wxString& title)
             label.textContent = UTF8ToString($2);
             menuContainer.appendChild(label);
             var popup = document.createElement("div");
-            popup.id = $1;
+            popup.id = 'wxMenuPopup_' + $1;
             popup.className = 'wxMenu-popup';
             menuContainer.appendChild(popup);
             var isOpen = false;
@@ -241,12 +259,14 @@ bool wxMenuBar::Insert(size_t pos, wxMenu *menu, const wxString& title)
                     menuContainer.classList.remove('open');
                 }
             };
-            document.addEventListener('click', function(e) {
+            var docClickHandler = function(e) {
                 if (isOpen && !menuContainer.contains(e.target)) {
                     isOpen = false;
                     menuContainer.classList.remove('open');
                 }
-            });
+            };
+            menuContainer._wxDocClickHandler = docClickHandler;
+            document.addEventListener('click', docClickHandler);
             menuBar.appendChild(menuContainer);
         }, menuBarId, menuId, titleBuffer.data());
 
@@ -268,10 +288,16 @@ wxMenu *wxMenuBar::Remove(size_t pos)
     if (!menu)
         return nullptr;
 
-    // Remover del DOM
+    // Remove from the DOM, dropping its document click listener first
     EM_ASM_({
         var elem = document.getElementById('menubar_menu_' + $0);
-        if (elem) elem.remove();
+        if (elem) {
+            if (elem._wxDocClickHandler) {
+                document.removeEventListener('click', elem._wxDocClickHandler);
+                elem._wxDocClickHandler = null;
+            }
+            elem.remove();
+        }
     }, menu->GetId());
 
     return menu;
@@ -335,13 +361,13 @@ void wxMenuBar::Attach(wxFrame *frame)
 {
     wxMenuBarBase::Attach(frame);
 
-    // Mover el menú al frame
+    // Move the menu bar to the frame
     EM_ASM_({
         var menuBar = document.getElementById($0);
         var frame = document.getElementById($1);
         
         if (menuBar && frame) {
-            // Insertar como primer hijo del frame
+            // Insert as the first child of the frame
             frame.insertBefore(menuBar, frame.firstChild);
             menuBar.style.display = 'flex';
         }
@@ -350,7 +376,7 @@ void wxMenuBar::Attach(wxFrame *frame)
 
 void wxMenuBar::Detach()
 {
-    // Mover de vuelta a parentless
+    // Move back to parentless
     EM_ASM_({
         var menuBar = document.getElementById($0);
         var parentless = document.getElementById("wxParentlessTags");

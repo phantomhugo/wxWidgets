@@ -431,4 +431,8 @@ void wxListBox::WasmNotifyEvent(const wxWasmEvent& event)
         evt.SetInt(sel);
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }

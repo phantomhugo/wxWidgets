@@ -268,4 +268,8 @@ void wxRadioBox::WasmNotifyEvent(const wxWasmEvent& event)
         evt.SetInt(GetSelection());
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }

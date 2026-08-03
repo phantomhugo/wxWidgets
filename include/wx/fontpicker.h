@@ -74,6 +74,8 @@ protected:
 #if defined(__WXGTK__) && !defined(__WXUNIVERSAL__)
     #include "wx/gtk/fontpicker.h"
     #define wxFontPickerWidget      wxFontButton
+#elif defined(__WXWASM__)
+    #include "wx/wasm/fontpicker.h"
 #else
     #include "wx/generic/fontpickerg.h"
     #define wxFontPickerWidget      wxGenericFontButton

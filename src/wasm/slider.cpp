@@ -192,13 +192,15 @@ wxSize wxSlider::DoGetBestSize() const
 
 void wxSlider::WasmNotifyEvent(const wxWasmEvent& event)
 {
-    if (event.id == m_windowId)
+    if (event.id == m_windowId &&
+        (event.eventType == "input" || event.eventType == "change"))
     {
-        if (event.eventType == "input" || event.eventType == "change")
-        {
-            wxCommandEvent evt(wxEVT_SLIDER, m_windowId);
-            evt.SetInt(GetValue());
-            HandleWindowEvent(evt);
-        }
+        wxCommandEvent evt(wxEVT_SLIDER, m_windowId);
+        evt.SetInt(GetValue());
+        HandleWindowEvent(evt);
+    }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
     }
 }

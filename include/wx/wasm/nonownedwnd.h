@@ -11,7 +11,7 @@
 #define _WX_WASM_NONOWNEDWND_H_
 
 // ----------------------------------------------------------------------------
-// wxNonOwnedWindow contains code common to wx{Popup,TopLevel}Window in wxQT.
+// wxNonOwnedWindow contains code common to wx{Popup,TopLevel}Window in wxWasm.
 // ----------------------------------------------------------------------------
 
 class WXDLLIMPEXP_CORE wxNonOwnedWindow : public wxNonOwnedWindowBase

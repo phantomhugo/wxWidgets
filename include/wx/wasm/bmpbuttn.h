@@ -40,6 +40,9 @@ public:
     void WasmNotifyEvent(const wxWasmEvent& event) override;
 
 protected:
+    // render the bitmap inside the <button> element
+    virtual void DoSetBitmap(const wxBitmapBundle& bitmap, State which) override;
+
     wxDECLARE_DYNAMIC_CLASS(wxBitmapButton);
 
 private:

@@ -5,6 +5,11 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
+// NOTE: this port uses the generic wxDataViewCtrl implementation
+// (wxHAS_GENERIC_DATAVIEWCTRL is defined), so everything below is compiled
+// out. This file exists only for build compatibility: it is listed in
+// build/cmake/files.cmake and removing it would require changing that file.
+
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 

@@ -11,11 +11,7 @@
 
 #include "wx/glcanvas.h"
 
-#if defined(__VISUALC__)
-    #pragma message("OpenGL support is not implemented in wxQt")
-#else
-    #warning "OpenGL support is not implemented in wxWasm"
-#endif
+#warning "OpenGL support is not implemented in wxWasm"
 wxGCC_WARNING_SUPPRESS(unused-parameter)
 
 // ----------------------------------------------------------------------------
@@ -111,7 +107,6 @@ wxGLContextAttrs& wxGLContextAttrs::PlatformDefaults()
 
 void wxGLContextAttrs::EndList()
 {
-//    AddAttribute(None);
 }
 
 // ----------------------------------------------------------------------------
@@ -146,7 +141,6 @@ wxGLAttributes& wxGLAttributes::BufferSize(int val)
 
 wxGLAttributes& wxGLAttributes::Level(int val)
 {
-//    AddAttribute(GLX_LEVEL);
     AddAttribute(val);
     return *this;
 }
@@ -245,8 +239,6 @@ wxGLAttributes& wxGLAttributes::Samplers(int val)
 
 wxGLAttributes& wxGLAttributes::FrameBuffersRGB()
 {
-//    AddAttribute(GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB);
-//    AddAttribute(True);
     return *this;
 }
 
@@ -272,8 +264,6 @@ wxGLContext::wxGLContext(wxGLCanvas *WXUNUSED(win), const wxGLContext* WXUNUSED(
 
 bool wxGLContext::SetCurrent(const wxGLCanvas&) const
 {
-// I think I must destroy and recreate the QGLWidget to change the context?
-//    win->GetHandle()->makeCurrent();
     return false;
 }
 
@@ -348,9 +338,10 @@ bool wxGLCanvas::SwapBuffers()
 
 /* static */
 bool
-wxGLCanvasBase::IsDisplaySupported(const int *attribList)
+wxGLCanvasBase::IsDisplaySupported(const int *WXUNUSED(attribList))
 {
-
+    // GL is not supported in this port (built with wxUSE_GLCANVAS=0)
+    return false;
 }
 
 /* static */

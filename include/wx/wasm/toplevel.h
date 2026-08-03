@@ -46,6 +46,12 @@ public:
 
 protected:
     wxString m_title;
+
+    // Window state flags: there is no real window manager in the browser,
+    // so these are tracked manually by Maximize()/Iconize()/ShowFullScreen().
+    bool m_maximized;
+    bool m_iconized;
+    bool m_fullscreen;
 };
 
 #endif // _WX_WASM_TOPLEVEL_H_

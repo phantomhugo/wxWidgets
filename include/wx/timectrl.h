@@ -106,6 +106,10 @@ typedef wxTimePickerCtrlCommonBase<wxDateTimePickerCtrl> wxTimePickerCtrlBase;
     #include "wx/qt/timectrl.h"
 
     #define wxHAS_NATIVE_TIMEPICKERCTRL
+#elif defined(__WXWASM__)
+    #include "wx/wasm/timectrl.h"
+
+    #define wxHAS_NATIVE_TIMEPICKERCTRL
 #else
     #include "wx/generic/timectrl.h"
 

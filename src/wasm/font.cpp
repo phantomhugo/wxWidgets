@@ -11,8 +11,13 @@
 #include "wx/font.h"
 #include "wx/fontutil.h"
 
-// Older versions of QT don't define all the QFont::Weight enum values, so just
-// do it ourselves here for all case instead.
+//-----------------------------------------------------------------------------
+// wxFontRefData
+//-----------------------------------------------------------------------------
+
+// reference counted data storing the full generic wxNativeFontInfo of a
+// wxFont (point/pixel size, family, style, weight, underlined, strikethrough,
+// face name and encoding)
 class wxFontRefData: public wxGDIRefData
 {
 public:
@@ -20,11 +25,32 @@ public:
 
     wxFontRefData(const wxFontInfo& info)
     {
+        InitFromInfo(info);
     }
 
     wxFontRefData( const wxFontRefData& data )
-    : wxGDIRefData()
+        : wxGDIRefData(),
+          m_nativeFontInfo(data.m_nativeFontInfo)
     {
+    }
+
+    void InitFromInfo(const wxFontInfo& info)
+    {
+        if ( info.IsUsingSizeInPixels() )
+            m_nativeFontInfo.SetPixelSize(info.GetPixelSize());
+        else if ( info.GetFractionalPointSize() > 0 )
+            m_nativeFontInfo.SetFractionalPointSize(info.GetFractionalPointSize());
+
+        if ( info.HasFaceName() )
+            m_nativeFontInfo.SetFaceName(info.GetFaceName());
+        else
+            m_nativeFontInfo.SetFamily(info.GetFamily());
+
+        m_nativeFontInfo.SetStyle(info.GetStyle());
+        m_nativeFontInfo.SetNumericWeight(info.GetNumericWeight());
+        m_nativeFontInfo.SetUnderlined(info.IsUnderlined());
+        m_nativeFontInfo.SetStrikethrough(info.IsStrikethrough());
+        m_nativeFontInfo.SetEncoding(info.GetEncoding());
     }
 
     wxNativeFontInfo m_nativeFontInfo;
@@ -34,7 +60,8 @@ public:
 
 wxFont::wxFont(const wxNativeFontInfo& info)
 {
-
+    m_refData = new wxFontRefData();
+    M_FONTDATA = info;
 }
 
 bool wxFont::Create(wxSize size, wxFontFamily family, wxFontStyle style,
@@ -43,9 +70,34 @@ bool wxFont::Create(wxSize size, wxFontFamily family, wxFontStyle style,
 {
     UnRef();
 
-    m_refData = new wxFontRefData(InfoFromLegacyParams(size.GetHeight(), family,
+    m_refData = new wxFontRefData(InfoFromLegacyParams(size, family,
                                                        style, weight, underlined,
                                                        face, encoding));
+
+    return true;
+}
+
+bool wxFont::Create(const wxString& fontname, wxFontEncoding fontenc)
+{
+    UnRef();
+
+    m_refData = new wxFontRefData();
+
+    // the string is normally a serialized wxNativeFontInfo (as produced by
+    // GetNativeFontInfoDesc()); if parsing it fails, treat it as a face name
+    if ( !M_FONTDATA.FromString(fontname) )
+    {
+        if ( fontname.empty() )
+        {
+            UnRef();
+            return false;
+        }
+
+        M_FONTDATA.SetFaceName(fontname);
+    }
+
+    if ( fontenc != wxFONTENCODING_DEFAULT )
+        M_FONTDATA.SetEncoding(fontenc);
 
     return true;
 }
@@ -90,9 +142,30 @@ bool wxFont::GetStrikethrough() const
     return M_FONTDATA.GetStrikethrough();
 }
 
+wxSize wxFont::GetPixelSize() const
+{
+    wxCHECK_MSG( IsOk(), wxDefaultSize, "invalid font" );
+
+    return M_FONTDATA.GetPixelSize();
+}
+
+bool wxFont::IsUsingSizeInPixels() const
+{
+    return IsOk() && M_FONTDATA.pixelSize != wxDefaultSize;
+}
+
 bool wxFont::IsFixedWidth() const
 {
+    wxCHECK_MSG( IsOk(), false, "invalid font" );
 
+    // the browser cannot tell us whether a font is monospaced, so use a
+    // heuristic: the font is considered fixed-width if its family is
+    // teletype or its face name contains "mono" (case-insensitive), e.g.
+    // "monospace" or "DejaVu Sans Mono"
+    if ( M_FONTDATA.GetFamily() == wxFONTFAMILY_TELETYPE )
+        return true;
+
+    return M_FONTDATA.GetFaceName().Lower().Contains("mono");
 }
 
 void wxFont::SetFractionalPointSize(double pointSize)
@@ -100,6 +173,13 @@ void wxFont::SetFractionalPointSize(double pointSize)
     AllocExclusive();
 
     M_FONTDATA.SetFractionalPointSize(pointSize);
+}
+
+void wxFont::SetPixelSize(const wxSize& pixelSize)
+{
+    AllocExclusive();
+
+    M_FONTDATA.SetPixelSize(pixelSize);
 }
 
 bool wxFont::SetFaceName(const wxString& facename)
@@ -153,14 +233,11 @@ void wxFont::SetEncoding(wxFontEncoding encoding)
 
 void wxFont::DoSetNativeFontInfo(const wxNativeFontInfo& info)
 {
-    SetFractionalPointSize(info.GetPointSize());
-    SetFamily(info.GetFamily());
-    SetStyle(info.GetStyle());
-    SetNumericWeight(info.GetWeight());
-    SetUnderlined(info.GetUnderlined());
-    SetStrikethrough(info.GetStrikethrough());
-    SetFaceName(info.GetFaceName());
-    SetEncoding(info.GetEncoding());
+    AllocExclusive();
+
+    // the generic wxNativeFontInfo is a plain struct, just copy it wholly
+    // (this also preserves the pixel size)
+    M_FONTDATA = info;
 }
 
 wxGDIRefData *wxFont::CreateGDIRefData() const
@@ -184,10 +261,19 @@ wxFontFamily wxFont::DoGetFamily() const
 
 wxSize wxNativeFontInfo::GetPixelSize() const
 {
+    if ( pixelSize != wxDefaultSize )
+        return pixelSize;
 
+    // the size was specified in points: approximate the pixel size assuming
+    // 96 DPI, which is the CSS reference resolution
+    return wxSize(wxDefaultCoord, pointSize > 0 ? wxRound(pointSize * 96.0 / 72.0) : 0);
 }
 
 void wxNativeFontInfo::SetPixelSize(const wxSize& size)
 {
+    pixelSize = size;
 
+    // keep a coherent point size: approximate it assuming 96 DPI (CSS)
+    if ( size.GetHeight() > 0 )
+        pointSize = size.GetHeight() * 72.0 / 96.0;
 }

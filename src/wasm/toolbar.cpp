@@ -303,8 +303,8 @@ void wxToolBar::DoToggleTool(wxToolBarToolBase *toolBase, bool toggle)
 void wxToolBar::DoSetToggle(wxToolBarToolBase * WXUNUSED(tool),
                             bool WXUNUSED(toggle))
 {
-    // VZ: absolutely no idea about how to do it
-    wxFAIL_MSG( wxT("not implemented") );
+    // The DOM buttons are always toggleable, the visual state is handled by
+    // DoToggleTool(); there is nothing else to do here.
 }
 
 wxToolBarToolBase *wxToolBar::CreateTool(int id, const wxString& label, const wxBitmapBundle& bmpNormal,
@@ -323,12 +323,12 @@ wxToolBarToolBase *wxToolBar::CreateTool(wxControl *control,
 
 long wxToolBar::GetButtonStyle()
 {
-
+    return GetWindowStyle();
 }
 
 WXWidget wxToolBar::GetHandle() const
 {
-
+    return nullptr;
 }
 
 void wxToolBar::WasmNotifyEvent(const wxWasmEvent& event)
@@ -339,6 +339,10 @@ void wxToolBar::WasmNotifyEvent(const wxWasmEvent& event)
         wxCommandEvent generatedEvent(wxEVT_TOOL, toolId);
         generatedEvent.SetEventObject(this);
         HandleWindowEvent(generatedEvent);
+    }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
     }
 }
 

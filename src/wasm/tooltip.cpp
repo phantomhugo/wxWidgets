@@ -15,24 +15,26 @@
 
 #include "wx/tooltip.h"
 
+#include <emscripten.h>
+
+// NOTE: the tooltips are implemented with the native "title" attribute of
+// the DOM element, so their timing and appearance are controlled by the
+// browser and the global functions below have no effect.
+
 /* static */ void wxToolTip::Enable(bool WXUNUSED(flag))
 {
-
 }
 
 /* static */ void wxToolTip::SetDelay(long WXUNUSED(milliseconds))
 {
-
 }
 
 /* static */ void wxToolTip::SetAutoPop(long WXUNUSED(milliseconds))
 {
-
 }
 
 /* static */ void wxToolTip::SetReshow(long WXUNUSED(milliseconds))
 {
-
 }
 
 
@@ -47,6 +49,20 @@ void wxToolTip::SetTip(const wxString& tip)
 {
     m_text = tip;
 
+    if ( m_window )
+    {
+        wxCharBuffer buf = m_text.ToUTF8();
+        EM_ASM_({
+            var elem = document.getElementById($0);
+            if (!elem) return;
+
+            var tip = UTF8ToString($1);
+            if (tip.length > 0)
+                elem.title = tip;
+            else
+                elem.removeAttribute('title');
+        }, m_window->GetId(), buf.data());
+    }
 }
 
 const wxString &wxToolTip::GetTip() const
@@ -57,5 +73,5 @@ const wxString &wxToolTip::GetTip() const
 
 void wxToolTip::SetWindow(wxWindow *win)
 {
-//
+    m_window = win;
 }

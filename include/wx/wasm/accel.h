@@ -18,6 +18,13 @@ public:
     bool Ok() const { return IsOk(); }
     bool IsOk() const;
 
+    // Returns the entry matching the given modifier flags (combination of
+    // wxACCEL_ALT/CTRL/SHIFT) and key code, or nullptr if there is none.
+    // Letters are compared case-insensitively: FromString() uppercases
+    // letters combined with modifiers ("Ctrl+o" -> 'O') while keyboard
+    // events report the Shift-dependent case.
+    const wxAcceleratorEntry* FindEntry(int flags, int keyCode) const;
+
 protected:
     // ref counting code
     virtual wxObjectRefData *CreateRefData() const override;

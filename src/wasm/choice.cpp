@@ -272,4 +272,8 @@ void wxChoice::WasmNotifyEvent(const wxWasmEvent& event)
         wxCommandEvent evt(wxEVT_CHOICE, m_windowId);
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }

@@ -1,8 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/wasm/clipbrd.h
-// Purpose:     wxClipboard class
+// Name:        wx/wasm/clrpicker.h
+// Purpose:     wxColourPickerWidget for WASM
 // Author:      Hugo Armando Castellanos Morales
-// Created:     17.07.21
 // Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows Library Licence
 /////////////////////////////////////////////////////////////////////////////
@@ -10,9 +9,7 @@
 #ifndef _WX_WASM_CLRPICKER_H_
 #define _WX_WASM_CLRPICKER_H_
 
-#include "wx/generic/clrpickerg.h"
-
-class WXDLLIMPEXP_CORE wxColourPickerWidget : public wxGenericColourButton
+class WXDLLIMPEXP_CORE wxColourPickerWidget : public wxControl
 {
 public:
     wxColourPickerWidget();
@@ -34,10 +31,16 @@ public:
                 const wxValidator& validator = wxDefaultValidator,
                 const wxString& name = wxASCII_STR(wxColourPickerWidgetNameStr));
 
-protected:
-    virtual void UpdateColour() override;
+    wxColour GetColour() const { return m_colour; }
+    void SetColour(const wxColour& c) { m_colour = c; UpdateColour(); }
+
+    void UpdateColour();
+
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
 
 private:
+    wxColour m_colour;
+    wxDECLARE_DYNAMIC_CLASS(wxColourPickerWidget);
 };
 
 #endif // _WX_WASM_CLRPICKER_H_

@@ -480,7 +480,7 @@ bool wxListCtrl::SetItemPosition(long item, const wxPoint& pos)
     // Rebuild DOM
     EM_ASM_({
         var grid = document.getElementById('wxListCtrl_grid_' + $0);
-        if (grid) grid.innerHTML = '';
+        if (grid) grid.innerHTML = "";
     }, GetId());
 
     for (size_t i = 0; i < m_items.size(); ++i)
@@ -668,7 +668,7 @@ bool wxListCtrl::Arrange(int WXUNUSED(flag))
     // Rebuild DOM
     EM_ASM_({
         var grid = document.getElementById('wxListCtrl_grid_' + $0);
-        if (grid) grid.innerHTML = '';
+        if (grid) grid.innerHTML = "";
     }, GetId());
 
     for (size_t i = 0; i < m_items.size(); ++i)
@@ -707,14 +707,14 @@ bool wxListCtrl::DeleteAllItems()
     {
         EM_ASM_({
             var tbody = document.getElementById('wxListCtrl_body_' + $0);
-            if (tbody) tbody.innerHTML = '';
+            if (tbody) tbody.innerHTML = "";
         }, GetId());
     }
     else
     {
         EM_ASM_({
             var grid = document.getElementById('wxListCtrl_grid_' + $0);
-            if (grid) grid.innerHTML = '';
+            if (grid) grid.innerHTML = "";
         }, GetId());
     }
 
@@ -794,7 +794,7 @@ wxTextCtrl* wxListCtrl::EditLabel(long item,
                 Module.ccall('addEvent', 'number', ['number', 'string', 'number', 'number'],
                     [$0, 'list_edit_end', $1, 0]);
             };
-            td.innerHTML = '';
+            td.innerHTML = "";
             td.appendChild(input);
             input.focus();
             input.select();
@@ -825,7 +825,7 @@ wxTextCtrl* wxListCtrl::EditLabel(long item,
                 Module.ccall('addEvent', 'number', ['number', 'string', 'number', 'number'],
                     [$0, 'list_edit_end', $1, 0]);
             };
-            label.innerHTML = '';
+            label.innerHTML = "";
             label.appendChild(input);
             input.focus();
             input.select();
@@ -899,14 +899,14 @@ bool wxListCtrl::EndEditLabel(bool cancel)
     {
         EM_ASM_({
             var td = document.getElementById('wxListCtrl_cell_' + $0 + '_' + $1 + '_0');
-            if (td) td.innerHTML = '';
+            if (td) td.innerHTML = "";
         }, GetId(), (int)item);
     }
     else
     {
         EM_ASM_({
             var label = document.getElementById('wxListCtrl_label_' + $0 + '_' + $1);
-            if (label) label.innerHTML = '';
+            if (label) label.innerHTML = "";
         }, GetId(), (int)item);
     }
 
@@ -1056,7 +1056,7 @@ void wxListCtrl::CreateItemDOM(long index)
             for (var c = 0; c < numCols; c++) {
                 var td = document.createElement('td');
                 td.id = 'wxListCtrl_cell_' + $0 + '_' + $1 + '_' + c;
-                td.textContent = '';
+                td.textContent = "";
                 tr.appendChild(td);
             }
 
@@ -1171,7 +1171,7 @@ long wxListCtrl::DoInsertColumn(long col, const wxListItem& info)
                 if (!tr) return;
                 var td = document.createElement('td');
                 td.id = 'wxListCtrl_cell_' + $0 + '_' + $1 + '_' + $2;
-                td.textContent = '';
+                td.textContent = "";
                 if ($2 < tr.children.length) {
                     tr.insertBefore(td, tr.children[$2]);
                 } else {
@@ -1262,6 +1262,10 @@ void wxListCtrl::WasmNotifyEvent(const wxWasmEvent& event)
             EndEditLabel(cancel);
         }
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -1276,7 +1280,7 @@ void wxListCtrl::SyncColumnHeaders()
     EM_ASM_({
         var row = document.getElementById('wxListCtrl_headrow_' + $0);
         if (!row) return;
-        row.innerHTML = '';
+        row.innerHTML = "";
     }, GetId());
 
     for (size_t vis = 0; vis < m_columns.size(); ++vis)

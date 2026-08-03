@@ -29,13 +29,13 @@ public:
     virtual void Refresh( bool eraseBackground = true,
                           const wxRect *rect = nullptr ) override;
 
-    // Sobrescribir para manejar cambios de estilo
+    // Overridden to handle style changes
     virtual void SetWindowStyleFlag(long style) override;
     
-    // Sobrescribir para manejar múltiples fields
+    // Overridden to handle multiple fields
     virtual void SetFieldsCount(int number = 1, const int* widths = nullptr) override;
     
-    // Sobrescribir para actualizar DOM
+    // Overridden to update the DOM
     virtual void PopStatusText(int field = 0);
     virtual void PushStatusText(const wxString& text, int field = 0);
 

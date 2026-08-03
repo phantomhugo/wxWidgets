@@ -136,6 +136,8 @@ protected:
     #include "wx/gtk/filepicker.h"
     #define wxFilePickerWidget      wxFileButton
     #define wxDirPickerWidget       wxDirButton
+#elif defined(__WXWASM__)
+    #include "wx/wasm/filepicker.h"
 #else
     #include "wx/generic/filepickerg.h"
     #define wxFilePickerWidget      wxGenericFileButton

@@ -80,11 +80,6 @@ public:
     bool Create(const wxSize& sz, int depth = wxBITMAP_SCREEN_DEPTH);
     bool Create(int width, int height, const wxDC& WXUNUSED(dc));
 
-    bool Create(const void* data, wxBitmapType type,
-                int width, int height, int depth = -1);
-    // create the wxBitmap using a _copy_ of the pixmap
-    bool Create(WXPixmap pixmap);
-
     int GetHeight() const;
     int GetWidth() const;
     int GetDepth() const;
@@ -119,13 +114,6 @@ public:
     wxDEPRECATED(void SetWidth( int width ));
     wxDEPRECATED(void SetDepth( int depth ));
 #endif
-    void SetPixmap( WXPixmap pixmap );
-    void SetBitmap( WXPixmap bitmap );
-
-    WXPixmap GetPixmap() const;
-    WXPixmap GetBitmap() const;
-
-    WXPixmap GetDrawable() const;
 
     bool HasAlpha() const;
 

@@ -816,6 +816,7 @@ void wxNativeFontInfo::Init()
     strikethrough = false;
     faceName.clear();
     encoding = wxFONTENCODING_DEFAULT;
+    pixelSize = wxDefaultSize;
 }
 
 double wxNativeFontInfo::GetFractionalPointSize() const

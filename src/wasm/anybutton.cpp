@@ -45,11 +45,14 @@ void wxAnyButton::SetLabel( const wxString &label )
 
 wxString wxAnyButton::GetLabel() const
 {
+    // wxControl::SetLabel() caches the label (without accel markers) in the
+    // base wxWindow, so return that cached value.
+    return wxWindow::GetLabel();
 }
 
 void *wxAnyButton::GetHandle() const
 {
-
+    return nullptr;
 }
 
 wxBitmap wxAnyButton::DoGetBitmap(State state) const

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Name:        wx/qt/dvrenderers.h
+// Name:        wx/wasm/dvrenderers.h
 // Author:      Hugo Armando Castellanos Morales
 // Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales
 // Licence:     wxWindows licence

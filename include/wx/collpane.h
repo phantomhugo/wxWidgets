@@ -109,6 +109,8 @@ typedef void (wxEvtHandler::*wxCollapsiblePaneEventFunction)(wxCollapsiblePaneEv
 
 #if defined(__WXGTK__) && !defined(__WXUNIVERSAL__)
     #include "wx/gtk/collpane.h"
+#elif defined(__WXWASM__)
+    #include "wx/wasm/collpane.h"
 #else
     #include "wx/generic/collpaneg.h"
 

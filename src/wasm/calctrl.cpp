@@ -292,6 +292,10 @@ void wxCalendarCtrl::WasmNotifyEvent(const wxWasmEvent& event)
     {
         GenerateEvent(wxEVT_CALENDAR_SEL_CHANGED);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }
 
 //=============================================================================

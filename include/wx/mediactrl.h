@@ -219,6 +219,12 @@ protected:
     virtual void DoMoveWindow(int x, int y, int w, int h) override;
     wxSize DoGetBestSize() const override;
 
+#ifdef __WXWASM__
+    // The wasm port receives the DOM events of the <video> element here
+    // and forwards them to the backend (see src/wasm/mediactrl.cpp).
+    virtual void WasmNotifyEvent(const wxWasmEvent& event) override;
+#endif
+
     class wxMediaBackend* m_imp;
     bool m_bLoaded;
 

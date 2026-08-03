@@ -38,16 +38,16 @@ wxStatusBar::wxStatusBar(wxWindow *parent, wxWindowID winid,
 bool wxStatusBar::Create(wxWindow *parent, wxWindowID WXUNUSED(winid),
                          long style, const wxString& WXUNUSED(name))
 {
-    // Crear el elemento DOM base del status bar
+    // Create the base DOM element of the status bar
     wxWasmCreateStatusBar();
 
-    // Mover al parent (frame)
+    // Move to the parent (frame)
     EM_ASM_({
         var parent = document.getElementById($0);
         var statusBar = document.getElementById($1);
         
         if (parent && statusBar) {
-            // Agregar al final del frame
+            // Append at the end of the frame
             parent.appendChild(statusBar);
             statusBar.style.display = 'flex';
         }
@@ -55,7 +55,7 @@ bool wxStatusBar::Create(wxWindow *parent, wxWindowID WXUNUSED(winid),
 
     PostCreation();
 
-    // Por defecto, crear 1 field
+    // By default, create 1 field
     SetFieldsCount(1);
 
     return true;
@@ -68,13 +68,13 @@ void wxStatusBar::wxWasmCreateStatusBar()
         statusBar.id = $0;
         statusBar.className = 'wxStatusBar';
         
-        // Crear contenedor para los fields
+        // Create container for the fields
         var fieldsContainer = document.createElement("div");
         fieldsContainer.className = 'wxStatusBar-fields';
         fieldsContainer.id = $0 + '_fields';
         statusBar.appendChild(fieldsContainer);
         
-        // Insertar en el div de parentless inicialmente
+        // Insert into the parentless div initially
         var parentlessDiv = document.getElementById("wxParentlessTags");
         if (parentlessDiv) {
             parentlessDiv.appendChild(statusBar);
@@ -88,7 +88,7 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
     if (i < 0 || i >= GetFieldsCount())
         return false;
 
-    // Obtener las dimensiones del field desde el DOM
+    // Get the field dimensions from the DOM
     int x = EM_ASM_INT({
         var field = document.getElementById('wxStatusBar_field_' + $0 + '_' + $1);
         if (field) {
@@ -131,7 +131,7 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
 
 void wxStatusBar::SetMinHeight(int height)
 {
-    // Aplicar altura mínima al DOM
+    // Apply minimum height to the DOM
     EM_ASM_({
         var statusBar = document.getElementById($0);
         if (statusBar) {
@@ -142,7 +142,7 @@ void wxStatusBar::SetMinHeight(int height)
 
 int wxStatusBar::GetBorderX() const
 {
-    // Retornar el borde horizontal definido en CSS (generalmente 1px)
+    // Return the horizontal border defined in CSS (usually 1px)
     return 1;
 }
 
@@ -159,7 +159,7 @@ void wxStatusBar::DoUpdateStatusText(int number)
     wxString text = GetStatusText(number);
     wxCharBuffer textBuffer = text.ToUTF8();
     
-    // Actualizar el texto en el DOM
+    // Update the text in the DOM
     EM_ASM_({
         var fieldId = 'wxStatusBar_field_' + $0 + '_' + $1;
         var field = document.getElementById(fieldId);
@@ -185,7 +185,7 @@ void wxStatusBar::Init()
 
 void wxStatusBar::UpdateFields()
 {
-    // Recrear los fields en el DOM según la configuración actual
+    // Recreate the fields in the DOM according to the current configuration
     int numFields = GetFieldsCount();
     if (numFields <= 0)
         return;
@@ -201,30 +201,30 @@ void wxStatusBar::UpdateFields()
         var container = document.getElementById(containerId);
         if (!container) return;
         
-        // Limpiar fields existentes
-        container.innerHTML = '';
+        // Clear existing fields
+        container.innerHTML = "";
         
         var numFields = $1;
-        var hasSizeGrip = UTF8ToString($2) !== '';
+        var hasSizeGrip = UTF8ToString($2) !== "";
         
-        // Crear cada field
+        // Create each field
         for (var i = 0; i < numFields; i++) {
             var field = document.createElement("div");
             field.id = 'wxStatusBar_field_' + $0 + '_' + i;
             field.className = 'wxStatusBar-field';
             
-            // El último field puede tener el size grip
+            // The last field can have the size grip
             if (hasSizeGrip && i === numFields - 1) {
                 field.classList.add('wxStatusBar-field-with-grip');
                 
-                // Crear el grip element
+                // Create the grip element
                 var grip = document.createElement("div");
                 grip.className = 'wxStatusBar-sizegrip';
-                grip.innerHTML = '◢'; // Carácter Unicode para el grip
+                grip.innerHTML = '◢'; // Unicode character for the grip
                 field.appendChild(grip);
             }
             
-            // Crear elemento de texto
+            // Create text element
             var textElem = document.createElement("span");
             textElem.className = 'wxStatusBar-field-text';
             field.appendChild(textElem);
@@ -232,19 +232,19 @@ void wxStatusBar::UpdateFields()
             container.appendChild(field);
         }
         
-        // Aplicar anchos si están definidos
+        // Apply widths if defined
         if (Module.statusBarWidths && Module.statusBarWidths[$0]) {
             var widths = Module.statusBarWidths[$0];
             var fields = container.querySelectorAll('.wxStatusBar-field');
             
             if (widths.length === 1 && widths[0] === -1) {
-                // wxSTB_DEFAULT_STYLE: distribuir equitativamente
+                // wxSTB_DEFAULT_STYLE: distribute evenly
                 var widthPercent = 100 / fields.length;
                 fields.forEach(function(f) {
                     f.style.flex = '1 1 ' + widthPercent + '%';
                 });
             } else if (widths.length === fields.length) {
-                // Anchos específicos
+                // Specific widths
                 fields.forEach(function(f, idx) {
                     if (widths[idx] === -1) {
                         f.style.flex = '1 1 auto';
@@ -256,18 +256,18 @@ void wxStatusBar::UpdateFields()
         }
     }, GetId(), numFields, styleVar.data());
 
-    // Actualizar textos
+    // Update texts
     for (int i = 0; i < numFields; i++) {
         DoUpdateStatusText(i);
     }
 }
 
-// Sobrescribir SetFieldsCount para manejar cambios en el número de fields
+// Override SetFieldsCount to handle changes in the number of fields
 void wxStatusBar::SetFieldsCount(int number, const int* widths)
 {
     wxStatusBarBase::SetFieldsCount(number, widths);
     
-    // Guardar los anchos para usarlos en UpdateFields
+    // Save the widths to use them in UpdateFields
     if (widths) {
         EM_ASM_({
             if (!Module.statusBarWidths) Module.statusBarWidths = {};
@@ -277,22 +277,22 @@ void wxStatusBar::SetFieldsCount(int number, const int* widths)
             }
         }, GetId(), number, widths);
     } else {
-        // Default: todos los fields con el mismo ancho
+        // Default: all fields with the same width
         EM_ASM_({
             if (!Module.statusBarWidths) Module.statusBarWidths = {};
-            Module.statusBarWidths[$0] = [-1]; // -1 indica distribución automática
+            Module.statusBarWidths[$0] = [-1]; // -1 means automatic distribution
         }, GetId());
     }
     
     UpdateFields();
 }
 
-// Método para establecer el estilo del status bar
+// Method to set the status bar style
 void wxStatusBar::SetWindowStyleFlag(long style)
 {
     wxWindow::SetWindowStyleFlag(style);
     
-    // Actualizar visibilidad del size grip
+    // Update size grip visibility
     bool showGrip = (style & wxSTB_SIZEGRIP) != 0;
     
     EM_ASM_({
@@ -309,7 +309,7 @@ void wxStatusBar::SetWindowStyleFlag(long style)
     UpdateFields();
 }
 
-// PopStatusText y PushStatusText para manejo de pila de textos
+// PopStatusText and PushStatusText for text stack handling
 void wxStatusBar::PopStatusText(int field)
 {
     wxStatusBarBase::PopStatusText(field);

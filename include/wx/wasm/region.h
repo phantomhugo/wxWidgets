@@ -63,6 +63,8 @@ protected:
     void InitRect(wxCoord x, wxCoord y, wxCoord w, wxCoord h);
 
 private:
+    friend class wxRegionIterator;
+
     wxDECLARE_DYNAMIC_CLASS(wxRegion);
 };
 

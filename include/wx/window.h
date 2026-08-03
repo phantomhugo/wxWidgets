@@ -2116,8 +2116,19 @@ private:
     {
         int id;
         std::string eventType;
-        int x;
-        int y;
+        int x = 0;
+        int y = 0;
+
+        // Extended payload for the input events queued by addInputEvent()/
+        // addKeyEvent() (src/wasm/evtloop.cpp); the plain control events
+        // queued by addEvent() leave these at their defaults.
+        int button = 0;     // DOM MouseEvent.button: 0=left, 1=middle,
+                            // 2=right, 3=aux1, 4=aux2
+        int buttons = 0;    // DOM MouseEvent.buttons bitmask: 1=left, 2=right,
+                            // 4=middle, 8=aux1, 16=aux2
+        int wheelDelta = 0; // signed wheel rotation (multiple of 120)
+        int mods = 0;       // modifier bits: 1=shift, 2=ctrl, 4=alt, 8=meta
+        std::string key;    // KeyboardEvent.key, for keydown/keyup only
     };
     #define wxWindowWasm wxWindow
     #include "wx/wasm/window.h"

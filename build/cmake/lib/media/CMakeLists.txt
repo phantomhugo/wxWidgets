@@ -22,6 +22,8 @@ elseif(WXQT)
     wx_append_sources(MEDIA_FILES MEDIA_QT)
 elseif(WXX11)
     wx_append_sources(MEDIA_FILES MEDIA_UNIX)
+elseif(WXWASM)
+    wx_append_sources(MEDIA_FILES MEDIA_WASM)
 endif()
 
 wx_add_library(wxmedia ${MEDIA_FILES})

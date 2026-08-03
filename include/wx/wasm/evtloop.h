@@ -9,6 +9,7 @@
 #define _WX_WASM_EVTLOOP_H_
 
 class wxWasmEventSink;
+struct wxWasmEvent;
 class WXDLLIMPEXP_CORE wxWasmEventLoopBase : public wxEventLoopBase
 {
 public:
@@ -24,8 +25,7 @@ public:
     virtual void DoYieldFor(long eventsToProcess) override;
     virtual void DoStop(int rc) override;
 
-    void ScheduleIdleCheck();
-    friend void addEventFriend(int id,const std::string& eventType,int x,int y);
+    friend void addEventFriend(const wxWasmEvent& event);
 private:
     static std::unique_ptr<wxWasmEventSink> m_sink;
     bool m_shouldExit;

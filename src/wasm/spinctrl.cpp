@@ -228,6 +228,10 @@ void wxSpinCtrl::WasmNotifyEvent(const wxWasmEvent& event)
         evt.SetValue(GetValue());
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }
 
 //##############################################################################
@@ -390,6 +394,10 @@ void wxSpinCtrlDouble::WasmNotifyEvent(const wxWasmEvent& event)
     {
         wxSpinDoubleEvent evt(wxEVT_SPINCTRLDOUBLE, m_windowId, GetValue());
         HandleWindowEvent(evt);
+    }
+    else
+    {
+        wxSpinCtrl::WasmNotifyEvent(event);
     }
 }
 

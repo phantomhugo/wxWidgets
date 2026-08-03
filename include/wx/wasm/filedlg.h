@@ -33,22 +33,22 @@ public:
                  const wxSize& sz = wxDefaultSize,
                  const wxString& name = wxASCII_STR(wxFileDialogNameStr));
 
-    virtual wxString GetPath() const override;
+    virtual int ShowModal() override;
+
+    // The selected files are copied into the Emscripten MEMFS under "/tmp",
+    // so this is the default directory when none was explicitly set.
+    virtual wxString GetDirectory() const override
+        { return m_dir.empty() ? wxString("/tmp") : m_dir; }
     virtual void GetPaths(wxArrayString& paths) const override;
-    virtual wxString GetFilename() const override;
     virtual void GetFilenames(wxArrayString& files) const override;
-    virtual int GetFilterIndex() const override;
 
-    virtual void SetMessage(const wxString& message) override;
-    virtual void SetPath(const wxString& path) override;
-    virtual void SetDirectory(const wxString& dir) override;
-    virtual void SetFilename(const wxString& name) override;
-    virtual void SetWildcard(const wxString& wildCard) override;
-    virtual void SetFilterIndex(int filterIndex) override;
-
-    virtual bool SupportsExtraControl() const override { return true; }
+    // The native browser file picker cannot host wx extra controls.
+    virtual bool SupportsExtraControl() const override { return false; }
 
 private:
+    // Results of the last accepted wxFD_MULTIPLE selection.
+    wxArrayString m_paths;
+    wxArrayString m_fileNames;
 
     wxDECLARE_DYNAMIC_CLASS(wxFileDialog);
 };

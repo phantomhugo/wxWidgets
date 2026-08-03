@@ -36,8 +36,11 @@ public:
 
     virtual WXWidget GetHandle() const override;
 protected:
+    virtual wxSize DoGetBestSize() const override;
 
 private:
+    // the currently shown bitmap (also used to compute the best size)
+    wxBitmapBundle m_bitmapBundle;
 
     wxDECLARE_DYNAMIC_CLASS(wxStaticBitmap);
 };

@@ -9,6 +9,18 @@
 #include "wx/wxprec.h"
 
 #include "wx/bmpbuttn.h"
+#include "wx/bitmap.h"
+
+#if wxUSE_IMAGE
+    #include "wx/image.h"
+#endif
+
+#include <emscripten.h>
+
+// defined in src/wasm/statbmp.cpp
+void wxWasmSetImgFromPixels(int domId, const char* selector,
+                            unsigned char* rgb, unsigned char* alpha,
+                            int w, int h);
 
 wxBitmapButton::wxBitmapButton()
 {
@@ -49,6 +61,40 @@ bool wxBitmapButton::Create(wxWindow *parent,
         SetInitialSize(size);
     }
     return true;
+}
+
+void wxBitmapButton::DoSetBitmap(const wxBitmapBundle& bitmap, State which)
+{
+    wxBitmapButtonBase::DoSetBitmap(bitmap, which);
+
+    if ( which != State_Normal || !bitmap.IsOk() )
+        return;
+
+#if wxUSE_IMAGE
+    wxImage image = bitmap.GetBitmapFor(this).ConvertToImage();
+    if ( !image.IsOk() )
+        return;
+
+    // Make sure there is an <img> inside the <button> to show the bitmap.
+    EM_ASM_({
+        var container = document.getElementById($0);
+        if (!container) return;
+        var btn = container.querySelector('.wxButton');
+        if (!btn) return;
+
+        btn.classList.add('wxBitmapButton');
+        if (!btn.querySelector('img')) {
+            var img = document.createElement('img');
+            btn.textContent = "";
+            btn.appendChild(img);
+        }
+    }, GetId());
+
+    wxWasmSetImgFromPixels(GetId(), ".wxButton img",
+        image.GetData(),
+        image.HasAlpha() ? image.GetAlpha() : nullptr,
+        image.GetWidth(), image.GetHeight());
+#endif // wxUSE_IMAGE
 }
 
 void wxBitmapButton::WasmNotifyEvent(const wxWasmEvent& event)

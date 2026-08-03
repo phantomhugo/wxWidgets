@@ -49,6 +49,8 @@ public:
     unsigned char Green() const;
     unsigned char Blue() const;
 
+    virtual ChannelType Alpha() const override;
+
     // Implementation part
 
     void CalcPixel( WXColormap cmap );

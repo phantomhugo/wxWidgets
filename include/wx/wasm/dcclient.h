@@ -21,10 +21,19 @@ public:
     wxWindowDCImpl( wxDC *owner );
     wxWindowDCImpl( wxDC *owner, wxWindow *win );
 
+    // NB: the canvas of a window DC is shared by all the DCs of that window
+    // (id "wx_canvas_<windowId>") and is NOT removed when the DC is
+    // destroyed, so what was drawn on it stays visible; it dies with the
+    // window DOM element.
     ~wxWindowDCImpl() = default;
 
 protected:
     wxWindow *m_window;
+
+    // Re-synchronize the canvas pixel buffer with the current client size
+    // of the window: the CSS stretches the canvas to 100% of its container,
+    // so without this the buffer is scaled (blurry) after a resize.
+    virtual void SyncCanvasBuffer() override;
 
 private:
     wxDECLARE_NO_COPY_CLASS(wxWindowDCImpl);

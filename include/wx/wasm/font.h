@@ -18,9 +18,21 @@ public:
 
     wxFont(const wxFontInfo& info)
     {
-
         if ( info.IsUsingSizeInPixels() )
             SetPixelSize(info.GetPixelSize());
+        else if ( info.GetFractionalPointSize() > 0 )
+            SetFractionalPointSize(info.GetFractionalPointSize());
+
+        if ( info.HasFaceName() )
+            SetFaceName(info.GetFaceName());
+        else
+            SetFamily(info.GetFamily());
+
+        SetStyle(info.GetStyle());
+        SetNumericWeight(info.GetNumericWeight());
+        SetUnderlined(info.IsUnderlined());
+        SetStrikethrough(info.IsStrikethrough());
+        SetEncoding(info.GetEncoding());
     }
 
     wxFont(int size,
@@ -30,6 +42,8 @@ public:
            bool underlined = false,
            const wxString& face = wxEmptyString,
            wxFontEncoding encoding = wxFONTENCODING_DEFAULT)
+        : wxFont(InfoFromLegacyParams(size, family, style, weight,
+                                      underlined, face, encoding))
     {
     }
 
@@ -40,8 +54,9 @@ public:
            bool underlined = false,
            const wxString& face = wxEmptyString,
            wxFontEncoding encoding = wxFONTENCODING_DEFAULT)
+        : wxFont(InfoFromLegacyParams(pixelSize, family, style, weight,
+                                      underlined, face, encoding))
     {
-        SetPixelSize(pixelSize);
     }
 
     bool Create(wxSize size,
@@ -74,9 +89,15 @@ public:
     virtual wxFontEncoding GetEncoding() const;
     virtual const wxNativeFontInfo *GetNativeFontInfo() const;
 
+    // accessors with a default implementation in the base class that we can
+    // implement more accurately using the stored font description
+    virtual wxSize GetPixelSize() const override;
+    virtual bool IsUsingSizeInPixels() const override;
+
     virtual bool IsFixedWidth() const;
 
     virtual void SetFractionalPointSize(double pointSize);
+    virtual void SetPixelSize(const wxSize& pixelSize) override;
     virtual void SetFamily(wxFontFamily family);
     virtual void SetStyle(wxFontStyle style);
     virtual void SetNumericWeight(int weight);
@@ -91,27 +112,12 @@ public:
 
     // Find an existing, or create a new, XFontStruct
     // based on this wxFont and the given scale. Append the
-    // font to list in the private data for future reference.
-
-    // TODO This is a fairly basic implementation, that doesn't
-    // allow for different facenames, and also doesn't do a mapping
-    // between 'standard' facenames (e.g. Arial, Helvetica, Times Roman etc.)
-    // and the fonts that are available on a particular system.
-    // Maybe we need to scan the user's machine to build up a profile
-    // of the fonts and a mapping file.
-
-    // Return font struct, and optionally the Motif font list
-    void *GetInternalFont(double scale = 1.0,
-        WXDisplay* display = NULL) const;
-
 protected:
     virtual wxGDIRefData *CreateGDIRefData() const;
     virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const;
 
     virtual void DoSetNativeFontInfo( const wxNativeFontInfo& info );
     virtual wxFontFamily DoGetFamily() const;
-
-    void Unshare();
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxFont);

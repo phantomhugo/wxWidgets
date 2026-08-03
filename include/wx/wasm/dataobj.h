@@ -11,7 +11,7 @@
 #define _WX_WASM_DATAOBJ_H_
 
 // ----------------------------------------------------------------------------
-// wxDataObject is the same as wxDataObjectBase under wxQT
+// wxDataObject is the same as wxDataObjectBase under wxWasm
 // ----------------------------------------------------------------------------
 
 

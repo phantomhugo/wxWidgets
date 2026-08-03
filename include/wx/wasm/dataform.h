@@ -29,6 +29,9 @@ public:
     bool operator==(wxDataFormatId format) const;
     bool operator!=(wxDataFormatId format) const
         { return m_type != (wxDataFormatId)format; }
+    bool operator==(const wxDataFormat& other) const;
+    bool operator!=(const wxDataFormat& other) const
+        { return !(*this == other); }
 
     // explicit and implicit conversions to NativeFormat which is one of
     // standard data types (implicit conversion is useful for preserving the
@@ -49,8 +52,9 @@ public:
 private:
     wxDataFormatId   m_type;
     NativeFormat     m_format;
+    // string id of custom formats (empty for the standard ones)
+    wxString         m_id;
 
-    void PrepareFormats();
     void SetType( wxDataFormatId type );
 };
 

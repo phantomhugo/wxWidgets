@@ -37,12 +37,14 @@ wxDragResult wxDropTarget::OnData(wxCoord WXUNUSED(x),
 
 bool wxDropTarget::GetData()
 {
-    const wxDataFormat droppedFormat = GetMatchingPair();
+    // Drag and drop is not implemented in this port, so there is never any
+    // data to retrieve.
+    return false;
 }
 
 wxDataFormat wxDropTarget::GetMatchingPair()
 {
-
+    return wxDataFormat();
 }
 
 void wxDropTarget::Disconnect()
@@ -71,8 +73,10 @@ wxDropSource::wxDropSource(wxDataObject& data,
     SetData(data);
 }
 
-wxDragResult wxDropSource::DoDragDrop(int flags /*=wxDrag_CopyOnly*/)
+wxDragResult wxDropSource::DoDragDrop(int WXUNUSED(flags) /*=wxDrag_CopyOnly*/)
 {
+    // Drag and drop is not implemented in this port.
+    return wxDragNone;
 }
 
 #endif // wxUSE_DRAG_AND_DROP

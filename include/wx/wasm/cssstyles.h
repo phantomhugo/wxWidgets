@@ -13,29 +13,22 @@
 #include "wx/string.h"
 #include "wx/defs.h"
 
-// Clase para gestionar estilos CSS
+// Class to manage CSS styles
 class WXDLLIMPEXP_CORE wxWasmCSSManager
 {
 public:
-    // Inyecta CSS por defecto si no existe CSS personalizado
+    // Injects default CSS if there is no custom CSS
     static void InjectDefaultStyles();
     
-    // Permite al usuario cargar CSS personalizado
+    // Allows the user to load custom CSS
     static void LoadCustomCSS(const wxString& cssContent);
     
-    // Obtiene el namespace CSS para una clase wxWidgets
-    static wxString GetCSSClass(const wxString& wxClassName);
-    
-    // Verifica si existe CSS personalizado
+    // Checks whether custom CSS exists
     static bool HasCustomCSS();
     
 private:
     static bool ms_defaultStylesInjected;
     static bool ms_hasCustomCSS;
 };
-
-// Macro helper para aplicar clases CSS a elementos
-#define WX_WASM_CSS_CLASS(className) \
-    wxWasmCSSManager::GetCSSClass(wxT(#className))
 
 #endif // _WX_WASM_CSSSTYLES_H_

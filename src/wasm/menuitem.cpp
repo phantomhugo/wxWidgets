@@ -11,6 +11,11 @@
 #include "wx/menu.h"
 #include "wx/bitmap.h"
 #include "wx/frame.h"
+
+#if wxUSE_IMAGE
+    #include "wx/image.h"
+#endif
+
 #include <emscripten.h>
 
 //##############################################################################
@@ -102,10 +107,10 @@ void wxMenuItem::SetItemLabel(const wxString& label)
 {
     wxMenuItemBase::SetItemLabel(label);
 
-    // Actualizar DOM si existe
+    // Update DOM if it exists
     wxCharBuffer buffer = label.ToUTF8();
     EM_ASM_({
-        var item = document.getElementById($0);
+        var item = document.getElementById('wxMenuItem_' + $0);
         if (item) {
             var labelElem = item.querySelector('.wxMenuItem-label');
             if (labelElem) {
@@ -145,7 +150,62 @@ bool wxMenuItem::IsChecked() const
 
 void wxMenuItem::SetBitmap(const wxBitmapBundle& bitmap)
 {
-    // TODO: Implementar bitmaps en items de menú
+    m_bitmap = bitmap;
+    UpdateDOMBitmap();
+}
+
+void wxMenuItem::UpdateDOMBitmap()
+{
+#if wxUSE_IMAGE
+    if (!m_bitmap.IsOk())
+        return;
+
+    wxImage image = m_bitmap.GetBitmap(m_bitmap.GetDefaultSize()).ConvertToImage();
+    if (!image.IsOk())
+        return;
+
+    // Insert an <img> at the start of the item (before the text) if the
+    // DOM element exists and doesn't have one yet
+    EM_ASM_({
+        var item = document.getElementById('wxMenuItem_' + $0);
+        if (!item) return;
+        if (!item.querySelector('img.wxMenuItem-bitmap')) {
+            var img = document.createElement('img');
+            img.className = 'wxMenuItem-bitmap';
+            item.insertBefore(img, item.firstChild);
+        }
+    }, GetId());
+
+    // Same pixels-to-data-URL logic as wxWasmSetImgFromPixels in
+    // src/wasm/statbmp.cpp, inlined here because that helper looks the
+    // container up by its numeric id, which menu items no longer use
+    // (their DOM ids are namespaced as 'wxMenuItem_<id>').
+    unsigned char* rgb = image.GetData();
+    unsigned char* alpha = image.HasAlpha() ? image.GetAlpha() : nullptr;
+    EM_ASM_({
+        var item = document.getElementById('wxMenuItem_' + $0);
+        if (!item) return;
+        var img = item.querySelector('img.wxMenuItem-bitmap');
+        if (!img) return;
+
+        var canvas = document.createElement('canvas');
+        canvas.width = $3;
+        canvas.height = $4;
+        var ctx = canvas.getContext('2d');
+        var imgData = ctx.createImageData($3, $4);
+        var rgb = $1;
+        var alpha = $2;
+        var count = $3 * $4;
+        for (var i = 0; i < count; i++) {
+            imgData.data[i * 4 + 0] = HEAPU8[rgb + i * 3 + 0];
+            imgData.data[i * 4 + 1] = HEAPU8[rgb + i * 3 + 1];
+            imgData.data[i * 4 + 2] = HEAPU8[rgb + i * 3 + 2];
+            imgData.data[i * 4 + 3] = alpha ? HEAPU8[alpha + i] : 255;
+        }
+        ctx.putImageData(imgData, 0, 0);
+        img.src = canvas.toDataURL('image/png');
+    }, GetId(), rgb, alpha, image.GetWidth(), image.GetHeight());
+#endif // wxUSE_IMAGE
 }
 
 void *wxMenuItem::GetHandle() const
@@ -155,7 +215,62 @@ void *wxMenuItem::GetHandle() const
 
 void wxMenuItem::SetFont(const wxFont& font)
 {
-    // TODO: Implementar fuentes personalizadas
+    m_font = font;
+    ApplyFontToDOM();
+}
+
+void wxMenuItem::ApplyFontToDOM()
+{
+    if (!m_font.IsOk())
+        return;
+
+    // CSS family: explicit face name or a generic family (same mapping as
+    // the canvas font spec in src/wasm/dc.cpp)
+    wxString family = m_font.GetFaceName();
+    if (family.empty())
+    {
+        switch (m_font.GetFamily())
+        {
+            case wxFONTFAMILY_ROMAN:
+                family = "serif";
+                break;
+            case wxFONTFAMILY_SCRIPT:
+                family = "cursive";
+                break;
+            case wxFONTFAMILY_DECORATIVE:
+                family = "fantasy";
+                break;
+            case wxFONTFAMILY_MODERN:
+            case wxFONTFAMILY_TELETYPE:
+                family = "monospace";
+                break;
+            case wxFONTFAMILY_SWISS:
+            default:
+                family = "sans-serif";
+                break;
+        }
+    }
+
+    const char* style = "normal";
+    if (m_font.GetStyle() == wxFONTSTYLE_ITALIC)
+        style = "italic";
+    else if (m_font.GetStyle() == wxFONTSTYLE_SLANT)
+        style = "oblique";
+
+    double pointSize = m_font.GetFractionalPointSize();
+    if (pointSize <= 0)
+        pointSize = 12;
+    int sizePx = (int)(pointSize * 96.0 / 72.0 + 0.5);
+
+    wxCharBuffer familyBuffer = family.ToUTF8();
+    EM_ASM_({
+        var item = document.getElementById('wxMenuItem_' + $0);
+        if (!item) return;
+        item.style.fontFamily = UTF8ToString($1);
+        item.style.fontSize = $2 + 'px';
+        item.style.fontStyle = UTF8ToString($3);
+        item.style.fontWeight = $4;
+    }, GetId(), familyBuffer.data(), sizePx, style, m_font.GetNumericWeight());
 }
 
 void wxMenuItem::CreateDOM(wxMenu* parentMenu)
@@ -181,8 +296,19 @@ void wxMenuItem::CreateDOM(wxMenu* parentMenu)
     wxCharBuffer textBuffer = m_text.ToUTF8();
 
     EM_ASM_({
-        var parent = document.getElementById($2);
+        // Menu popup containers are namespaced ('wxMenuPopup_' + menu id):
+        // the menubar popups (menu.cpp), the floating popup of
+        // wxWindowWasm::DoPopupMenu (window.cpp) and the sub-menu alias
+        // below all share that scheme, so menu ids never collide with the
+        // numeric wxWindowID element ids.
+        var parent = document.getElementById('wxMenuPopup_' + $2);
         if (!parent) return;
+
+        // Skip if the element already exists: DoPopupMenu (window.cpp)
+        // and wxMenuBar (menu.cpp) recreate the DOM of all items once the
+        // popup container exists, but the items of an already-shown menu
+        // must not be duplicated.
+        if (document.getElementById('wxMenuItem_' + $0)) return;
 
         // If parent is a sub-menu item, insert into its popup instead
         var popup = parent.querySelector('.wxSubMenu-popup');
@@ -191,7 +317,7 @@ void wxMenuItem::CreateDOM(wxMenu* parentMenu)
         }
 
         var elem = document.createElement("div");
-        elem.id = $0;
+        elem.id = 'wxMenuItem_' + $0;
         elem.className = UTF8ToString($1);
 
         var className = UTF8ToString($1);
@@ -200,27 +326,29 @@ void wxMenuItem::CreateDOM(wxMenu* parentMenu)
         var itemText = UTF8ToString($3);
 
         if (isSeparator) {
-            // Separador: solo el div con la clase
+            // Separator: only the div with the class
         } else if (isSubMenu) {
-            // Sub-menú: label + popup
+            // Sub-menu: label + popup
             var label = document.createElement("div");
             label.className = 'wxSubMenu-label';
             label.textContent = itemText;
             elem.appendChild(label);
 
-            // Crear popup para submenú
+            // Create popup for the sub-menu
             var popup = document.createElement("div");
             popup.className = 'wxSubMenu-popup';
-            popup.id = $0 + '_popup';
+            popup.id = 'wxMenuItem_' + $0 + '_popup';
             elem.appendChild(popup);
 
-            // Create an alias div so child items can find the container by menu ID
+            // Create an alias div so child items can find the container by
+            // the sub-menu id (same 'wxMenuPopup_' namespace as the other
+            // menu popup containers)
             var alias = document.createElement("div");
-            alias.id = $4;  // subMenu->GetId()
+            alias.id = 'wxMenuPopup_' + $4;  // subMenu->GetId()
             alias.style.display = 'none';
             popup.appendChild(alias);
         } else {
-            // Item normal
+            // Normal item
             var icon = document.createElement("span");
             icon.className = 'wxMenuItem-icon';
             elem.appendChild(icon);
@@ -232,27 +360,27 @@ void wxMenuItem::CreateDOM(wxMenu* parentMenu)
 
             var shortcut = document.createElement("span");
             shortcut.className = 'wxMenuItem-shortcut';
-            // Parsear aceleradores si existen (ej: "&Open\tCtrl+O")
+            // Parse accelerators if any (e.g. "&Open\tCtrl+O")
             var tabIndex = itemText.indexOf('\t');
             if (tabIndex >= 0) {
                 shortcut.textContent = itemText.substring(tabIndex + 1);
-                label.textContent = itemText.substring(0, tabIndex).replace('&', '');
+                label.textContent = itemText.substring(0, tabIndex).replace('&', "");
             }
             elem.appendChild(shortcut);
 
-            // Evento click
+            // Click event
             elem.onclick = function(e) {
                 e.stopPropagation();
                 if (!elem.classList.contains('disabled')) {
-                    // Llamar a C++ para procesar el evento
+                    // Call C++ to process the event
                     if (typeof Module !== 'undefined' && Module.ccall) {
                         Module.ccall('ProcessMenuEvent', null, ['number'], [$0]);
                     }
-                    // Cerrar el menú
+                    // Close the menu
                     document.querySelectorAll('.wxMenuBar-menu.open').forEach(function(m) {
                         m.classList.remove('open');
                     });
-                    // Cerrar popups flotantes
+                    // Close floating popups
                     document.querySelectorAll('.wxMenu-popup-floating').forEach(function(p) {
                         p.style.display = 'none';
                     });
@@ -276,23 +404,28 @@ void wxMenuItem::CreateDOM(wxMenu* parentMenu)
     }, itemId, cssClass.ToUTF8().data(), parentId, textBuffer.data(),
        isSubMenu ? GetSubMenu()->GetId() : 0);
 
-    // Actualizar estado inicial
+    // Update initial state
     UpdateDOMState();
+
+    // Apply bitmap/font set before the DOM element existed
+    UpdateDOMBitmap();
+    if (m_font.IsOk())
+        ApplyFontToDOM();
 }
 
 void wxMenuItem::UpdateDOMState()
 {
     EM_ASM_({
-        var item = document.getElementById($0);
+        var item = document.getElementById('wxMenuItem_' + $0);
         if (item) {
-            // Actualizar estado disabled
+            // Update disabled state
             if ($1) {
                 item.classList.remove('disabled');
             } else {
                 item.classList.add('disabled');
             }
 
-            // Actualizar estado checked
+            // Update checked state
             if ($2) {
                 item.classList.add('checked');
             } else {

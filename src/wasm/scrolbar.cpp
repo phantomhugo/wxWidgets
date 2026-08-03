@@ -177,5 +177,13 @@ void wxScrollBar::WasmNotifyEvent(const wxWasmEvent& event)
             evt.SetEventObject(this);
             HandleWindowEvent(evt);
         }
+        else
+        {
+            wxWindowWasm::WasmNotifyEvent(event);
+        }
+    }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
     }
 }

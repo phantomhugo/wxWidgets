@@ -2450,6 +2450,13 @@ set(MEDIA_UNIX_HDR
 set(MEDIA_GTK_SRC
 )
 
+set(MEDIA_WASM_SRC
+    src/wasm/mediactrl.cpp
+)
+
+set(MEDIA_WASM_HDR
+)
+
 set(HTML_CMN_SRC
     src/html/chm.cpp
     src/html/helpctrl.cpp
@@ -2946,29 +2953,31 @@ set(STC_OSX_COCOA_HDR
 )
 
 set(WASM_HDR
-    wx/generic/activityindicator.h
     wx/generic/caret.h
-    wx/generic/clrpickerg.h
-    wx/generic/collpaneg.h
     wx/generic/fdrepdlg.h
-    wx/generic/filepickerg.h
-    wx/generic/fontpickerg.h
     wx/generic/icon.h
     wx/generic/imaglist.h
     wx/generic/prntdlgg.h
     wx/wasm/accel.h
+    wx/wasm/activityindicator.h
     wx/wasm/anybutton.h
     wx/wasm/app.h
     wx/wasm/bitmap.h
     wx/wasm/bmpbuttn.h
+    wx/wasm/bmpcbox.h
     wx/wasm/brush.h
     wx/wasm/button.h
     wx/wasm/calctrl.h
+    wx/wasm/datectrl.h
+    wx/wasm/timectrl.h
     wx/wasm/checkbox.h
     wx/wasm/checklst.h
     wx/wasm/choice.h
     wx/wasm/clipbrd.h
     wx/wasm/clrpicker.h
+    wx/wasm/collpane.h
+    wx/wasm/filepicker.h
+    wx/wasm/fontpicker.h
     wx/wasm/colordlg.h
     wx/wasm/colour.h
     wx/wasm/combobox.h
@@ -2996,6 +3005,8 @@ set(WASM_HDR
     wx/wasm/fontdlg.h
     wx/wasm/frame.h
     wx/wasm/gauge.h
+    wx/wasm/hyperlink.h
+    wx/wasm/infobar.h
     wx/wasm/listbox.h
     wx/wasm/listctrl.h
     wx/wasm/mdi.h
@@ -3008,7 +3019,6 @@ set(WASM_HDR
     wx/wasm/palette.h
     wx/wasm/pen.h
     wx/wasm/popupwin.h
-    wx/wasm/printdlg.h
     wx/wasm/radiobox.h
     wx/wasm/radiobut.h
     wx/wasm/region.h
@@ -3016,6 +3026,7 @@ set(WASM_HDR
     wx/wasm/slider.h
     wx/wasm/spinbutt.h
     wx/wasm/spinctrl.h
+    wx/wasm/srchctrl.h
     wx/wasm/statbmp.h
     wx/wasm/statbox.h
     wx/wasm/statline.h
@@ -3034,31 +3045,33 @@ set(WASM_HDR
 
 set(WASM_SRC
     src/common/taskbarcmn.cpp
-    src/generic/activityindicator.cpp
     src/generic/caret.cpp
-    src/generic/clrpickerg.cpp
-    src/generic/collpaneg.cpp
     src/generic/fdrepdlg.cpp
-    src/generic/filepickerg.cpp
-    src/generic/fontpickerg.cpp
     src/generic/imaglist.cpp
     src/generic/prntdlgg.cpp
     src/generic/textmeasure.cpp
     src/wasm/accel.cpp
+    src/wasm/activityindicator.cpp
     src/wasm/anybutton.cpp
     src/wasm/app.cpp
     src/wasm/apptraits.cpp
     src/wasm/bitmap.cpp
     src/wasm/cssstyles.cpp
     src/wasm/bmpbuttn.cpp
+    src/wasm/bmpcbox.cpp
     src/wasm/brush.cpp
     src/wasm/button.cpp
     src/wasm/calctrl.cpp
+    src/wasm/datectrl.cpp
+    src/wasm/timectrl.cpp
     src/wasm/checkbox.cpp
     src/wasm/checklst.cpp
     src/wasm/choice.cpp
     src/wasm/clipbrd.cpp
     src/wasm/clrpicker.cpp
+    src/wasm/collpane.cpp
+    src/wasm/filepicker.cpp
+    src/wasm/fontpicker.cpp
     src/wasm/colordlg.cpp
     src/wasm/colour.cpp
     src/wasm/combobox.cpp
@@ -3073,6 +3086,7 @@ set(WASM_SRC
     src/wasm/dcscreen.cpp
     src/wasm/defs.cpp
     src/wasm/dialog.cpp
+    src/wasm/dirdlg.cpp
     src/wasm/display.cpp
     src/wasm/dnd.cpp
     src/wasm/dvrenderer.cpp
@@ -3086,6 +3100,8 @@ set(WASM_SRC
     src/wasm/frame.cpp
     src/wasm/gauge.cpp
     src/wasm/glcanvas.cpp
+    src/wasm/hyperlink.cpp
+    src/wasm/infobar.cpp
     src/wasm/listbox.cpp
     src/wasm/listctrl.cpp
     src/wasm/mdi.cpp
@@ -3098,7 +3114,6 @@ set(WASM_SRC
     src/wasm/palette.cpp
     src/wasm/pen.cpp
     src/wasm/popupwin.cpp
-    src/wasm/printdlg.cpp
     src/wasm/radiobox.cpp
     src/wasm/radiobut.cpp
     src/wasm/region.cpp
@@ -3108,6 +3123,7 @@ set(WASM_SRC
     src/wasm/sound.cpp
     src/wasm/spinbutt.cpp
     src/wasm/spinctrl.cpp
+    src/wasm/srchctrl.cpp
     src/wasm/statbmp.cpp
     src/wasm/statbox.cpp
     src/wasm/statline.cpp

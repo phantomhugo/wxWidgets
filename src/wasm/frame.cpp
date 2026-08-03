@@ -33,7 +33,7 @@ bool wxFrame::Create( wxWindow *parent, wxWindowID id, const wxString& title,
                 const currentFrame=document.getElementById($0);
                 currentFrame.className="wxFrame";
                 
-                // Crear contenedor para el contenido del frame
+                // Create container for the frame content
                 const frameContent=document.createElement("div");
                 frameContent.id= "wxFrame_content_" + $0;
                 frameContent.className="wxFrame_content";
@@ -61,7 +61,7 @@ void wxFrame::SetMenuBar( wxMenuBar *menuBar )
                 const currentFrame=document.getElementById($0);
                 const menuBar=document.getElementById($1);
                 if (currentFrame && menuBar) {
-                    // Insertar al principio
+                    // Insert at the beginning
                     currentFrame.insertBefore(menuBar, currentFrame.firstChild);
                     menuBar.style.display = 'flex';
                 }
@@ -77,7 +77,7 @@ void wxFrame::SetStatusBar( wxStatusBar *statusBar )
 {
     wxStatusBar* oldStatusBar = GetStatusBar();
     
-    // Si hay un status bar anterior, moverlo a parentless
+    // If there is a previous status bar, move it to parentless
     if (oldStatusBar && oldStatusBar != statusBar)
     {
         EM_ASM_INT(
@@ -116,12 +116,58 @@ void wxFrame::SetStatusBar( wxStatusBar *statusBar )
 
 void wxFrame::SetToolBar(wxToolBar *toolbar)
 {
+    wxToolBar* oldToolBar = GetToolBar();
+
+    // If there is a previous toolbar, move it to the parentless container
+    if (oldToolBar && oldToolBar != toolbar)
+    {
+        EM_ASM_INT(
+            {
+                const currentParentless=document.getElementById("wxParentlessTags");
+                const oldToolBar=document.getElementById($0);
+                if (currentParentless && oldToolBar) {
+                    currentParentless.appendChild(oldToolBar);
+                    oldToolBar.style.display = 'none';
+                }
+                return 1;
+            },
+            oldToolBar->GetId()
+        );
+    }
+
     wxFrameBase::SetToolBar( toolbar );
-    
+
     if ( toolbar != nullptr )
     {
-        // TODO: Implementar toolbar en el DOM
-        // Debería ir entre el menú y el contenido
+        EM_ASM_INT(
+            {
+                const currentFrame=document.getElementById($0);
+                const toolBar=document.getElementById($1);
+                if (currentFrame && toolBar) {
+                    // Keep the order: menubar > toolbar > content > statusbar.
+                    // The menubar is always inserted as firstChild by
+                    // SetMenuBar(), so inserting the toolbar right before the
+                    // content container keeps it below the menubar.
+                    const content=document.getElementById("wxFrame_content_" + $0);
+                    if (content && content.parentNode === currentFrame) {
+                        currentFrame.insertBefore(toolBar, content);
+                    } else {
+                        currentFrame.appendChild(toolBar);
+                    }
+                    // PostCreation() gave the control div position:absolute;
+                    // reset it so it takes part in the frame flex column.
+                    toolBar.style.position = 'relative';
+                    toolBar.style.left = "";
+                    toolBar.style.top = "";
+                    toolBar.style.width = '100%';
+                    toolBar.style.height = "";
+                    toolBar.style.display = 'flex';
+                }
+                return 1;
+            },
+            GetId(),
+            toolbar->GetId()
+        );
     }
 }
 
@@ -142,7 +188,7 @@ void wxFrame::RemoveChild( wxWindowBase *child )
 
 void wxFrame::DoGetClientSize(int *width, int *height) const
 {
-    // El tamaño del cliente debe excluir menú y status bar
+    // The client size must exclude menu and status bar
     wxWindow::DoGetClientSize(width, height);
 }
 
@@ -151,7 +197,7 @@ void wxFrame::DoSetClientSize(int width, int height)
     wxWindow::DoSetClientSize(width, height);
 }
 
-// Método auxiliar para obtener el contenedor de contenido del frame
+// Helper method to get the frame content container
 wxString wxFrame::GetContentContainerId() const
 {
     return wxString::Format(wxT("wxFrame_content_%d"), GetId());

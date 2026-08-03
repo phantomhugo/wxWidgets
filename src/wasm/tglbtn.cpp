@@ -105,6 +105,10 @@ void wxToggleButton::WasmNotifyEvent(const wxWasmEvent& event)
         evt.SetInt(GetValue() ? 1 : 0);
         HandleWindowEvent(evt);
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }
 
 // ============================================================================

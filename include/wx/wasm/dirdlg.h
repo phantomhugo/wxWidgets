@@ -10,8 +10,6 @@
 #ifndef _WX_WASM_DIRDLG_H_
 #define _WX_WASM_DIRDLG_H_
 
-class QFileDialog;
-
 class WXDLLIMPEXP_CORE wxDirDialog : public wxDirDialogBase
 {
 public:
@@ -33,10 +31,7 @@ public:
                 const wxSize& size = wxDefaultSize,
                 const wxString& name = wxASCII_STR(wxDirDialogNameStr));
 
-public:     // overrides from wxGenericDirDialog
-
-    wxString GetPath() const override;
-    void SetPath(const wxString& path) override;
+    virtual int ShowModal() override;
 
 private:
 

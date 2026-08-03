@@ -10,6 +10,8 @@
 #ifndef _WX_WASM_DIALOG_H_
 #define _WX_WASM_DIALOG_H_
 
+class WXDLLIMPEXP_FWD_BASE wxEventLoopBase;
+
 class WXDLLIMPEXP_CORE wxDialog : public wxDialogBase
 {
 public:
@@ -40,6 +42,11 @@ public:
 
 private:
     bool m_isModal;
+
+    // The modal event loop created by ShowModal(), valid only while it
+    // runs; EndModal() must exit this loop and not whatever loop happens
+    // to be active when it is called (e.g. from a timer or idle handler).
+    wxEventLoopBase* m_modalLoop;
 
     wxDECLARE_DYNAMIC_CLASS(wxDialog);
 };

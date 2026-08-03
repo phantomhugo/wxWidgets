@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/qt/minifram.h
+// Name:        wx/wasm/minifram.h
 // Purpose:     wxMiniFrame class
 // Author:      Hugo Armando Castellanos Morales
 // Copyright:   (c) 2022-2026 Hugo Armando Castellanos Morales

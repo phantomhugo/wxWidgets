@@ -15,7 +15,8 @@
 #include <emscripten.h>
 
 wxDialog::wxDialog()
-    : m_isModal(false)
+    : m_isModal(false),
+      m_modalLoop(nullptr)
 {
 }
 
@@ -25,7 +26,8 @@ wxDialog::wxDialog(wxWindow *parent, wxWindowID id,
                    const wxSize &size,
                    long style,
                    const wxString &name)
-    : m_isModal(false)
+    : m_isModal(false),
+      m_modalLoop(nullptr)
 {
     Create(parent, id, title, pos, size, style, name);
 }
@@ -36,7 +38,7 @@ wxDialog::~wxDialog()
         EndModal(wxID_CANCEL);
     }
 
-    // Remover el elemento <dialog> del DOM si aún existe
+    // Remove the <dialog> element from the DOM if it still exists
     EM_ASM_({
         var dialog = document.getElementById($0);
         if (dialog) {
@@ -61,14 +63,14 @@ bool wxDialog::Create(wxWindow *parent, wxWindowID id,
     if (!wxTopLevelWindow::Create(parent, id, title, pos, size, style, name))
         return false;
 
-    // Reemplazar el <div> creado por wxTopLevelWindowWasm::Create() con <dialog>
+    // Replace the <div> created by wxTopLevelWindowWasm::Create() with <dialog>
     EM_ASM_({
         var oldDiv = document.getElementById($0);
         if (oldDiv && oldDiv.tagName !== 'DIALOG') {
             var dialog = document.createElement('dialog');
             dialog.id = $0;
             dialog.className = oldDiv.className + ' wxDialog';
-            // Transferir hijos existentes
+            // Transfer existing children
             while (oldDiv.firstChild) {
                 dialog.appendChild(oldDiv.firstChild);
             }
@@ -96,12 +98,13 @@ int wxDialog::ShowModal()
     wxCHECK_MSG(!IsModal(), wxID_CANCEL,
                 "ShowModal() can't be called twice");
 
-    // Crear el loop modal (wxWindowDisabler se crea automáticamente)
+    // Create the modal loop (wxWindowDisabler is created automatically)
     wxModalEventLoop modalLoop(this);
 
     m_isModal = true;
+    m_modalLoop = &modalLoop;
 
-    // Abrir el <dialog> nativo
+    // Open the native <dialog>
     EM_ASM_({
         var dialog = document.getElementById($0);
         if (dialog && dialog.showModal) {
@@ -114,8 +117,9 @@ int wxDialog::ShowModal()
     modalLoop.Run();
 
     m_isModal = false;
+    m_modalLoop = nullptr;
 
-    // Cerrar el dialog nativo si aún está abierto
+    // Close the native dialog if it is still open
     EM_ASM_({
         var dialog = document.getElementById($0);
         if (dialog && dialog.open) {
@@ -132,10 +136,11 @@ void wxDialog::EndModal(int retCode)
 {
     SetReturnCode(retCode);
 
-    wxEventLoopBase *const active = wxEventLoopBase::GetActive();
-    if (active) {
-        active->ScheduleExit(GetReturnCode());
-    }
+    // Exit the modal loop created by ShowModal(): the currently active
+    // loop may be a nested one (timer/idle handlers) and must not be
+    // exited here.
+    if ( m_modalLoop )
+        m_modalLoop->ScheduleExit(GetReturnCode());
 
     EM_ASM_({
         var dialog = document.getElementById($0);
@@ -174,7 +179,7 @@ void *wxDialog::GetDialogHandle() const
     return const_cast<wxDialog*>(this);
 }
 
-// Función C expuesta para JavaScript (manejo de ESC en <dialog>)
+// C function exposed to JavaScript (ESC handling in <dialog>)
 extern "C" EMSCRIPTEN_KEEPALIVE void wxDialogHandleCancel(int dialogId)
 {
     wxDialog *dlg = dynamic_cast<wxDialog*>(wxWindow::FindWindowById(dialogId));

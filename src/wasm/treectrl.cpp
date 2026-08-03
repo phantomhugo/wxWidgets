@@ -1174,4 +1174,8 @@ void wxTreeCtrl::WasmNotifyEvent(const wxWasmEvent& event)
             Toggle(item);
         }
     }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
+    }
 }

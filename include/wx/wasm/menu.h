@@ -41,6 +41,7 @@ class WXDLLIMPEXP_CORE wxMenuBar : public wxMenuBarBase
 public:
     wxMenuBar(long style=0);
     wxMenuBar(size_t n, wxMenu *menus[], const wxString titles[], long style = 0);
+    virtual ~wxMenuBar();
 
     virtual bool Append(wxMenu *menu, const wxString& title) override;
     virtual bool Insert(size_t pos, wxMenu *menu, const wxString& title) override;

@@ -74,7 +74,7 @@ wxWindow *wxButton::SetDefault()
 {
     wxWindow *oldDefault = wxButtonBase::SetDefault();
 
-    // Quitar clase default del botón anterior
+    // Remove default class from the previous button
     if (oldDefault) {
         EM_ASM_({
             var container = document.getElementById($0);
@@ -85,7 +85,7 @@ wxWindow *wxButton::SetDefault()
         }, oldDefault->GetId());
     }
 
-    // Agregar clase default al botón actual
+    // Add default class to the current button
     EM_ASM_({
         var container = document.getElementById($0);
         if (container) {
@@ -115,5 +115,9 @@ void wxButton::WasmNotifyEvent(const wxWasmEvent& event)
     {
         wxCommandEvent generatedEvent(wxEVT_BUTTON,event.id);
         HandleWindowEvent(generatedEvent);
+    }
+    else
+    {
+        wxWindowWasm::WasmNotifyEvent(event);
     }
 }

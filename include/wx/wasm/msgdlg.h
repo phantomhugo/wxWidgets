@@ -22,14 +22,14 @@ public:
                     const wxPoint& pos = wxDefaultPosition);
     virtual ~wxMessageDialog();
 
-    // Implementación usando elemento <dialog> de HTML5
+    // Implementation using the HTML5 <dialog> element
     virtual int ShowModal() override;
 
 private:
-    // Crear el elemento DOM del diálogo
+    // Create the DOM element of the dialog
     void CreateDialogElement();
     
-    // Helper para obtener etiquetas de botones
+    // Helper to get button labels
     static wxString GetButtonLabel(int id, const wxString& customLabel);
     
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxMessageDialog);

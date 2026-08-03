@@ -50,6 +50,8 @@ wxString DataFormatIdToMimeType(wxDataFormatId formatId)
 
 wxDataFormat::wxDataFormat()
 {
+    m_type = wxDF_INVALID;
+    m_format = nullptr;
 }
 
 wxDataFormat::wxDataFormat(wxDataFormatId formatId)
@@ -57,30 +59,63 @@ wxDataFormat::wxDataFormat(wxDataFormatId formatId)
     SetType(formatId);
 }
 
+wxDataFormat::wxDataFormat(NativeFormat format)
+{
+    SetId(format);
+}
+
 wxDataFormat::wxDataFormat(const wxString &id)
 {
     SetId(id);
 }
 
+void wxDataFormat::SetId(NativeFormat format)
+{
+    // There is no native clipboard format type in the browser, so a
+    // NativeFormat simply encodes one of the standard wxDataFormatId values.
+    SetType((wxDataFormatId)(size_t)format);
+}
+
 void wxDataFormat::SetId(const wxString& id)
 {
-
+    // String ids are used for custom, application-specific formats.
+    m_type = wxDF_PRIVATE;
+    m_format = (NativeFormat)(size_t)wxDF_PRIVATE;
+    m_id = id;
 }
 
 wxString wxDataFormat::GetId() const
 {
+    if ( !m_id.empty() )
+        return m_id;
+
+    return DataFormatIdToMimeType(m_type);
 }
 
 wxDataFormatId wxDataFormat::GetType() const
 {
+    return m_type;
 }
 
 void wxDataFormat::SetType(wxDataFormatId formatId)
 {
+    m_type = formatId;
+    m_format = (NativeFormat)(size_t)formatId;
+    m_id = DataFormatIdToMimeType(formatId);
 }
 
 bool wxDataFormat::operator==(wxDataFormatId format) const
 {
+    return m_type == format;
+}
+
+bool wxDataFormat::operator==(const wxDataFormat& other) const
+{
+    if ( m_type != other.m_type )
+        return false;
+
+    // Custom formats are equal only if their string ids match.
+    return m_type != wxDF_PRIVATE || m_id == other.m_id;
 }
 
 //############################################################################

@@ -9,6 +9,7 @@
 #define _WX_WASM_COLORDLG_H_
 
 #include "wx/dialog.h"
+#include "wx/colourdata.h"
 
 class WXDLLIMPEXP_CORE wxColourDialog : public wxDialog
 {
@@ -18,6 +19,8 @@ public:
                    const wxColourData *data = nullptr) { Create(parent, data); }
 
     bool Create(wxWindow *parent, const wxColourData *data = nullptr);
+
+    virtual int ShowModal() override;
 
     wxColourData &GetColourData();
 

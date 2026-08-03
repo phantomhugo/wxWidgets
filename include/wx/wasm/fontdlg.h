@@ -17,12 +17,12 @@ public:
     wxFontDialog(wxWindow *parent) { Create(parent); }
     wxFontDialog(wxWindow *parent, const wxFontData& data) { Create(parent, data); }
 
+    virtual int ShowModal() override;
+
 protected:
     bool DoCreate(wxWindow *parent) override;
 
 private:
-
-    wxFontData m_data;
 
     wxDECLARE_DYNAMIC_CLASS(wxFontDialog);
 };

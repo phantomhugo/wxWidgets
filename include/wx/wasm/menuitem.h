@@ -10,6 +10,8 @@
 #ifndef _WX_WASM_MENUITEM_H_
 #define _WX_WASM_MENUITEM_H_
 
+#include "wx/font.h"
+
 class WXDLLIMPEXP_CORE wxMenuItem : public wxMenuItemBase
 {
 public:
@@ -32,11 +34,19 @@ public:
     virtual void *GetHandle() const;
     virtual void SetFont(const wxFont& font);
     
-    // Métodos específicos de WASM
+    // WASM-specific methods
     void CreateDOM(wxMenu* parentMenu);
     void UpdateDOMState();
 
 private:
+    // Apply the pending bitmap/font to the DOM element (no-ops if it
+    // doesn't exist yet; CreateDOM calls them again after creating it).
+    void UpdateDOMBitmap();
+    void ApplyFontToDOM();
+
+    wxBitmapBundle m_bitmap;
+    wxFont m_font;
+
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxMenuItem);
 };
 

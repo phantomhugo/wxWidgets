@@ -81,12 +81,25 @@ public:
     virtual void Popup();
     virtual void Dismiss();
 
+    virtual void SetString(unsigned int n, const wxString& s) override;
+
+    virtual bool IsEditable() const override { return !IsReadOnly(); }
+    virtual void SetEditable(bool editable) override;
+
+    void WasmNotifyEvent(const wxWasmEvent& event) override;
+
     virtual const wxTextEntry* WXGetTextEntry() const override { return this; }
 
 protected:
 
     // From wxTextEntry:
     virtual wxString DoGetValue() const override;
+    virtual void DoSetValue(const wxString& value, int flags = 0) override;
+
+    // From wxChoice (keep the editable <datalist> in sync):
+    virtual int DoInsertOneItem(const wxString& item, unsigned int pos) override;
+    virtual void DoClear() override;
+    virtual void DoDeleteOneItem(unsigned int pos) override;
 
 private:
     void SetActualValue(const wxString& value);

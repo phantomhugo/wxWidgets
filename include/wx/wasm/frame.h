@@ -47,7 +47,7 @@ public:
     virtual void AddChild( wxWindowBase *child ) override;
     virtual void RemoveChild( wxWindowBase *child ) override;
 
-    // Obtener el ID del contenedor de contenido del frame (para DOM)
+    // Get the ID of the frame content container (for the DOM)
     wxString GetContentContainerId() const;
 
 protected:

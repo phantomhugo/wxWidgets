@@ -38,6 +38,10 @@ public:
 
     WXCursor GetCursor() const;
 
+    // Return the stock cursor id this cursor was created from, or
+    // wxCURSOR_NONE for custom (bitmap/image) cursors.
+    wxStockCursor GetStockCursorId() const;
+
 protected:
     void InitFromStock(wxStockCursor);
 
@@ -47,5 +51,9 @@ protected:
 private:
     wxDECLARE_DYNAMIC_CLASS(wxCursor);
 };
+
+// Map a stock cursor id to the equivalent CSS cursor value (used to set
+// the "cursor" style of the DOM elements).
+const char *wxWasmCursorToCSS(wxStockCursor cursorId);
 
 #endif // _WX_CURSOR_H_

@@ -818,9 +818,7 @@ int wxKillAllChildren(long pid, wxSignal sig, wxKillError *krc, int flags)
     }
 
     //Fill in the size of the structure before using it.
-    PROCESSENTRY32 pe;
-    wxZeroMemory(pe);
-    pe.dwSize = sizeof(PROCESSENTRY32);
+    WinStructWordSize<PROCESSENTRY32> pe;
 
     // Walk the snapshot of the processes, and for each process,
     // kill it if its parent is pid.
@@ -1241,9 +1239,12 @@ wxString wxGetOsDescription()
 
             if ( key.Exists() )
             {
+                constexpr const char* VALUE_DISPLAY_VERSION = "DisplayVersion";
+
                 wxString displayVersion;
-                if ( key.QueryValue("DisplayVersion", displayVersion)
-                    && !displayVersion.empty() )
+                if ( key.HasValue(VALUE_DISPLAY_VERSION) &&
+                        key.QueryValue(VALUE_DISPLAY_VERSION, displayVersion) &&
+                            !displayVersion.empty() )
                 {
                     str << " " << displayVersion;
                 }

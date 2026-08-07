@@ -55,6 +55,7 @@ wxBEGIN_EVENT_TABLE(wxRibbonBar, wxRibbonControl)
   EVT_SIZE(wxRibbonBar::OnSize)
   EVT_KILL_FOCUS(wxRibbonBar::OnKillFocus)
   EVT_DPI_CHANGED(wxRibbonBar::OnDPIChanged)
+  EVT_SYS_COLOUR_CHANGED(wxRibbonBar::OnSysColourChanged)
 wxEND_EVENT_TABLE()
 
 void wxRibbonBar::AddPage(wxRibbonPage *page)
@@ -715,24 +716,7 @@ void wxRibbonBar::RecalculateTabSizes()
     }
 }
 
-wxRibbonBar::wxRibbonBar()
-{
-    m_flags = 0;
-    m_tabs_total_width_ideal = 0;
-    m_tabs_total_width_minimum = 0;
-    m_tab_margin_left = 0;
-    m_tab_margin_right = 0;
-    m_tab_height = 0;
-    m_tab_scroll_amount = 0;
-    m_current_page = wxNOT_FOUND;
-    m_current_hovered_page = wxNOT_FOUND;
-    m_tab_scroll_left_button_state = wxRIBBON_SCROLL_BTN_NORMAL;
-    m_tab_scroll_right_button_state = wxRIBBON_SCROLL_BTN_NORMAL;
-    m_tab_scroll_buttons_shown = false;
-    m_arePanelsShown = true;
-    m_help_button_hovered = false;
-
-}
+wxRibbonBar::wxRibbonBar() = default;
 
 wxRibbonBar::wxRibbonBar(wxWindow* parent,
                          wxWindowID id,
@@ -748,9 +732,9 @@ wxRibbonBar::~wxRibbonBar()
 {
     SetArtProvider(nullptr);
 
-    for ( size_t n = 0; n < m_image_lists.size(); ++n )
+    for ( auto* list : m_image_lists )
     {
-        delete m_image_lists[n];
+        delete list;
     }
 }
 
@@ -773,8 +757,6 @@ void wxRibbonBar::CommonInit(long style)
     SetName("wxRibbonBar");
 
     m_flags = style;
-    m_tabs_total_width_ideal = 0;
-    m_tabs_total_width_minimum = 0;
     m_tab_margin_left = 50;
     m_tab_margin_right = 20;
     if ( m_flags & wxRIBBON_BAR_SHOW_TOGGLE_BUTTON )
@@ -782,32 +764,20 @@ void wxRibbonBar::CommonInit(long style)
     if ( m_flags & wxRIBBON_BAR_SHOW_HELP_BUTTON )
         m_tab_margin_right += 20;
     m_tab_height = 20; // initial guess
-    m_tab_scroll_amount = 0;
-    m_current_page = wxNOT_FOUND;
-    m_current_hovered_page = wxNOT_FOUND;
-    m_tab_scroll_left_button_state = wxRIBBON_SCROLL_BTN_NORMAL;
-    m_tab_scroll_right_button_state = wxRIBBON_SCROLL_BTN_NORMAL;
-    m_tab_scroll_buttons_shown = false;
-    m_arePanelsShown = true;
 
     if(m_art == nullptr)
     {
         SetArtProvider(new wxRibbonDefaultArtProvider);
     }
     SetBackgroundStyle(wxBG_STYLE_PAINT);
-
-    m_toggle_button_hovered = false;
-    m_bar_hovered = false;
-
-    m_ribbon_state = wxRIBBON_BAR_PINNED;
 }
 
 wxImageList* wxRibbonBar::GetButtonImageList(wxSize size, int initialCount)
 {
-    for ( size_t n = 0; n < m_image_lists.size(); ++n )
+    for ( auto* list : m_image_lists )
     {
-        if ( m_image_lists[n]->GetSize() == size )
-            return m_image_lists[n];
+        if ( list->GetSize() == size )
+            return list;
     }
 
     wxImageList* const
@@ -985,6 +955,12 @@ void wxRibbonBar::OnDPIChanged(wxDPIChangedEvent& event)
 
     Refresh();
     event.Skip();
+}
+
+void wxRibbonBar::OnSysColourChanged(wxSysColourChangedEvent& event)
+{
+    event.Skip();
+    m_art->UpdateColoursFromSystem();
 }
 
 void wxRibbonBar::RepositionPage(wxRibbonPage *page)

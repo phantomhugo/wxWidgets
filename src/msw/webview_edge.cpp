@@ -1127,9 +1127,12 @@ wxWebViewEdge::wxWebViewEdge(wxWindow* parent,
 
 wxWebViewEdge::~wxWebViewEdge()
 {
+    Unbind(wxEVT_SIZE, &wxWebViewEdge::OnSize, this);
+    Unbind(wxEVT_SET_FOCUS, &wxWebViewEdge::OnSetFocus, this);
     wxWindow* topLevelParent = wxGetTopLevelParent(this);
     if (topLevelParent)
         topLevelParent->Unbind(wxEVT_ICONIZE, &wxWebViewEdge::OnTopLevelParentIconized, this);
+    Unbind(wxEVT_SHOW, &wxWebViewEdge::OnShow, this);
     delete m_impl;
 }
 
@@ -1157,6 +1160,7 @@ bool wxWebViewEdge::Create(wxWindow* parent,
     wxWindow* topLevelParent = wxGetTopLevelParent(this);
     if (topLevelParent)
         topLevelParent->Bind(wxEVT_ICONIZE, &wxWebViewEdge::OnTopLevelParentIconized, this);
+    Bind(wxEVT_SHOW, &wxWebViewEdge::OnShow, this);
 
     LoadURL(url);
     return true;
@@ -1179,6 +1183,27 @@ void wxWebViewEdge::OnTopLevelParentIconized(wxIconizeEvent& event)
 {
     if (m_impl && m_impl->m_webViewController)
         m_impl->m_webViewController->put_IsVisible(!event.IsIconized());
+    event.Skip();
+}
+
+void wxWebViewEdge::OnShow(wxShowEvent& event)
+{
+    if ( m_impl && m_impl->m_webViewController )
+    {
+        m_impl->m_webViewController->put_IsVisible(event.IsShown());
+        // Force a refresh by refreshing its paint area
+        if ( event.IsShown() )
+        {
+            // put_Bounds is a no-op when the rect is unchanged, so collapse to
+            // zero first to guarantee a bounds change that forces a repaint
+            m_impl->m_webViewController->put_Bounds(RECT{});
+            CallAfter([this]
+            {
+                if ( m_impl && m_impl->m_webViewController )
+                    m_impl->UpdateBounds();
+            });
+        }
+    }
     event.Skip();
 }
 
@@ -1444,6 +1469,83 @@ void wxWebViewEdge::Print(const wxPrintData& printData, int flags)
 
     if (FAILED(hr))
         wxLogApiError("ICoreWebView2_16::Print", hr);
+}
+#endif // wxUSE_PRINTING_ARCHITECTURE
+
+bool wxWebViewEdge::DoCallPrintToPdf(const wxString& filePath, ICoreWebView2PrintSettings* printSettings)
+{
+    wxCOMPtr<ICoreWebView2_7> webView7;
+    if (FAILED(m_impl->m_webView->QueryInterface(IID_PPV_ARGS(&webView7))))
+    {
+        wxLogError(_("PDF export requires a newer version of the WebView2 runtime."));
+        return false;
+    }
+
+    const wxString filePathCopy = filePath;
+    HRESULT hr = webView7->PrintToPdf(
+        filePath.wc_str(),
+        printSettings,
+        Callback<ICoreWebView2PrintToPdfCompletedHandler>(
+            [this, filePathCopy](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+            {
+                wxWebViewEvent* event = new wxWebViewEvent(wxEVT_WEBVIEW_PDF_SAVED, GetId(), filePathCopy, wxString());
+                event->SetInt((SUCCEEDED(errorCode) && isSuccessful) ? 1 : 0);
+                event->SetEventObject(this);
+                QueueEvent(event);
+                return S_OK;
+            }).Get());
+
+    if (FAILED(hr))
+    {
+        wxLogApiError("ICoreWebView2_7::PrintToPdf", hr);
+        return false;
+    }
+    return true;
+}
+
+bool wxWebViewEdge::PrintToPDF(const wxString& filePath)
+{
+    if (!m_impl->m_webView)
+        return false;
+
+    return DoCallPrintToPdf(filePath, nullptr);
+}
+
+#if wxUSE_PRINTING_ARCHITECTURE
+bool wxWebViewEdge::PrintToPDF(const wxString& filePath, const wxPrintData& printData)
+{
+    if (!m_impl->m_webView)
+        return false;
+
+    wxCOMPtr<ICoreWebView2Environment6> environment6;
+    if (FAILED(m_impl->m_webViewEnvironment->QueryInterface(IID_PPV_ARGS(&environment6))))
+        return PrintToPDF(filePath);
+
+    wxCOMPtr<ICoreWebView2PrintSettings> printSettings;
+    HRESULT hr = environment6->CreatePrintSettings(&printSettings);
+    if (FAILED(hr))
+    {
+        wxLogApiError("CreatePrintSettings", hr);
+        return PrintToPDF(filePath);
+    }
+
+    printSettings->put_Orientation(
+        printData.GetOrientation() == wxLANDSCAPE
+            ? COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE
+            : COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT);
+
+    wxSize paperSizeTenthsMM = wxThePrintPaperDatabase->GetSize(printData.GetPaperId());
+    if (paperSizeTenthsMM.x > 0 && paperSizeTenthsMM.y > 0)
+    {
+        double widthInches = paperSizeTenthsMM.x / 254.0;
+        double heightInches = paperSizeTenthsMM.y / 254.0;
+        printSettings->put_PageWidth(widthInches);
+        printSettings->put_PageHeight(heightInches);
+    }
+
+    printSettings->put_ShouldPrintHeaderAndFooter(FALSE);
+
+    return DoCallPrintToPdf(filePath, printSettings);
 }
 #endif // wxUSE_PRINTING_ARCHITECTURE
 

@@ -299,19 +299,11 @@ static bool wxIsTouchEventMSW()
     return (::GetMessageExtraInfo() & SIGNATURE_MASK) == MI_WP_SIGNATURE;
 }
 
-// ---------------------------------------------------------------------------
-// event tables
-// ---------------------------------------------------------------------------
-
 // in wxUniv/MSW this class is abstract because it doesn't have DoPopupMenu()
 // method
 #ifdef __WXUNIVERSAL__
     wxIMPLEMENT_ABSTRACT_CLASS(wxWindowMSW, wxWindowBase);
 #endif // __WXUNIVERSAL__
-
-wxBEGIN_EVENT_TABLE(wxWindowMSW, wxWindowBase)
-    EVT_SYS_COLOUR_CHANGED(wxWindowMSW::OnSysColourChanged)
-wxEND_EVENT_TABLE()
 
 // ===========================================================================
 // implementation
@@ -1466,14 +1458,6 @@ wxBorder wxWindowMSW::DoTranslateBorder(wxBorder border) const
 {
     if (border == wxBORDER_THEME)
     {
-        // In dark mode the standard sunken border is too bright, so prefer
-        // using a simple(r) and darker border instead.
-        //
-        // And themed borders don't look good either in dark mode, so don't
-        // use them in it.
-        if ( wxMSWDarkMode::IsActive() )
-            return wxBORDER_SIMPLE;
-
         if (CanApplyThemeBorder())
         {
             if ( wxUxThemeIsActive() )
@@ -1560,10 +1544,6 @@ WXDWORD wxWindowMSW::MSWGetStyle(long flags, WXDWORD *exstyle) const
                 *exstyle |= WS_EX_CLIENTEDGE;
                 style &= ~WS_BORDER;
                 break;
-
-//            case wxBORDER_DOUBLE:
-//                *exstyle |= WS_EX_DLGMODALFRAME;
-//                break;
         }
 
         // wxUniv doesn't use Windows dialog navigation functions at all
@@ -2274,23 +2254,20 @@ void wxWindowMSW::DoSetClientSize(int width, int height)
     }
 }
 
-wxSize wxWindowMSW::GetWindowBorderSize() const
+int wxWindowMSW::MSWGetBorderThickness() const
 {
-    wxCoord border;
     switch ( GetBorder() )
     {
         case wxBORDER_STATIC:
         case wxBORDER_SIMPLE:
-            border = 1;
-            break;
+            return 1;
 
         case wxBORDER_SUNKEN:
         case wxBORDER_THEME:
-            border = 2;
-            break;
+            return 2;
 
         case wxBORDER_RAISED:
-            border = 3;
+            return 3;
             break;
 
         default:
@@ -2298,9 +2275,13 @@ wxSize wxWindowMSW::GetWindowBorderSize() const
             wxFALLTHROUGH;
 
         case wxBORDER_NONE:
-            border = 0;
+            return 0;
     }
+}
 
+wxSize wxWindowMSW::GetWindowBorderSize() const
+{
+    const auto border = MSWGetBorderThickness();
     return 2*wxSize(border, border);
 }
 
@@ -3566,13 +3547,17 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
         case WM_SETTINGCHANGE:
             // Check for the special case of the message which notifies about
             // the colours change.
-            // Note that "ImmersiveColorSet" is set both when switching between
-            // light and dark themes and also when changing high contrast mode,
-            // for which an additional message with "WindowsThemeElement" is
-            // also sent, but we don't need to check for it as handling this
-            // one is enough
-            if ( lParam && wxStrcmp((TCHAR*)lParam, wxT("ImmersiveColorSet")) == 0 )
-                processed = HandleSysColorChange();
+            if ( wxIsSystemColourChange(lParam) )
+            {
+                // When switching between light and dark modes, Windows normally
+                // sends two WM_SETTINGCHANGE messages with "ImmersiveColorSet",
+                // one before and one after. Sometimes the second message does not
+                // appear. To guarantee we process at least one system colour
+                // change event after the switch, defer processing this message
+                // until after the switch.
+                ::PostMessage(m_hWnd, WM_SYSCOLORCHANGE, 0, 0);
+                processed = true;
+            }
             else
                 processed = HandleSettingChange(wParam, lParam);
             break;
@@ -3820,6 +3805,8 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
         // If we want the default themed border then we need to draw it ourselves
         case WM_NCCALCSIZE:
             {
+                // The default handling for this message is proper for all
+                // border styles except wxBORDER_THEME.
                 if (DoTranslateBorder(GetBorder()) == wxBORDER_THEME)
                 {
                     // first ask the widget to calculate the border size
@@ -3839,93 +3826,70 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
                     {
                         rect = (RECT *)lParam;
                     }
-
-                    wxUxThemeHandle hTheme((const wxWindow *)this, L"EDIT");
-
-                    // There is no need to initialize rcClient: either it will
-                    // be done by GetThemeBackgroundContentRect() or we'll do
-                    // it below if it fails.
-                    RECT rcClient;
-
-                    ClientHDC hdc(GetHwnd());
-
-                    if ( ::GetThemeBackgroundContentRect
-                                (
-                                 hTheme,
-                                 hdc,
-                                 EP_EDITTEXT,
-                                 IsEnabled() ? ETS_NORMAL : ETS_DISABLED,
-                                 rect,
-                                 &rcClient) != S_OK )
-                    {
-                        // If GetThemeBackgroundContentRect() failed, as can
-                        // happen with at least some custom themes, just use
-                        // the original client rectangle.
-                        rcClient = *rect;
-                    }
-
-                    InflateRect(&rcClient, -1, -1);
-                    if (wParam)
-                        csparam->rgrc[0] = rcClient;
-                    else
-                        *((RECT*)lParam) = rcClient;
-
-                    // WVR_REDRAW triggers a bug whereby child windows are moved up and left,
-                    // so don't use.
-                    // rc.result = WVR_REDRAW;
+                    const auto thickness = MSWGetBorderThickness();
+                    InflateRect(rect, -thickness, -thickness);
                 }
             }
             break;
 
         case WM_NCPAINT:
             {
-                if (DoTranslateBorder(GetBorder()) == wxBORDER_THEME)
+                // Determine whether we should draw a border.
+                bool drawBorder = false;
+                wxBorder border = DoTranslateBorder(GetBorder());
+                switch ( border )
                 {
-                    // first ask the widget to paint its non-client area, such as scrollbars, etc.
-                    rc.result = MSWDefWindowProc(message, wParam, lParam);
+                    case wxBORDER_THEME:
+                        drawBorder = true;
+                        break;
+
+                    case wxBORDER_STATIC:
+                    case wxBORDER_RAISED:
+                    case wxBORDER_SUNKEN:
+                        // In dark mode, explicitly draw these border styles because
+                        // the default drawing uses light mode colours.
+                        drawBorder = wxMSWDarkMode::IsActive();
+                        break;
+
+                    case wxBORDER_NONE:
+                    case wxBORDER_SIMPLE:
+                    default:
+                        break;
+                }
+
+                if ( drawBorder )
+                {
+                    // Have the window draw its scrollbars, if any. To avoid flicker,
+                    // prevent the border from being drawn by specifing a clipping
+                    // region with everything inside the border. For simplicity,
+                    // ignore any existing clipping region in the wParam argument.
+                    RECT rcClip;
+                    ::GetWindowRect(m_hWnd, &rcClip);
+                    const auto thickness = MSWGetBorderThickness();
+                    ::InflateRect(&rcClip, -thickness, -thickness);
+                    AutoHRGN cliprgn = ::CreateRectRgnIndirect(&rcClip);
+                    rc.result = MSWDefWindowProc(message, (WXWPARAM)(HRGN)cliprgn, lParam);
                     processed = true;
 
-                    wxUxThemeHandle hTheme((const wxWindow *)this, L"EDIT");
                     wxWindowDC dc((wxWindow *)this);
-                    wxMSWDCImpl *impl = (wxMSWDCImpl*) dc.GetImpl();
 
-                    // Clip the DC so that you only draw on the non-client area
-                    RECT rcBorder;
-                    wxCopyRectToRECT(GetSize(), rcBorder);
-
+                    // Exclude the client area and any scroll bars.
                     RECT rcClient;
-
-                    const int nState = IsEnabled() ? ETS_NORMAL : ETS_DISABLED;
-
-                    if ( ::GetThemeBackgroundContentRect
-                                (
-                                 hTheme,
-                                 GetHdcOf(*impl),
-                                 EP_EDITTEXT,
-                                 nState,
-                                 &rcBorder,
-                                 &rcClient
-                                ) != S_OK )
-                    {
-                        // As above in WM_NCCALCSIZE, fall back on something
-                        // reasonable for themes which don't implement this
-                        // function.
-                        rcClient = rcBorder;
-                    }
-
-                    InflateRect(&rcClient, -1, -1);
-
-                    ::ExcludeClipRect(GetHdcOf(*impl), rcClient.left, rcClient.top,
+                    wxCopyRectToRECT(GetSize(), rcClient);
+                    InflateRect(&rcClient, -thickness, -thickness);
+                    HDC hdc = dc.GetHDC();
+                    ::ExcludeClipRect(hdc, rcClient.left, rcClient.top,
                                       rcClient.right, rcClient.bottom);
 
-                    // Make sure the background is in a proper state
-                    if (::IsThemeBackgroundPartiallyTransparent(hTheme, EP_EDITTEXT, nState))
+                    // Draw the border.
+                    if ( border == wxBORDER_THEME )
+                        MSWDrawThemeBorder(hdc);
+                    else
                     {
-                        ::DrawThemeParentBackground(GetHwnd(), GetHdcOf(*impl), &rcBorder);
+                        // In dark mode, draw a simple border for all the 3D border styles.
+                        wxASSERT(wxMSWDarkMode::IsActive());
+                        wxWindowMSW::MSWDrawThemeBorder(hdc);
                     }
-
-                    // Draw the border
-                    hTheme.DrawBackground(GetHdcOf(*impl), rcBorder, EP_EDITTEXT, nState);
                 }
             }
             break;
@@ -3946,6 +3910,44 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
     *result = rc.result;
 
     return true;
+}
+
+// Draw a simple generic border.
+void wxWindowMSW::MSWDrawThemeBorder(WXHDC hdc)
+{
+    RECT rcBorder;
+    wxCopyRectToRECT(GetSize(), rcBorder);
+
+    if ( wxMSWDarkMode::IsActive() )
+    {
+        // There does not seem to be a theme class that draws a good
+        // border on all supported versions of Windows. Manually draw a
+        // 1-pixel thick border. Use the observed colour of the simple
+        // border, WS_BORDER.
+        AutoHBRUSH brushBorder(0x646464);
+        ::FrameRect(hdc, &rcBorder, brushBorder);
+        // Draw the background with consecutively smaller 1-pixel thick
+        // rectangles.
+        AutoHBRUSH brushBg(GetBackgroundColour().GetPixel());
+        const auto thickness = MSWGetBorderThickness();
+        for (int count = 1; count < thickness; count++)
+        {
+            ::InflateRect(&rcBorder, -1, -1);
+            ::FrameRect(hdc, &rcBorder, brushBg);
+        }
+    }
+    else
+    {
+        // The EDIT class gives a good general purpose border in light mode.
+        wxUxThemeHandle hTheme(this, L"EDIT");
+        // Make sure the background is in a proper state
+        if (::IsThemeBackgroundPartiallyTransparent(hTheme, EP_EDITTEXT, ETS_NORMAL))
+        {
+            ::DrawThemeParentBackground(m_hWnd, hdc, &rcBorder);
+        }
+        // Draw the border
+        hTheme.DrawBackground(hdc, rcBorder, EP_EDITTEXT, ETS_NORMAL);
+    }
 }
 
 WXLRESULT wxWindowMSW::MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam)
@@ -4103,14 +4105,7 @@ bool wxWindowMSW::MSWCreate(const wxChar *wclass,
     }
 
     if ( wxMSWDarkMode::IsActive() )
-    {
-        // We currently allow customizing the theme at wxControl level as some
-        // native controls require using a different theme, but for plain
-        // windows it looks like the default ("Explorer") should always be used
-        // and its only (but important) effect is to make their scrollbars
-        // dark, if they're used.
-        wxMSWDarkMode::AllowForWindow(m_hWnd);
-    }
+        MSWSetDarkOrLightMode(SetMode::Initial);
 
     SubclassWin(m_hWnd);
 
@@ -4141,6 +4136,45 @@ WXHWND wxWindowMSW::MSWCreateWindowAtAnyPosition(WXDWORD exStyle, const wxChar* 
     }
 
     return hWnd;
+}
+
+void wxWindowMSW::MSWGetDarkModeSupport(MSWDarkModeSupport& support) const
+{
+    // This is the default theme name for dark mode.
+    // This theme works for a few controls (buttons, texts, comboboxes) and
+    // doesn't seem to do any harm for those that don't support it, so use it
+    // by default.
+    support.themeName = L"Explorer";
+}
+
+void wxWindowMSW::MSWSetDarkOrLightMode(SetMode WXUNUSED(setmode))
+{
+    MSWDarkModeSupport support;
+    if ( wxMSWDarkMode::IsActive() )
+    {
+        MSWGetDarkModeSupport(support);
+    }
+    else
+    {
+        // This is the theme name for light mode.
+        support.themeName = L"Explorer";
+    }
+
+    // This updates scroll bars, if there are any.
+    wxMSWDarkMode::AllowForWindow(m_hWnd, support.themeName, support.themeId);
+
+    // If the window class has a background brush, update it.
+    // This is the value in WNDCLASS::hbrBackground.
+    if ( ::GetClassLongPtr(m_hWnd, GCLP_HBRBACKGROUND) != 0 )
+    {
+        // The brush value was originally a colour index plus 1, for example
+        // wxSYS_COLOUR_WINDOW+1. Assume that colour index matches the colour
+        // returned by GetDefaultAttributes().
+        wxColour colBg = GetDefaultAttributes().colBg;
+        wxBrush* brush = wxTheBrushList->FindOrCreateBrush(colBg);
+        HBRUSH hbr = GetHbrushOf(*brush);
+        ::SetClassLongPtr(m_hWnd, GCLP_HBRBACKGROUND, LONG_PTR(hbr));
+    }
 }
 
 // ===========================================================================
@@ -4804,7 +4838,6 @@ wxWindowMSW::MSWOnDrawItem(int WXUNUSED_UNLESS_ODRAWN(id),
     {
         return item->MSWOnDraw(itemStruct);
     }
-
 #endif // wxUSE_CONTROLS
 
     return false;
@@ -4857,10 +4890,7 @@ wxWindowMSW::MSWOnMeasureItem(int id, WXMEASUREITEMSTRUCT *itemStruct)
 // DPI
 // ---------------------------------------------------------------------------
 
-namespace
-{
-
-static wxSize GetWindowDPI(HWND hwnd)
+wxSize wxGetWindowDPI(HWND hwnd)
 {
     typedef UINT (WINAPI *GetDpiForWindow_t)(HWND hwnd);
     static GetDpiForWindow_t s_pfnGetDpiForWindow = nullptr;
@@ -4880,8 +4910,6 @@ static wxSize GetWindowDPI(HWND hwnd)
     }
 
     return wxSize();
-}
-
 }
 
 /*extern*/
@@ -4974,7 +5002,7 @@ wxSize wxWindowMSW::GetDPI() const
         }
     }
 
-    wxSize dpi = GetWindowDPI(hwnd);
+    wxSize dpi = wxGetWindowDPI(hwnd);
 
     if ( !dpi.x || !dpi.y )
     {
@@ -5011,46 +5039,6 @@ void wxWindowMSW::MSWUpdateFontOnDPIChange(const wxSize& newDPI)
     }
 }
 
-// Called from MSWUpdateonDPIChange() to recursively update the window
-// sizer and any child sizers and spacers.
-static void UpdateSizerOnDPIChange(wxSizer* sizer, wxSize oldDPI, wxSize newDPI)
-{
-    if ( !sizer )
-    {
-        return;
-    }
-
-    for ( wxSizerItemList::compatibility_iterator
-            node = sizer->GetChildren().GetFirst();
-            node;
-            node = node->GetNext() )
-    {
-        wxSizerItem* sizerItem = node->GetData();
-
-        int border = sizerItem->GetBorder();
-        border = wxRescaleCoord(border).From(oldDPI).To(newDPI);
-        sizerItem->SetBorder(border);
-
-        // only scale sizers and spacers, not windows
-        if ( sizerItem->IsSizer() || sizerItem->IsSpacer() )
-        {
-            wxSize min = sizerItem->GetMinSize();
-            min = wxRescaleCoord(min).From(oldDPI).To(newDPI);
-            sizerItem->SetMinSize(min);
-
-            if ( sizerItem->IsSpacer() )
-            {
-                wxSize size = sizerItem->GetSize();
-                size = wxRescaleCoord(size).From(oldDPI).To(newDPI);
-                sizerItem->SetDimension(wxDefaultPosition, size);
-            }
-
-            // Update any child sizers if this is a sizer
-            UpdateSizerOnDPIChange(sizerItem->GetSizer(), oldDPI, newDPI);
-        }
-    }
-}
-
 bool
 wxWindowMSW::MSWUpdateOnDPIChange(const wxSize& oldDPI, const wxSize& newDPI)
 {
@@ -5069,7 +5057,8 @@ wxWindowMSW::MSWUpdateOnDPIChange(const wxSize& oldDPI, const wxSize& newDPI)
     MSWUpdateFontOnDPIChange(newDPI);
 
     // update sizers
-    UpdateSizerOnDPIChange(GetSizer(), oldDPI, newDPI);
+    if ( wxSizer* const sizer = GetSizer() )
+        sizer->UpdateOnDPIChange(oldDPI, newDPI);
 
     // update children
     for ( wxWindowList::compatibility_iterator node = GetChildren().GetFirst();
@@ -5105,10 +5094,11 @@ wxWindowMSW::MSWUpdateOnDPIChange(const wxSize& oldDPI, const wxSize& newDPI)
 
 bool wxWindowMSW::HandleSysColorChange()
 {
-    wxSysColourChangedEvent event;
-    event.SetEventObject(this);
+    // Update dark mode status before event handlers run since they may need
+    // that information.
+    wxMSWDarkMode::NotifySysColorChange();
 
-    (void)HandleWindowEvent(event);
+    SendSysColourChangedEvents();
 
     if ( IsTopLevel() )
         Refresh();
@@ -5286,8 +5276,7 @@ bool wxWindowMSW::HandleQueryNewPalette()
     return HandleWindowEvent(event) && event.GetPaletteRealized();
 }
 
-// Responds to colour changes: passes event on to children.
-void wxWindowMSW::OnSysColourChanged(wxSysColourChangedEvent& WXUNUSED(event))
+void wxWindowMSW::SendSysColourChangedEvents()
 {
     // the top level window also reset the standard colour map as it might have
     // changed (there is no need to do it for the non top level windows as we
@@ -5297,6 +5286,18 @@ void wxWindowMSW::OnSysColourChanged(wxSysColourChangedEvent& WXUNUSED(event))
         // FIXME-MT
         gs_hasStdCmap = false;
     }
+
+    if ( wxMSWDarkMode::HasChanged() )
+    {
+        // Update the parent before the children because they often inherit
+        // parent colors.
+        MSWSetDarkOrLightMode(SetMode::Change);
+    }
+
+    wxSysColourChangedEvent event;
+    event.SetEventObject(this);
+    ProcessWindowEvent(event);
+
     wxWindowList::compatibility_iterator node = GetChildren().GetFirst();
     while ( node )
     {
@@ -5313,6 +5314,8 @@ void wxWindowMSW::OnSysColourChanged(wxSysColourChangedEvent& WXUNUSED(event))
 
         node = node->GetNext();
     }
+
+    // Base class functionality is duplicated here, so don't chain up
 }
 
 extern wxCOLORMAP *wxGetStdColourMap()
@@ -5619,9 +5622,10 @@ wxWindowMSW::MSWGetBgBrushForChild(WXHDC hDC, wxWindowMSW *child)
         return hbrush;
     }
 
-    // Otherwise see if we have a custom background colour or if we're a TLW,
-    // as nothing else would provide the brush in the latter case.
-    if ( m_hasBgCol || IsTopLevel() )
+    // Otherwise see if we have a background colour (which is only set if we
+    // need to use it) or if we're a TLW (in which case nothing else would
+    // provide the brush, so we have to do it).
+    if ( m_backgroundColour.IsOk() || IsTopLevel() )
     {
         wxBrush *
             brush = wxTheBrushList->FindOrCreateBrush(GetBackgroundColour());

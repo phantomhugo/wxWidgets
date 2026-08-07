@@ -487,13 +487,6 @@ bool wxTextCtrl::Create(wxWindow *parent,
         // and check for it in our SetDropTarget()
         m_dropTarget = wxRICHTEXT_DEFAULT_DROPTARGET;
 #endif // wxUSE_DRAG_AND_DROP
-
-        if ( wxMSWDarkMode::IsActive() )
-        {
-            // We need to set the colours explicitly for rich text controls.
-            SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
-            SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
-        }
     }
 #endif // wxUSE_RICHEDIT
 
@@ -503,8 +496,8 @@ bool wxTextCtrl::Create(wxWindow *parent,
 // returns true if the platform should explicitly apply a theme border
 bool wxTextCtrl::CanApplyThemeBorder() const
 {
-    // Standard text control already handles theming
-    return ((GetWindowStyle() & (wxTE_RICH|wxTE_RICH2)) != 0);
+    // Standard text control already handles theming in light mode.
+    return IsRich() || wxMSWDarkMode::IsActive();
 }
 
 bool wxTextCtrl::MSWCreateText(const wxString& value,
@@ -654,20 +647,6 @@ bool wxTextCtrl::MSWCreateText(const wxString& value,
 #if wxUSE_RICHEDIT
     if (IsRich())
     {
-        // RICHEDIT50W automatically adds WS_EX_CLIENTEDGE to its style for
-        // some reason and while this isn't very noticeable in light mode, it
-        // looks really bad in dark mode, so forcibly remove it unless it was
-        // explicitly requested.
-        if ( GetBorder() != wxBORDER_SUNKEN && wxMSWDarkMode::IsActive() )
-        {
-            const auto origExStyle = ::GetWindowLongPtr(GetHwnd(), GWL_EXSTYLE);
-            if ( origExStyle & WS_EX_CLIENTEDGE )
-            {
-                ::SetWindowLongPtr(GetHwnd(), GWL_EXSTYLE,
-                                   origExStyle & ~WS_EX_CLIENTEDGE);
-            }
-        }
-
 #if wxUSE_INKEDIT
         if (IsInkEdit())
         {
@@ -744,12 +723,7 @@ bool wxTextCtrl::MSWCreateText(const wxString& value,
         // non-rich read-only multiline controls have grey background by
         // default under MSW but this is not always appropriate, so forcefully
         // reset the background colour to normal default
-        //
-        // this is not ideal but, after a long discussion on wx-dev (see
-        // http://thread.gmane.org/gmane.comp.lib.wxwidgets.devel/116360/) it
-        // was finally deemed to be the best behaviour by default (and ideally
-        // we'd have a way to change this, see #11521)
-        SetBackgroundColour(GetClassDefaultAttributes().colBg);
+        m_backgroundColour = GetClassDefaultAttributes().colBg;
     }
 
     // Without this, if we pass the size in the constructor and then don't change it,
@@ -1810,6 +1784,8 @@ wxPoint wxTextCtrl::DoPositionToCoords(long pos) const
         LRESULT rc = ::SendMessage(GetHwnd(), EM_POSFROMCHAR, (WPARAM)&pt, pos);
         if ( rc != -1 )
             return wxPoint(pt.x, pt.y);
+
+        return wxDefaultPosition;
     }
     else
 #endif // wxUSE_RICHEDIT
@@ -1878,8 +1854,6 @@ wxPoint wxTextCtrl::DoPositionToCoords(long pos) const
         return wxPoint(static_cast<short>(LOWORD(rc)),
                         static_cast<short>(HIWORD(rc)));
     }
-
-    return wxDefaultPosition;
 }
 
 
@@ -2883,6 +2857,58 @@ void wxTextCtrl::OnSetFocus(wxFocusEvent& event)
     event.Skip();
 }
 
+void wxTextCtrl::MSWDrawThemeBorder(WXHDC hdc)
+{
+    if ( IsRich() )
+    {
+        // Always draw a simple border.
+        wxTextCtrlBase::MSWDrawThemeBorder(hdc);
+    }
+    else
+    {
+        // Draw a dark mode border similar to how the control looks in light
+        // mode. If the control has the focus, a blue line appears along the
+        // bottom otherwise a light gray line.
+        RECT rect;
+        wxCopyRectToRECT(GetSize(), rect);
+
+        // Colour for top, left, and right. Taken from WinUI 3 TextBox.
+        const COLORREF colTop = 0x303030;
+        // Colour for bottom when unfocused. Taken from WinUI 3 TextBox.
+        const COLORREF colBotGray = 0x9a9a9a;
+        // Colour for bottom when focused. This accent colour matches the
+        // Win32 checkbox when checked, and the radio button when selected.
+        const COLORREF colBotBlue = 0xffcd60;
+
+        // Draw outer 1 pixel thick border with a rectangle. The bottom will be
+        // drawn over later.
+        AutoHBRUSH brushBorder(colTop);
+        ::FrameRect(hdc, &rect, brushBorder);
+        // Draw inner 1 pixel thick rectangle as background colour.
+        AutoHBRUSH brushBg(GetBackgroundColour().GetPixel());
+        RECT rcInner = rect;
+        ::InflateRect(&rcInner, -1, -1);
+        ::FrameRect(hdc, &rcInner, brushBg);
+        // Draw 1 or 2 pixel thick bottom line.
+        COLORREF colBot;
+        int thicknessBot;
+        if ( HasFocus() )
+        {
+            colBot = colBotBlue;
+            thicknessBot = 2;
+        }
+        else
+        {
+            colBot = colBotGray;
+            thicknessBot = 1;
+        }
+        AutoHBRUSH brushBottom(colBot);
+        RECT rcBottom = rect;
+        rcBottom.top = rect.bottom - thicknessBot;
+        ::FillRect(hdc, &rcBottom, brushBottom);
+    }
+}
+
 // the rest of the file only deals with the rich edit controls
 #if wxUSE_RICHEDIT
 
@@ -2947,6 +2973,86 @@ void wxTextCtrl::MSWSetRichZoom()
     denom = 100;
     ::SendMessage(GetHWND(), EM_SETZOOM, (WPARAM)num, (LPARAM)denom);
 }
+
+#endif // wxUSE_RICHEDIT
+
+void wxTextCtrl::MSWSetDarkOrLightMode(SetMode setmode)
+{
+    wxTextCtrlBase::MSWSetDarkOrLightMode(setmode);
+
+    // Update the background for non-rich read-only multiline, unless there
+    // are custom colours. The foreground is updated by
+    // wxControl::DoMSWControlColor().
+    if ( !IsRich() && HasFlag(wxTE_MULTILINE) && HasFlag(wxTE_READONLY) &&
+        !m_hasBgCol && !m_hasFgCol )
+    {
+        m_backgroundColour = GetClassDefaultAttributes().colBg;
+    }
+
+#if wxUSE_RICHEDIT
+    // The rich edit control does not change colours automatically. We adjust
+    // colours only if no custom colours occur. When we leave the control
+    // as-is, it might update partially and look bad. That is better than
+    // overwriting custom colours. The app user can revert the theme without
+    // losing anything.
+    if ( IsRich() && !UseBgCol() && !UseForegroundColour() )
+    {
+        // True if we need to update the background colour.
+        bool setBackground = false;
+
+        if ( setmode == SetMode::Change )
+        {
+            // Get formatting info for all the text.
+            long sel1, sel2;
+            GetSelection(&sel1, &sel2);
+            DoSetSelection(-1, -1, SetSel_NoScroll);
+            WinStruct<CHARFORMAT> cf;
+            ::SendMessage(m_hWnd, EM_GETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
+            DoSetSelection(sel1, sel2, SetSel_NoScroll);
+
+            // Check if all text has the same colour.
+            if ( cf.dwMask & CFM_COLOR )
+            {
+                // If the text colour has not been set or matches the default,
+                // update it. The theme switch may not have finished so we
+                // compare against both the dark and light mode defaults.
+                const auto col = wxColour(cf.crTextColor);
+                const wxColor defDk = wxMSWDarkMode::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+                const wxColor defLt = wxRGBToColour(GetSysColor(COLOR_WINDOWTEXT));
+                if ( !col.IsOk() || col == defDk || col == defLt )
+                {
+                    // Set the text background color.
+                    wxTextAttr attr;
+                    attr.SetFont(m_font);
+                    attr.SetBackgroundColour(
+                        wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+                    SetStyle(-1, -1, attr);
+
+                    // Set text colour.
+                    WinStruct<CHARFORMAT> cf2;
+                    cf2.dwMask = CFM_COLOR;
+                    cf2.crTextColor = wxColourToRGB(
+                        wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+                    ::SendMessage(m_hWnd, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf2);
+
+                    setBackground = true;
+                }
+            }
+        }
+        else
+        {
+            // Upon window creation, all we need to do is set the background.
+            // The text colour was already set during Create().
+            setBackground = true;
+        }
+
+        if (setBackground)
+            ::SendMessage(m_hWnd, EM_SETBKGNDCOLOR, 0, wxColourToRGB(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
+    }
+#endif
+}
+
+#if wxUSE_RICHEDIT
 
 void wxTextCtrl::MSWUpdateFontOnDPIChange(const wxSize& newDPI)
 {

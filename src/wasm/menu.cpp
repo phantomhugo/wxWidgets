@@ -13,6 +13,10 @@
 #include "wx/menuitem.h"
 #include <emscripten.h>
 
+// Recreates the DOM of all items of a menu (recursively into sub-menus),
+// defined in src/wasm/window.cpp.
+void wxWasmEnsureMenuItemsDOM(wxMenu* menu);
+
 //##############################################################################
 // wxMenu
 //##############################################################################
@@ -201,13 +205,9 @@ bool wxMenuBar::Append(wxMenu *menu, const wxString& title)
 
     // Create the DOM of the items already added to this menu (items
     // appended before the menu was attached to the bar found no popup
-    // container and were silently skipped by CreateDOM).
-    const wxMenuItemList& items = menu->GetMenuItems();
-    for (wxMenuItemList::const_iterator it = items.begin(); it != items.end(); ++it)
-    {
-        wxMenuItem* item = *it;
-        item->CreateDOM(menu);
-    }
+    // container and were silently skipped by CreateDOM); recurses into
+    // sub-menus.
+    wxWasmEnsureMenuItemsDOM(menu);
 
     return true;
 }
@@ -280,13 +280,9 @@ bool wxMenuBar::Insert(size_t pos, wxMenu *menu, const wxString& title)
             menuBar.appendChild(menuContainer);
         }, menuBarId, menuId, titleBuffer.data());
 
-        // Recreate DOM items for this menu (they reference the popup container)
-        const wxMenuItemList& items = m->GetMenuItems();
-        for (wxMenuItemList::const_iterator it = items.begin(); it != items.end(); ++it)
-        {
-            wxMenuItem* item = *it;
-            item->CreateDOM(m);
-        }
+        // Recreate DOM items for this menu (they reference the popup
+        // container); recurses into sub-menus.
+        wxWasmEnsureMenuItemsDOM(m);
     }
 
     return true;

@@ -1021,7 +1021,8 @@ void wxWindowWasm::DoSetToolTip( wxToolTip *tip )
 // CreateDOM skips items whose element already exists. Sub-menus are
 // handled recursively: their container (the 'wxMenuPopup_' alias div) is
 // only created together with the DOM of the sub-menu item itself.
-static void wxWasmEnsureMenuItemsDOM(wxMenu* menu)
+// Non-static because wxMenuBar (src/wasm/menu.cpp) needs it too.
+void wxWasmEnsureMenuItemsDOM(wxMenu* menu)
 {
     const wxMenuItemList& items = menu->GetMenuItems();
     for ( wxMenuItemList::const_iterator it = items.begin(); it != items.end(); ++it )

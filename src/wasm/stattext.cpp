@@ -80,6 +80,36 @@ wxString wxStaticText::WXGetVisibleLabel() const
     return GetLabel();
 }
 
+wxSize wxStaticText::DoGetBestSize() const
+{
+    // Measure the label line by line with the real text extents.
+    wxSize best(0, 0);
+    const wxString label = GetLabel();
+
+    if ( label.empty() )
+        return wxSize(0, GetCharHeight());
+
+    wxString::const_iterator lineStart = label.begin();
+    for ( wxString::const_iterator it = label.begin(); ; ++it )
+    {
+        if ( it == label.end() || *it == wxT('\n') )
+        {
+            int w = 0, h = 0;
+            GetTextExtent(wxString(lineStart, it), &w, &h);
+            if ( h <= 0 )
+                h = GetCharHeight();
+            best.x = wxMax(best.x, w);
+            best.y += h;
+
+            if ( it == label.end() )
+                break;
+            lineStart = it + 1;
+        }
+    }
+
+    return best;
+}
+
 WXWidget wxStaticText::GetHandle() const
 {
     return nullptr;

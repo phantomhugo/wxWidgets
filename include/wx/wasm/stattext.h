@@ -38,6 +38,9 @@ protected:
     virtual wxString WXGetVisibleLabel() const override;
     virtual void WXSetVisibleLabel(const wxString& str) override;
 
+    // computed from the real text extents (multi-line aware)
+    virtual wxSize DoGetBestSize() const override;
+
 private:
     wxDECLARE_DYNAMIC_CLASS( wxStaticText );
 };

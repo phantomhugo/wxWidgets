@@ -62,10 +62,13 @@ public:
 std::unique_ptr<wxWasmEventSink> wxWasmEventLoopBase::m_sink;
 void addEventFriend(const wxWasmEvent& event)
 {
-    if(wxWasmEventLoopBase::m_sink.get()!=nullptr)
-    {
-        wxWasmEventLoopBase::m_sink->Add(event);
-    }
+    // Create the sink on first use so that events queued before the event
+    // loop exists (e.g. the paints that Refresh() schedules during app
+    // initialization) are not silently dropped.
+    if ( !wxWasmEventLoopBase::m_sink )
+        wxWasmEventLoopBase::m_sink.reset(new wxWasmEventSink);
+
+    wxWasmEventLoopBase::m_sink->Add(event);
 }
 extern "C"
 {
@@ -149,7 +152,10 @@ extern "C"
 
 wxWasmEventLoopBase::wxWasmEventLoopBase():m_shouldExit(false), m_exitcode(0)
 {
-    m_sink.reset(new wxWasmEventSink);
+    // Keep any events already queued (see addEventFriend): only allocate
+    // the sink if it does not exist yet.
+    if ( !m_sink )
+        m_sink.reset(new wxWasmEventSink);
 }
 
 int wxWasmEventLoopBase::DoRun()

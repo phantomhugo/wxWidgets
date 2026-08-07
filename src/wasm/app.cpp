@@ -135,7 +135,22 @@ bool wxApp::Initialize( int &argc, wxChar **argv )
 
         document.addEventListener('pointerdown', function(e) {
             var win = targetWin(e.target);
-            if (win) sendMouse(e, 'mousedown', win);
+            if (win) {
+                // wx windows get the focus when clicked. Focus the first
+                // focusable descendant (native input/button/...), or the
+                // window div itself (given a tabindex if it has none).
+                var focusable = e.target.closest('input, button, select, textarea, a[href], [tabindex]');
+                if (!focusable) {
+                    focusable = win.querySelector('input, button, select, textarea, a[href], [tabindex]');
+                }
+                if (!focusable) {
+                    if (!win.hasAttribute('tabindex')) win.tabIndex = -1;
+                    focusable = win;
+                }
+                if (document.activeElement !== focusable) focusable.focus();
+
+                sendMouse(e, 'mousedown', win);
+            }
         });
         document.addEventListener('pointerup', function(e) {
             var win = targetWin(e.target);

@@ -3101,6 +3101,7 @@ set(WASM_SRC
     src/wasm/frame.cpp
     src/wasm/gauge.cpp
     src/wasm/glcanvas.cpp
+    src/wasm/graphics.cpp
     src/wasm/hyperlink.cpp
     src/wasm/infobar.cpp
     src/wasm/listbox.cpp

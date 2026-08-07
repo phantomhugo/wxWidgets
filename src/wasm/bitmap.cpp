@@ -18,6 +18,8 @@
 #include "wx/cursor.h"
 #include "wx/rawbmp.h"
 
+#include <emscripten.h>
+
 //-----------------------------------------------------------------------------
 // wxBitmapRefData
 //-----------------------------------------------------------------------------
@@ -379,9 +381,17 @@ bool wxBitmap::SaveFile(const wxString &name, wxBitmapType type,
 
 bool wxBitmap::LoadFile(const wxString &name, wxBitmapType type)
 {
+#if wxUSE_IMAGE
+    // The Emscripten MEMFS is a real POSIX filesystem for us: preloaded or
+    // uploaded files can simply be read through wxImage (wxFileSystem).
+    wxImage image;
+    if ( image.LoadFile(name, type) )
+        return CreateFromImage(image);
+#else
     wxUnusedVar(name);
     wxUnusedVar(type);
-    //There is no real filesystem here, inmemory filesystem could be used, but in other time...
+#endif
+
     return false;
 }
 

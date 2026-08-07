@@ -1059,6 +1059,22 @@ function(wx_add name group)
     endif()
 
     if(APP_DATA)
+        if(EMSCRIPTEN)
+            # Preload data files into the wasm MEMFS at the root so the app
+            # can read them through the normal (POSIX) file APIs.
+            foreach(data_src ${APP_DATA})
+                set(data_dst ${data_src})
+                string(FIND ${data_src} ":" HAS_COLON)
+                if(${HAS_COLON} GREATER -1)
+                    MATH(EXPR DEST_INDEX "${HAS_COLON}+1")
+                    string(SUBSTRING ${data_src} ${DEST_INDEX} -1 data_dst)
+                    string(SUBSTRING ${data_src} 0 ${HAS_COLON} data_src)
+                endif()
+
+                target_link_options(${target_name} PRIVATE
+                    "SHELL:--preload-file ${wxSOURCE_DIR}/${SUB_DIR}/${data_src}@/${data_dst}")
+            endforeach()
+        else()
         # Copy data files to output directory
         foreach(data_src ${APP_DATA})
             string(FIND ${data_src} ":" HAS_COLON)
@@ -1077,6 +1093,7 @@ function(wx_add name group)
         add_custom_command(
             TARGET ${target_name} POST_BUILD ${cmds}
             COMMENT "Copying ${target_name} data files...")
+        endif()
     endif()
 
     if(APPLE)

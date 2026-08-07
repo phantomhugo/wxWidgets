@@ -97,7 +97,16 @@ wxTreeCtrl::~wxTreeCtrl()
 
 unsigned int wxTreeCtrl::GetCount() const
 {
-    return m_items.size();
+    // Same convention as the generic wxTreeCtrl: the (single) root is only
+    // counted when it is visible.
+    if ( !m_rootItem.IsOk() )
+        return 0;
+
+    unsigned int count = m_items.size() - 1; // without the root
+    if ( !HasFlag(wxTR_HIDE_ROOT) )
+        count++;
+
+    return count;
 }
 
 unsigned int wxTreeCtrl::GetIndent() const
@@ -756,6 +765,7 @@ void wxTreeCtrl::Expand(const wxTreeItemId& item)
 
     wxTreeEvent event(wxEVT_TREE_ITEM_EXPANDED, m_windowId);
     event.SetItem(item);
+    event.SetEventObject(this);
     HandleWindowEvent(event);
 }
 
@@ -780,6 +790,7 @@ void wxTreeCtrl::Collapse(const wxTreeItemId& item)
 
     wxTreeEvent event(wxEVT_TREE_ITEM_COLLAPSED, m_windowId);
     event.SetItem(item);
+    event.SetEventObject(this);
     HandleWindowEvent(event);
 }
 
@@ -1087,6 +1098,7 @@ void wxTreeCtrl::SendDeleteEvent(const wxTreeItemId &item)
 {
     wxTreeEvent event(wxEVT_TREE_DELETE_ITEM, GetId());
     event.SetItem(item);
+    event.SetEventObject(this);
     HandleWindowEvent(event);
 }
 
@@ -1163,6 +1175,7 @@ void wxTreeCtrl::WasmNotifyEvent(const wxWasmEvent& event)
             SelectItem(item);
             wxTreeEvent evt(wxEVT_TREE_SEL_CHANGED, m_windowId);
             evt.SetItem(item);
+            evt.SetEventObject(this);
             HandleWindowEvent(evt);
         }
     }

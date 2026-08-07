@@ -300,6 +300,7 @@ void wxNotebook::WasmNotifyEvent(const wxWasmEvent& event)
             SetSelection(newSel);
 
             wxBookCtrlEvent notebookEvent(wxEVT_NOTEBOOK_PAGE_CHANGED, m_windowId, newSel, oldSel);
+            notebookEvent.SetEventObject(this);
             HandleWindowEvent(notebookEvent);
         }
     }

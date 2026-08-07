@@ -84,7 +84,7 @@ extern "C"
     // predictable; DoRun() drains it completely each iteration, so the extra
     // latency is bounded by wxWASM_EVTLOOP_SLEEP_MS.
     EMSCRIPTEN_KEEPALIVE
-    void addEvent(int id,const std::string& eventType,int x,int y)
+    void addEvent(int id,const char* eventType,int x,int y)
     {
         wxWasmEvent event;
         event.id=id;

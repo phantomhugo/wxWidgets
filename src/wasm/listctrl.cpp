@@ -834,6 +834,7 @@ wxTextCtrl* wxListCtrl::EditLabel(long item,
 
     wxListEvent le(wxEVT_LIST_BEGIN_LABEL_EDIT, m_windowId);
     le.SetIndex(item);
+    le.SetEventObject(this);
     if (!HandleWindowEvent(le))
     {
         // Vetoed
@@ -884,6 +885,7 @@ bool wxListCtrl::EndEditLabel(bool cancel)
     li.SetText(newLabel);
     le.SetItem(li);
     le.SetEditCanceled(cancel);
+    le.SetEventObject(this);
     if (!HandleWindowEvent(le))
     {
         // Vetoed - restore original text
@@ -1237,6 +1239,7 @@ void wxListCtrl::WasmNotifyEvent(const wxWasmEvent& event)
 
             wxListEvent le(wxEVT_LIST_ITEM_SELECTED, m_windowId);
             le.SetIndex(item);
+            le.SetEventObject(this);
             HandleWindowEvent(le);
         }
     }
@@ -1250,6 +1253,7 @@ void wxListCtrl::WasmNotifyEvent(const wxWasmEvent& event)
 
             wxListEvent le(wxEVT_LIST_ITEM_CHECKED, m_windowId);
             le.SetIndex(item);
+            le.SetEventObject(this);
             HandleWindowEvent(le);
         }
     }

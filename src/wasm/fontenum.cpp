@@ -52,7 +52,7 @@ bool wxFontEnumerator::EnumerateFacenames(wxFontEncoding WXUNUSED(encoding), boo
         });
         var str = list.join('\n');
         var len = lengthBytesUTF8(str) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
     });

@@ -145,6 +145,12 @@ bool wxTopLevelWindowWasm::Create(wxWindow *parent,
     // We must NOT create a second div; instead we style the existing one.
     bool result = wxWindow::Create(parent,id,pos,size,style,name);
 
+    // Register in the global list of top-level windows (menu event
+    // dispatch, ProcessAcceleratorKey and the browser listeners rely on
+    // it); ~wxTopLevelWindowBase removes us from it.
+    if ( result && !parent )
+        wxTopLevelWindows.Append(this);
+
     RegisterTopLevelBrowserListeners();
 
     SetTitle(title);

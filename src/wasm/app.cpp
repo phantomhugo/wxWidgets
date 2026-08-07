@@ -64,12 +64,12 @@ bool wxApp::Initialize( int &argc, wxChar **argv )
 
             if (typeof Module !== 'undefined' && Module.ccall) {
                 var len = lengthBytesUTF8(key) + 1;
-                var buf = Module._malloc(len);
+                var buf = _malloc(len);
                 stringToUTF8(key, buf, len);
                 var handled = Module.ccall('ProcessAcceleratorKey', 'number',
                     ['number', 'number', 'number', 'number'],
                     [buf, ctrl, alt, shift]);
-                Module._free(buf);
+                _free(buf);
                 // The accelerator triggered a menu item: don't let the
                 // browser (or the focused control) handle the key.
                 // stopImmediatePropagation also blocks the input keydown
@@ -416,7 +416,11 @@ extern "C" EMSCRIPTEN_KEEPALIVE int ProcessAcceleratorKey(const char* key, int c
         event->SetInt(item->IsChecked() ? 1 : 0);
     }
 
-    parentMenu->GetEventHandler()->QueueEvent(event);
+    // Queue the command on the frame: queueing on the menu's own handler
+    // would never reach the frame's event table, and dispatching
+    // synchronously from a DOM listener risks reentrancy.
+    event->SetEventObject(frame);
+    frame->GetEventHandler()->QueueEvent(event);
     return 1;
 #else
     wxUnused(key);

@@ -106,7 +106,7 @@ wxDateTime wxCalendarCtrl::GetDate() const
         var str = input.value;
         if (!str) return 0;
         var len = lengthBytesUTF8(str) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
     }, GetId());
@@ -171,7 +171,7 @@ bool wxCalendarCtrl::GetDateRange(wxDateTime *lowerdate,
         if (!input || !input.min) return 0;
         var str = input.min;
         var len = lengthBytesUTF8(str) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
     }, GetId());
@@ -183,7 +183,7 @@ bool wxCalendarCtrl::GetDateRange(wxDateTime *lowerdate,
         if (!input || !input.max) return 0;
         var str = input.max;
         var len = lengthBytesUTF8(str) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
     }, GetId());

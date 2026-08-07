@@ -254,7 +254,7 @@ wxString wxComboBox::DoGetValue() const
         if (!elem) return 0;
         var str = elem.value;
         var len = lengthBytesUTF8(str) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
     }, GetId());

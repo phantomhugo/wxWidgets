@@ -204,7 +204,7 @@ wxString wxRadioBox::GetString(unsigned int n) const
         if (!spans.length) return 0;
         var str = spans[0].textContent;
         var len = lengthBytesUTF8(str) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
     }, GetId(), (int)n);

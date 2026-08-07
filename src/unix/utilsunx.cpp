@@ -1126,7 +1126,16 @@ bool wxIsPlatform64Bit()
 
 wxString wxGetCpuArchitectureName()
 {
+#ifdef __WXWASM__
+    // No uname(1) subprocess in the browser sandbox.
+    #ifdef __wasm64__
+        return "wasm64";
+    #else
+        return "wasm32";
+    #endif
+#else
     return wxGetCommandOutput(wxT("uname -m"));
+#endif
 }
 
 wxString wxGetNativeCpuArchitectureName()
@@ -1215,6 +1224,17 @@ wxLinuxDistributionInfo wxGetLinuxDistributionInfo()
 
 wxOperatingSystemId wxGetOsVersion(int *verMaj, int *verMin, int *verMicro)
 {
+#ifdef __WXWASM__
+    // No uname(1) subprocess in the browser sandbox: the version is not
+    // knowable, and the OS is a POSIX-like sandboxed runtime.
+    if ( verMaj )
+        *verMaj = -1;
+    if ( verMin )
+        *verMin = -1;
+    if ( verMicro )
+        *verMicro = -1;
+    return wxOS_UNIX;
+#else
     // get OS version
     int major = -1, minor = -1, micro = -1;
 #ifdef __VMS
@@ -1259,6 +1279,7 @@ wxOperatingSystemId wxGetOsVersion(int *verMaj, int *verMin, int *verMicro)
         return wxOS_UNKNOWN;
 
     return wxPlatformInfo::GetOperatingSystemId(kernel);
+#endif // __WXWASM__
 }
 
 static bool
@@ -1300,7 +1321,10 @@ wxGetDescFromOSRelease(wxString* distName, wxString* version,
 
 wxString wxGetOsDescription()
 {
-#ifdef __VMS
+#ifdef __WXWASM__
+    // No uname(1) subprocess in the browser sandbox.
+    return "Emscripten WebAssembly";
+#elif defined(__VMS)
     return wxGetCommandOutput(wxT("uname -s -v -m"));
 #else
     wxString distName, version, parentName, parentCodeName;

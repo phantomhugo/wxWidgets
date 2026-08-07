@@ -93,7 +93,7 @@ void wxFilePickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             if (!input || !input.files.length) return 0;
             var str = input.files[0].name;
             var len = lengthBytesUTF8(str) + 1;
-            var buf = Module._malloc(len);
+            var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
         }, GetId());
@@ -199,7 +199,7 @@ void wxDirPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             // Try to get the directory path from the first file's webkitRelativePath
             var str = input.files[0].webkitRelativePath || input.files[0].name;
             var len = lengthBytesUTF8(str) + 1;
-            var buf = Module._malloc(len);
+            var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
         }, GetId());

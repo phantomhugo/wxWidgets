@@ -38,7 +38,6 @@ extern "C" EMSCRIPTEN_KEEPALIVE void ProcessMenuEvent(int menuItemId)
         wxMenuBar* menubar = frame->GetMenuBar();
         if (!menubar)
             continue;
-
         item = menubar->FindItem(menuItemId, &parentMenu);
         if (item)
             break;
@@ -47,17 +46,29 @@ extern "C" EMSCRIPTEN_KEEPALIVE void ProcessMenuEvent(int menuItemId)
     if (!item || !parentMenu)
         return;
 
-    // Send wxEVT_MENU
-    wxCommandEvent event(wxEVT_MENU, menuItemId);
-    event.SetEventObject(parentMenu);
+    // Queue the command on the window the menu belongs to (its frame for
+    // menubar menus, the invoking window for popups). Dispatching
+    // synchronously from a DOM listener is not an option: the handler may
+    // open a modal dialog, and sleeping from a JS-initiated call while the
+    // main loop is suspended hits the Asyncify assertion "cannot start an
+    // async operation when one is already running".
+    wxWindow* win = parentMenu->GetWindow();
+    if (!win)
+        return;
 
+    int checked = -1;
     if (item->IsCheckable())
     {
         item->Toggle();
-        event.SetInt(item->IsChecked() ? 1 : 0);
+        checked = item->IsChecked() ? 1 : 0;
     }
 
-    parentMenu->ProcessEvent(event);
+    wxCommandEvent* event = new wxCommandEvent(wxEVT_MENU, menuItemId);
+    event->SetEventObject(parentMenu);
+    if (checked != -1)
+        event->SetInt(checked);
+
+    win->GetEventHandler()->QueueEvent(event);
 }
 
 extern "C" EMSCRIPTEN_KEEPALIVE void ProcessMenuHighlight(int menuItemId, int highlight)

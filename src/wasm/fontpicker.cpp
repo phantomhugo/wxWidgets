@@ -166,7 +166,7 @@ void wxFontPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             var sel = wrap.querySelector('.wxFontPicker-family');
             var str = sel ? sel.value : 'sans-serif';
             var len = lengthBytesUTF8(str) + 1;
-            var buf = Module._malloc(len);
+            var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
         }, GetId());
@@ -188,7 +188,7 @@ void wxFontPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             var sel = wrap.querySelector('.wxFontPicker-style');
             var str = sel ? sel.value : 'normal';
             var len = lengthBytesUTF8(str) + 1;
-            var buf = Module._malloc(len);
+            var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
         }, GetId());

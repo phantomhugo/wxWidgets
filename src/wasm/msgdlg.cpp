@@ -88,6 +88,11 @@ wxMessageDialog::wxMessageDialog(wxWindow *parent, const wxString& message,
         const wxString& caption, long style, const wxPoint& pos )
     : wxMessageDialogBase( parent, message, caption, style )
 {
+    // PostCreation() needs a valid unique id for the DOM element: the base
+    // ctor leaves it at wxID_ANY (-1), which would collide in the DOM with
+    // other id-less elements (e.g. the menubar).
+    SetId(wxNewId());
+
     PostCreation();
 
     if (pos != wxDefaultPosition)
@@ -100,7 +105,7 @@ wxMessageDialog::~wxMessageDialog()
 {
     // Remove the dialog from the DOM if it still exists
     EM_ASM_({
-        var dialog = document.getElementById($0);
+        var dialog = document.getElementById('wxMsgDlg_' + $0);
         if (dialog) {
             // Make sure to close it first
             if (dialog.open) {
@@ -124,7 +129,7 @@ int wxMessageDialog::ShowModal()
 
     // Show the modal dialog using HTML5 <dialog>
     EM_ASM_({
-        var dialog = document.getElementById($0);
+        var dialog = document.getElementById('wxMsgDlg_' + $0);
         if (dialog && dialog.showModal) {
             dialog.showModal();
         }
@@ -148,7 +153,7 @@ int wxMessageDialog::ShowModal()
 
     // Remove the dialog from the DOM
     EM_ASM_({
-        var dialog = document.getElementById($0);
+        var dialog = document.getElementById('wxMsgDlg_' + $0);
         if (dialog) {
             dialog.remove();
         }
@@ -185,29 +190,56 @@ void wxMessageDialog::CreateDialogElement()
         defaultButton = wxID_CANCEL;
     else if (hasYesNo)
         defaultButton = wxID_YES;  // YES is the default when there is YES_NO
+
+    // EM_ASM is limited to 16 arguments by Emscripten (create_asm_consts
+    // only scans $0..$15), so the button ids and the result key travel in a
+    // window global set up before the main EM_ASM below.
+    const int key = (int)(size_t)this;
+    EM_ASM_({
+        var codes = {};
+        codes.resultKey = $1;
+        codes.yes = $2;
+        codes.no = $3;
+        codes.cancel = $4;
+        codes.ok = $5;
+        codes.help = $6;
+        window['wxMsgDlgCodes_' + $0] = codes;
+    }, GetId(), key,
+       (int)wxID_YES, (int)wxID_NO, (int)wxID_CANCEL,
+       (int)wxID_OK, (int)wxID_HELP);
+
+    const int buttonFlags = (hasYesNo ? 1 : 0) | (hasOk ? 2 : 0) |
+                            (hasCancel ? 4 : 0) | (hasHelp ? 8 : 0);
     
     EM_ASM_({
         var dialogId = $0;
+        // NB: the window div created by PostCreation() already uses the bare
+        // numeric id, so the <dialog> element itself lives in a namespaced
+        // id to keep getElementById() unambiguous.
+        var dialogDomId = 'wxMsgDlg_' + dialogId;
         var message = UTF8ToString($1);
         var extendedMessage = UTF8ToString($2);
         var caption = UTF8ToString($3);
         var iconChar = UTF8ToString($4);
         var iconClass = UTF8ToString($5);
-        var hasYesNo = $6;
-        var hasOk = $7;
-        var hasCancel = $8;
-        var hasHelp = $9;
-        var defaultButton = $10;
-        var resultKey = $16;
-        var yesCode = $17;
-        var noCode = $18;
-        var cancelCode = $19;
-        var okCode = $20;
-        var helpCode = $21;
+        var hasYesNo = ($6 & 1) !== 0;
+        var hasOk = ($6 & 2) !== 0;
+        var hasCancel = ($6 & 4) !== 0;
+        var hasHelp = ($6 & 8) !== 0;
+        var defaultButton = $7;
+        // Codes and result key travel in a window global (EM_ASM argument
+        // limit), see the C++ side.
+        var codes = window['wxMsgDlgCodes_' + dialogId];
+        var resultKey = codes.resultKey;
+        var yesCode = codes.yes;
+        var noCode = codes.no;
+        var cancelCode = codes.cancel;
+        var okCode = codes.ok;
+        var helpCode = codes.help;
 
         // Create <dialog> element
         var dialog = document.createElement('dialog');
-        dialog.id = dialogId;
+        dialog.id = dialogDomId;
         dialog.className = 'wxMessageDialog';
 
         // Create internal structure
@@ -291,27 +323,27 @@ void wxMessageDialog::CreateDialogElement()
 
         // Create buttons according to the style
         if (hasYesNo) {
-            var yesBtn = createButton(yesCode, UTF8ToString($11), defaultButton === yesCode);
-            var noBtn = createButton(noCode, UTF8ToString($12), defaultButton === noCode);
+            var yesBtn = createButton(yesCode, UTF8ToString($8), defaultButton === yesCode);
+            var noBtn = createButton(noCode, UTF8ToString($9), defaultButton === noCode);
             buttonArea.appendChild(noBtn);  // NO on the left
             buttonArea.appendChild(yesBtn); // YES on the right (standard)
 
             if (hasCancel) {
-                var cancelBtn = createButton(cancelCode, UTF8ToString($13), defaultButton === cancelCode);
+                var cancelBtn = createButton(cancelCode, UTF8ToString($10), defaultButton === cancelCode);
                 buttonArea.appendChild(cancelBtn);
             }
         } else if (hasOk) {
-            var okBtn = createButton(okCode, UTF8ToString($14), defaultButton === okCode);
+            var okBtn = createButton(okCode, UTF8ToString($11), defaultButton === okCode);
             buttonArea.appendChild(okBtn);
 
             if (hasCancel) {
-                var cancelBtn = createButton(cancelCode, UTF8ToString($13), defaultButton === cancelCode);
+                var cancelBtn = createButton(cancelCode, UTF8ToString($10), defaultButton === cancelCode);
                 buttonArea.insertBefore(cancelBtn, okBtn);
             }
         }
 
         if (hasHelp) {
-            var helpBtn = createButton(helpCode, UTF8ToString($15), false);
+            var helpBtn = createButton(helpCode, UTF8ToString($12), false);
             helpBtn.classList.add('wxMessageDialog-button-help');
             // Help goes on the left
             buttonArea.insertBefore(helpBtn, buttonArea.firstChild);
@@ -332,6 +364,7 @@ void wxMessageDialog::CreateDialogElement()
         });
 
         document.body.appendChild(dialog);
+        delete window['wxMsgDlgCodes_' + dialogId];
 
     },
     GetId(),
@@ -340,22 +373,13 @@ void wxMessageDialog::CreateDialogElement()
     capBuffer.data(),
     iconChar,
     iconClass,
-    hasYesNo ? 1 : 0,
-    hasOk ? 1 : 0,
-    hasCancel ? 1 : 0,
-    hasHelp ? 1 : 0,
+    buttonFlags,
     defaultButton,
     GetButtonLabel(wxID_YES, GetCustomYesLabel()).ToUTF8().data(),
     GetButtonLabel(wxID_NO, GetCustomNoLabel()).ToUTF8().data(),
     GetButtonLabel(wxID_CANCEL, GetCustomCancelLabel()).ToUTF8().data(),
     GetButtonLabel(wxID_OK, GetCustomOKLabel()).ToUTF8().data(),
-    GetButtonLabel(wxID_HELP, GetCustomHelpLabel()).ToUTF8().data(),
-    (int)(size_t)this,
-    (int)wxID_YES,
-    (int)wxID_NO,
-    (int)wxID_CANCEL,
-    (int)wxID_OK,
-    (int)wxID_HELP
+    GetButtonLabel(wxID_HELP, GetCustomHelpLabel()).ToUTF8().data()
     );
 }
 

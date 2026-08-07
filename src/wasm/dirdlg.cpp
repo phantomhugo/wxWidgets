@@ -165,7 +165,7 @@ int wxDirDialog::ShowModal()
         if (!result || !result.paths.length) return 0;
         var s = result.paths[0];
         var len = lengthBytesUTF8(s) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(s, buf, len);
         return buf;
     }, key);

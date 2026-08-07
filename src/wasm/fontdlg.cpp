@@ -317,7 +317,7 @@ int wxFontDialog::ShowModal()
         var result = window['wxFontDlgResult_' + $0];
         var s = result ? result.family : "";
         var len = lengthBytesUTF8(s) + 1;
-        var buf = Module._malloc(len);
+        var buf = _malloc(len);
         stringToUTF8(s, buf, len);
         return buf;
     }, key);

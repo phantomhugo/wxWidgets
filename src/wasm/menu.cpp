@@ -199,6 +199,16 @@ bool wxMenuBar::Append(wxMenu *menu, const wxString& title)
         menuBar.appendChild(menuContainer);
     }, GetId(), menuId, titleBuffer.data());
 
+    // Create the DOM of the items already added to this menu (items
+    // appended before the menu was attached to the bar found no popup
+    // container and were silently skipped by CreateDOM).
+    const wxMenuItemList& items = menu->GetMenuItems();
+    for (wxMenuItemList::const_iterator it = items.begin(); it != items.end(); ++it)
+    {
+        wxMenuItem* item = *it;
+        item->CreateDOM(menu);
+    }
+
     return true;
 }
 

@@ -169,6 +169,13 @@ void wxWindowWasm::PostCreation(bool generic)
             // are negative, so the parent's id alone cannot be trusted.
             if (hasParent) {
                 var parentElem = document.getElementById(parentId);
+                // Non top-level children of a frame live in its content
+                // container, so that their coordinates are relative to the
+                // client area (below the menubar, above the statusbar).
+                if (!$3) {
+                    var content = document.getElementById('wxFrame_content_' + parentId);
+                    if (content) parentElem = content;
+                }
                 if (parentElem) {
                     parentElem.appendChild(elem);
                 } else {
@@ -178,7 +185,8 @@ void wxWindowWasm::PostCreation(bool generic)
                 document.body.appendChild(elem);
             }
         }
-    }, GetId(), m_parent ? m_parent->GetId() : -1, m_parent ? 1 : 0);
+    }, GetId(), m_parent ? m_parent->GetId() : -1, m_parent ? 1 : 0,
+       IsTopLevel() ? 1 : 0);
 
     wxWindowCreateEvent event(this);
     HandleWindowEvent(event);
@@ -204,7 +212,9 @@ bool wxWindowWasm::Show( bool show )
                 {
                     var elem = document.getElementById($0);
                     if (!elem) return 0;
-                    elem.style.display="block";
+                    // Frames stack menubar/content/statusbar with flexbox.
+                    elem.style.display =
+                        elem.classList.contains('wxFrame') ? 'flex' : 'block';
                     return 1;
                 },
                 GetId()
@@ -293,13 +303,20 @@ bool wxWindowWasm::Reparent( wxWindowBase *parent )
         return false;
 
     // Move the container div under the new parent's div, or to the document
-    // body when the new parent is null (top-level window).
+    // body when the new parent is null (top-level window). As in
+    // PostCreation(), the children of a frame go to its content container.
+    // The parent id alone cannot be trusted: auto-assigned ids are negative.
     EM_ASM_({
         var elem = document.getElementById($0);
         if (!elem) return;
-        var newParent = $1 >= 0 ? document.getElementById($1) : null;
+        var newParent = $2 ? document.getElementById($1) : null;
+        if (newParent && !$3) {
+            var content = document.getElementById('wxFrame_content_' + $1);
+            if (content) newParent = content;
+        }
         (newParent || document.body).appendChild(elem);
-    }, GetId(), parent ? parent->GetId() : -1);
+    }, GetId(), parent ? parent->GetId() : -1, parent ? 1 : 0,
+       IsTopLevel() ? 1 : 0);
 
     return true;
 }
@@ -378,6 +395,14 @@ void wxWindowWasm::Refresh( bool WXUNUSED( eraseBackground ), const wxRect *WXUN
 
 void wxWindowWasm::SendPaintEvent()
 {
+    // There is no OS paint cycle in the browser and Refresh() repaints the
+    // whole window, so the update region must cover it entirely: controls
+    // that only redraw the exposed area (e.g. the generic wxGrid, which
+    // computes the exposed cells/labels from GetUpdateRegion()) would
+    // otherwise paint nothing at all.
+    const wxSize clientSize = GetClientSize();
+    GetUpdateRegion() = wxRegion(0, 0, clientSize.x, clientSize.y);
+
     wxPaintEvent event(this);
     event.SetEventObject(this);
     HandleWindowEvent(event);

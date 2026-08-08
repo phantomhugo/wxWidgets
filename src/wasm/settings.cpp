@@ -101,6 +101,11 @@ wxFont wxSystemSettingsNative::GetFont(wxSystemFont index)
             break;
     }
 
+    // GTK3 uses an 11pt system font (about 15px at 96 DPI): without a real
+    // point size GetCharHeight() returns ~0, which breaks all font-based
+    // sizing (e.g. wxGrid's default row height).
+    font.SetFractionalPointSize(11);
+
     wxASSERT( font.IsOk() );
 
     return font;

@@ -67,6 +67,10 @@ bool wxButton::Create(wxWindow *parent, wxWindowID id,
         container.appendChild(btn);
     }, domId, labelBuffer.data());
 
+    // Store the label (and invalidate the best size computed with an empty
+    // label during wxControl::Create) and show it without accel markers.
+    SetLabel(btnLabel);
+
     return true;
 }
 
@@ -95,6 +99,27 @@ wxWindow *wxButton::SetDefault()
     }, GetId());
 
     return oldDefault;
+}
+
+wxSize wxButton::DoGetBestSize() const
+{
+    // Base size of a GTK3 button, grown to fit the measured label with
+    // horizontal/vertical padding similar to the GTK3 theme.
+    wxSize best = GetDefaultSize(const_cast<wxButton*>(this));
+
+    wxString label = GetLabel();
+    if ( label.empty() && wxIsStockID(GetId()) )
+        label = wxGetStockLabel(GetId());
+
+    if ( !label.empty() )
+    {
+        int textW = 0, textH = 0;
+        GetTextExtent(wxControlBase::GetLabelText(label), &textW, &textH);
+        best.x = wxMax(best.x, textW + 40);
+        best.y = wxMax(best.y, textH + 14);
+    }
+
+    return best;
 }
 
 /* static */

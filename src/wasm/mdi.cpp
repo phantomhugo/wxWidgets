@@ -225,6 +225,12 @@ void wxMDIParentFrame::ArrangeIcons()
 #if wxUSE_MENUS
 void wxMDIParentFrame::SetWindowMenu(wxMenu *menu)
 {
+    // Do nothing if the application passes the current window menu back to
+    // us (the mdi sample does exactly this after customizing it in place):
+    // deleting it and re-adding the same pointer would use a dangling menu.
+    if ( menu == m_windowMenu )
+        return;
+
     // Replace the window menu in the currently used menu bar.
     wxMenuBar * const menuBar = GetMenuBar();
 

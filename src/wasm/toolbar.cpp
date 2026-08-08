@@ -16,6 +16,9 @@
 #endif // WX_PRECOMP
 
 #include "wx/toolbar.h"
+#include "wx/image.h"
+#include "wx/mstream.h"
+#include "wx/base64.h"
 #include <emscripten.h>
 
 class wxToolBarTool : public wxToolBarToolBase
@@ -203,6 +206,30 @@ bool wxToolBar::DoInsertTool(size_t pos, wxToolBarToolBase *toolBase)
         wxCharBuffer labelBuf = label.ToUTF8();
         int toolId = tool->GetId();
 
+        // Show the tool bitmap as an <img> (many tools have an empty label).
+        wxString dataUrl;
+        wxCharBuffer urlBuf;
+        const char* urlPtr = nullptr;
+        const wxBitmap bmp = tool->GetBitmap();
+        if ( bmp.IsOk() )
+        {
+            wxImage img = bmp.ConvertToImage();
+            if ( img.IsOk() )
+            {
+                wxMemoryOutputStream memStream;
+                if ( img.SaveFile(memStream, wxBITMAP_TYPE_PNG) )
+                {
+                    const size_t size = memStream.GetSize();
+                    wxCharBuffer buf(size);
+                    memStream.CopyTo(buf.data(), size);
+                    dataUrl = wxString::Format("data:image/png;base64,%s",
+                                               wxBase64Encode(buf.data(), size));
+                    urlBuf = dataUrl.ToUTF8();
+                    urlPtr = urlBuf.data();
+                }
+            }
+        }
+
         EM_ASM_({
             var container = document.getElementById($0);
             if (!container) return;
@@ -212,13 +239,29 @@ bool wxToolBar::DoInsertTool(size_t pos, wxToolBarToolBase *toolBase)
             var btn = document.createElement('button');
             btn.id = $1;
             btn.className = 'wxToolBar-tool';
-            btn.textContent = UTF8ToString($2);
             btn.style.border = '1px solid transparent';
             btn.style.background = 'transparent';
             btn.style.padding = '4px 8px';
             btn.style.cursor = 'pointer';
             btn.style.fontSize = '14px';
             btn.style.borderRadius = '3px';
+
+            if ($5) {
+                var img = document.createElement('img');
+                img.src = UTF8ToString($5);
+                img.style.maxWidth = '20px';
+                img.style.maxHeight = '20px';
+                img.style.verticalAlign = 'middle';
+                img.style.display = 'block';
+                btn.appendChild(img);
+            }
+            var labelText = UTF8ToString($2);
+            if (labelText) {
+                var span = document.createElement('span');
+                span.textContent = labelText;
+                span.style.verticalAlign = 'middle';
+                btn.appendChild(span);
+            }
 
             btn.onclick = function(e) {
                 e.stopPropagation();
@@ -234,7 +277,7 @@ bool wxToolBar::DoInsertTool(size_t pos, wxToolBarToolBase *toolBase)
             } else {
                 toolbar.appendChild(btn);
             }
-        }, toolbarId, domId, labelBuf.data(), toolId, (int)pos);
+        }, toolbarId, domId, labelBuf.data(), toolId, (int)pos, urlPtr);
     }
     else if (tool->IsControl())
     {

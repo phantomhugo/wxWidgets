@@ -131,7 +131,6 @@ public:
 protected:
     std::string m_canvasId;
     wxSize m_size;
-    wxColour m_textColour;
     wxColour m_penColour;
     wxColour m_brushColour;
     wxColour m_backgroundColour;

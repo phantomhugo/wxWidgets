@@ -10,12 +10,23 @@
 #ifndef _WX_WASM_CALCTRL_H_
 #define _WX_WASM_CALCTRL_H_
 
-#include "wx/calctrl.h"
+#include "wx/generic/calctrlg.h"
 
-class WXDLLIMPEXP_ADV wxCalendarCtrl : public wxCalendarCtrlBase
+// ----------------------------------------------------------------------------
+// wxCalendarCtrl
+// ----------------------------------------------------------------------------
+
+// NB: derives from the generic custom-drawn control (src/generic/calctrlg.cpp
+// is part of the common sources), as the GTK implementation does: an
+// <input type="date"> cannot render a persistent month grid and does not
+// support day attributes, marked days or holidays. It must be a distinct
+// class (not an alias) because src/common/calctrlcmn.cpp implements the
+// wxCalendarCtrl class info itself.
+class WXDLLIMPEXP_ADV wxCalendarCtrl : public wxGenericCalendarCtrl
 {
 public:
-    wxCalendarCtrl() { Init(); }
+    wxCalendarCtrl() { }
+
     wxCalendarCtrl(wxWindow *parent,
                    wxWindowID id,
                    const wxDateTime& date = wxDefaultDateTime,
@@ -23,12 +34,7 @@ public:
                    const wxSize& size = wxDefaultSize,
                    long style = wxCAL_SHOW_HOLIDAYS,
                    const wxString& name = wxASCII_STR(wxCalendarNameStr))
-    {
-        Init();
-        Create(parent, id, date, pos, size, style, name);
-    }
-
-    virtual ~wxCalendarCtrl();
+        : wxGenericCalendarCtrl(parent, id, date, pos, size, style, name) { }
 
     bool Create(wxWindow *parent,
                 wxWindowID id,
@@ -36,60 +42,16 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxCAL_SHOW_HOLIDAYS,
-                const wxString& name = wxASCII_STR(wxCalendarNameStr));
-
-    virtual bool SetDate(const wxDateTime& date) override;
-    virtual wxDateTime GetDate() const override;
-
-    virtual bool SetDateRange(const wxDateTime& lowerdate = wxDefaultDateTime,
-                              const wxDateTime& upperdate = wxDefaultDateTime) override;
-    virtual bool GetDateRange(wxDateTime *lowerdate, wxDateTime *upperdate) const override;
-
-    virtual bool EnableMonthChange(bool enable = true) override;
-    virtual void Mark(size_t day, bool mark) override;
-
-    // holidays colours
-    virtual void SetHoliday(size_t day) override;
-    virtual void SetHolidayColours(const wxColour& colFg, const wxColour& colBg) override;
-    virtual const wxColour& GetHolidayColourFg() const override { return m_colHolidayFg; }
-    virtual const wxColour& GetHolidayColourBg() const override { return m_colHolidayBg; }
-
-    // header colours
-    virtual void SetHeaderColours(const wxColour& colFg, const wxColour& colBg) override;
-    virtual const wxColour& GetHeaderColourFg() const override { return m_colHeaderFg; }
-    virtual const wxColour& GetHeaderColourBg() const override { return m_colHeaderBg; }
-
-    // day attributes
-    virtual wxCalendarDateAttr *GetAttr(size_t day) const override;
-    virtual void SetAttr(size_t day, wxCalendarDateAttr *attr) override;
-    virtual void ResetAttr(size_t day) override { SetAttr(day, nullptr); }
-
-
-    virtual void SetWindowStyleFlag(long style) override;
-
-    using wxCalendarCtrlBase::GenerateAllChangeEvents;
-
-    virtual void *GetHandle() const override;
-    virtual wxSize DoGetBestSize() const override;
-    void WasmNotifyEvent(const wxWasmEvent& event) override;
-
-protected:
-    virtual void RefreshHolidays() override;
+                const wxString& name = wxASCII_STR(wxCalendarNameStr))
+    {
+        return wxGenericCalendarCtrl::Create(parent, id, date, pos, size,
+                                             style, name);
+    }
 
 private:
-    void Init();
-    void UpdateStyle();
-
-    wxColour m_colHeaderFg,
-             m_colHeaderBg,
-             m_colHolidayFg,
-             m_colHolidayBg;
-
-    wxCalendarDateAttr *m_attrs[31];
-
-
-    wxDECLARE_DYNAMIC_CLASS(wxCalendarCtrl);
+    // The class info is implemented by wxIMPLEMENT_DYNAMIC_CLASS_XTI in
+    // src/common/calctrlcmn.cpp.
+    wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxCalendarCtrl);
 };
 
 #endif // _WX_WASM_CALCTRL_H_
-

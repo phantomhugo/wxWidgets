@@ -34,6 +34,9 @@ public:
     virtual wxWindow *SetDefault() override;
     void WasmNotifyEvent(const wxWasmEvent& event) override;
 
+protected:
+    virtual wxSize DoGetBestSize() const override;
+
 private:
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxButton);
 };

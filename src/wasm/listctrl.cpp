@@ -1257,6 +1257,17 @@ void wxListCtrl::WasmNotifyEvent(const wxWasmEvent& event)
             HandleWindowEvent(le);
         }
     }
+    else if (event.eventType == "list_col_click")
+    {
+        long col = event.x;
+        if (col >= 0 && col < (long)m_columns.size())
+        {
+            wxListEvent le(wxEVT_LIST_COL_CLICK, m_windowId);
+            le.SetColumn(col);
+            le.SetEventObject(this);
+            HandleWindowEvent(le);
+        }
+    }
     else if (event.eventType == "list_edit_end")
     {
         long item = event.x;
@@ -1302,6 +1313,14 @@ void wxListCtrl::SyncColumnHeaders()
             if ($3 > 0) {
                 th.style.width = $3 + 'px';
             }
+            th.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (typeof Module !== 'undefined' && Module.ccall) {
+                    Module.ccall('addEvent', null,
+                        ['number', 'string', 'number', 'number'],
+                        [$0, 'list_col_click', $1, 0]);
+                }
+            });
             row.appendChild(th);
         }, GetId(), logical, buf.data(), m_columns[logical].width);
     }

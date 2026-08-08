@@ -53,11 +53,17 @@ public:
 protected:
     virtual wxWindow *DoRemovePage(size_t page) override;
 
+    // Lays out the pages over the DOM pages area; called when the control
+    // is resized and when the selection changes.
+    void WasmLayoutPages();
+    void OnSize(wxSizeEvent& event);
+
 private:
 
     // internal array to store imageId for each page:
     wxVector<int> m_images;
 
+    wxDECLARE_EVENT_TABLE();
     wxDECLARE_DYNAMIC_CLASS( wxNotebook );
 };
 

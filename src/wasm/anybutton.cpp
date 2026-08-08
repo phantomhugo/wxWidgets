@@ -41,6 +41,18 @@ wxAnyButton::wxAnyButton()
 
 void wxAnyButton::SetLabel( const wxString &label )
 {
+    wxControl::SetLabel(label);
+    InvalidateBestSize();
+
+    // Update the text of the DOM button, without accelerator markers.
+    const wxString text = wxControlBase::GetLabelText(label);
+    wxCharBuffer buffer = text.ToUTF8();
+    EM_ASM_({
+        var container = document.getElementById($0);
+        if (!container) return;
+        var btn = container.querySelector('.wxButton');
+        if (btn) btn.textContent = UTF8ToString($1);
+    }, GetId(), buffer.data());
 }
 
 wxString wxAnyButton::GetLabel() const

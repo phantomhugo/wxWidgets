@@ -3062,7 +3062,6 @@ set(WASM_SRC
     src/wasm/bmpcbox.cpp
     src/wasm/brush.cpp
     src/wasm/button.cpp
-    src/wasm/calctrl.cpp
     src/wasm/datectrl.cpp
     src/wasm/timectrl.cpp
     src/wasm/checkbox.cpp

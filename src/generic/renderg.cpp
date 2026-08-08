@@ -900,10 +900,20 @@ void wxRendererGeneric::DrawComboBox(wxWindow* WXUNUSED(win), wxDC& WXUNUSED(dc)
     wxFAIL_MSG("UNIMPLEMENTED: wxRendererGeneric::DrawComboBox");
 }
 
-void wxRendererGeneric::DrawRadioBitmap(wxWindow* WXUNUSED(win), wxDC& WXUNUSED(dc),
-                           const wxRect& WXUNUSED(rect), int WXUNUSED(flags))
+void wxRendererGeneric::DrawRadioBitmap(wxWindow* WXUNUSED(win), wxDC& dc,
+                           const wxRect& rect, int flags)
 {
-    wxFAIL_MSG("UNIMPLEMENTED: wxRendererGeneric::DrawRadioBitmap");
+    // Draw a simple radio button: a circle with a filled dot when checked.
+    wxDCPenChanger setPen(dc, *(flags & wxCONTROL_DISABLED ? wxGREY_PEN : wxBLACK_PEN));
+    wxDCBrushChanger setBrush(dc, *wxTRANSPARENT_BRUSH);
+    dc.DrawEllipse(rect);
+
+    if ( flags & wxCONTROL_CHECKED )
+    {
+        wxDCBrushChanger setFill(dc,
+            *(flags & wxCONTROL_DISABLED ? wxGREY_BRUSH : wxBLACK_BRUSH));
+        dc.DrawEllipse(rect.Deflate(rect.width / 4, rect.height / 4));
+    }
 }
 
 void wxRendererGeneric::DrawTextCtrl(wxWindow* WXUNUSED(win),

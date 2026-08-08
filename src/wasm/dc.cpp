@@ -380,7 +380,10 @@ void wxWasmDCImpl::ApplyFont()
 void wxWasmDCImpl::ApplyTextColour()
 {
     if (m_canvasId.empty()) return;
-    wxString col = m_textColour.GetAsString(wxC2S_CSS_SYNTAX);
+    // NB: use the wxDCImpl member, kept in sync by SetTextForeground().
+    wxString col = m_textForegroundColour.IsOk()
+                       ? m_textForegroundColour.GetAsString(wxC2S_CSS_SYNTAX)
+                       : wxString("#000000");
     EM_ASM_({
         var canvas = document.getElementById(UTF8ToString($0));
         if (!canvas) return;

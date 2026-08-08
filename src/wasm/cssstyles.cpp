@@ -248,7 +248,8 @@ static const char* g_defaultGTK3CSS = R"CSS(
 .wxFrame_content {
     flex: 1;
     position: relative;
-    overflow: auto;
+    overflow: hidden;
+    min-height: 0;
     background: #ffffff;
 }
 
@@ -355,6 +356,9 @@ static const char* g_defaultGTK3CSS = R"CSS(
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    height: 100%;
+    white-space: nowrap;
     background: linear-gradient(to bottom, #ffffff, #f0f0f0);
     border: 1px solid #bfb8b1;
     border-radius: 4px;

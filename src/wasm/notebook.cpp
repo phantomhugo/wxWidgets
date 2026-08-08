@@ -13,6 +13,62 @@
 #include "wx/notebook.h"
 #include <emscripten.h>
 
+wxBEGIN_EVENT_TABLE(wxNotebook, wxBookCtrlBase)
+    EVT_SIZE(wxNotebook::OnSize)
+wxEND_EVENT_TABLE()
+
+// Returns the pixel size of the pages area (the container below the tabs),
+// first fixing its height to the space left by the tabs bar.
+static wxSize wxWasmNotebookGetPagesSize(int domId)
+{
+    int w = EM_ASM_INT({
+        var c = document.getElementById($0);
+        if (!c) return 0;
+        var tabs = c.querySelector('.wxNotebook-tabs');
+        var p = c.querySelector('.wxNotebook-pages');
+        if (!p) return 0;
+        if (tabs && tabs.offsetHeight > 0)
+            p.style.height = 'calc(100% - ' + tabs.offsetHeight + 'px)';
+        return p.clientWidth;
+    }, domId);
+    int h = EM_ASM_INT({
+        var c = document.getElementById($0);
+        var p = c && c.querySelector('.wxNotebook-pages');
+        return p ? p.clientHeight : 0;
+    }, domId);
+    return wxSize(w, h);
+}
+
+// Gives every page the pixel geometry of the pages area so that the page
+// sizers, if any, lay out their children. The DOM-only display:none/block
+// page switching does not generate any wx sizing/layout by itself, and the
+// base class wxBookCtrlBase::DoSize() can't do it either because this port
+// has no controller window (m_bookctrl is null).
+void wxNotebook::WasmLayoutPages()
+{
+    const wxSize size = wxWasmNotebookGetPagesSize(GetId());
+    if ( size.x <= 0 || size.y <= 0 )
+        return;
+
+    for ( size_t i = 0; i < m_pages.size(); ++i )
+    {
+        if ( m_pages[i] )
+        {
+            m_pages[i]->SetSize(0, 0, size.x, size.y);
+            // SetSize() may not generate any size event (the page already
+            // had the same effective size through its CSS 100% sizing), so
+            // run the page sizer, if any, explicitly.
+            m_pages[i]->Layout();
+        }
+    }
+}
+
+void wxNotebook::OnSize(wxSizeEvent& event)
+{
+    event.Skip();
+    WasmLayoutPages();
+}
+
 wxNotebook::wxNotebook()
 {
 }
@@ -46,13 +102,33 @@ bool wxNotebook::Create(wxWindow *parent,
         var tabs = document.createElement('div');
         tabs.className = 'wxNotebook-tabs';
 
+        // Pages are positioned absolutely inside this area. Its height is
+        // fixed to the space left by the tabs when the first tab is added
+        // (Show() resets the container display, so flexbox cannot be used).
         var pages = document.createElement('div');
         pages.className = 'wxNotebook-pages';
         pages.style.width = '100%';
-        pages.style.height = '100%';
+        pages.style.position = 'relative';
+        pages.style.overflow = 'hidden';
 
         container.appendChild(tabs);
         container.appendChild(pages);
+
+        // The pages area only gets its real size once the control and its
+        // ancestors become visible (offset sizes are 0 while hidden), which
+        // does not necessarily produce any wx size event. Watch it and let
+        // the control lay out its pages whenever the size changes; the
+        // observer also fires once when registered.
+        if (typeof ResizeObserver !== 'undefined') {
+            var ro = new ResizeObserver(function() {
+                if (typeof Module !== 'undefined' && Module.ccall) {
+                    Module.ccall('addEvent', null,
+                        ['number', 'string', 'number', 'number'],
+                        [$0, 'pages_resize', 0, 0]);
+                }
+            });
+            ro.observe(pages);
+        }
     }, domId);
 
     return true;
@@ -170,6 +246,9 @@ bool wxNotebook::InsertPage(size_t n, wxWindow *page, const wxString& text,
             tabs.appendChild(btn);
         }
 
+        // The pages area fills the control below the tabs bar.
+        pages.style.height = 'calc(100% - ' + tabs.offsetHeight + 'px)';
+
         var pageElem = document.getElementById($1);
         if (pageElem) {
             pageElem.style.display = 'none';
@@ -223,7 +302,17 @@ int wxNotebook::SetSelection(size_t page)
     if ((int)page == selOld)
         return selOld;
 
+    if ( selOld != wxNOT_FOUND && (size_t)selOld < GetPageCount() && m_pages[selOld] )
+        DoShowPage(m_pages[selOld], false);
+
     m_selection = page;
+
+    // Size the pages before showing the new one so that its sizer, if any,
+    // lays out its children.
+    WasmLayoutPages();
+
+    if ( m_pages[page] )
+        DoShowPage(m_pages[page], true);
 
     int domId = GetId();
     EM_ASM_({
@@ -285,13 +374,15 @@ wxWindow *wxNotebook::DoRemovePage(size_t page)
 
 wxSize wxNotebook::DoGetBestSize() const
 {
-    return wxSize(200, 150);
+    // Defer to the base class, which computes the size from the best sizes
+    // of the pages; a fixed size here would make SetSizerAndFit() shrink
+    // the top level window far below what the pages need.
+    return wxNotebookBase::DoGetBestSize();
 }
 
 void wxNotebook::WasmNotifyEvent(const wxWasmEvent& event)
 {
-    if (event.id == m_windowId && event.eventType == "tab_click")
-    {
+    if (event.id == m_windowId && event.eventType == "tab_click")    {
         int newSel = event.x;
         int oldSel = GetSelection();
 
@@ -303,6 +394,11 @@ void wxNotebook::WasmNotifyEvent(const wxWasmEvent& event)
             notebookEvent.SetEventObject(this);
             HandleWindowEvent(notebookEvent);
         }
+    }
+    else if (event.id == m_windowId && event.eventType == "pages_resize")
+    {
+        // Sent by the ResizeObserver of the pages area.
+        WasmLayoutPages();
     }
     else
     {

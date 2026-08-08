@@ -39,7 +39,10 @@ bool wxFrame::Create( wxWindow *parent, wxWindowID id, const wxString& title,
                 frameContent.className="wxFrame_content";
                 frameContent.style.flex="1";
                 frameContent.style.position="relative";
-                frameContent.style.overflow="auto";
+                // Children are clipped by the client area, as in the native
+                // ports: there are no frame-level scrollbars in wxWidgets.
+                frameContent.style.overflow="hidden";
+                frameContent.style.minHeight="0";
                 
                 currentFrame.append(frameContent);
                 return 1;
@@ -186,15 +189,41 @@ void wxFrame::RemoveChild( wxWindowBase *child )
     wxFrameBase::RemoveChild( child );
 }
 
+// Total height in pixels of the frame decorations (menubar, toolbar and
+// statusbar) as laid out in the DOM. While the frame is hidden the DOM
+// reports 0, so fall back to the theme metrics.
+static int wxWasmFrameDecorHeight(int domId)
+{
+    return EM_ASM_INT({
+        var f = document.getElementById($0);
+        if (!f) return 0;
+        var h = 0;
+        var mb = f.querySelector(':scope > .wxMenuBar');
+        if (mb) h += mb.offsetHeight > 0 ? mb.offsetHeight : 36;
+        var tb = f.querySelector(':scope > .wxToolBar');
+        if (tb) h += tb.offsetHeight;
+        var sb = f.querySelector(':scope > .wxStatusBar');
+        if (sb) h += sb.offsetHeight > 0 ? sb.offsetHeight : 30;
+        return h;
+    }, domId);
+}
+
 void wxFrame::DoGetClientSize(int *width, int *height) const
 {
-    // The client size must exclude menu and status bar
     wxWindow::DoGetClientSize(width, height);
+
+    // The client area excludes the menubar, the toolbar and the statusbar.
+    if (height)
+    {
+        *height -= wxWasmFrameDecorHeight(GetId());
+        if (*height < 0)
+            *height = 0;
+    }
 }
 
 void wxFrame::DoSetClientSize(int width, int height)
 {
-    wxWindow::DoSetClientSize(width, height);
+    wxWindow::DoSetClientSize(width, height + wxWasmFrameDecorHeight(GetId()));
 }
 
 // Helper method to get the frame content container

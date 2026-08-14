@@ -42,16 +42,19 @@ bool wxTextCtrl::Create(wxWindow *parent,
 
     wxCharBuffer valueBuf = value.ToUTF8();
 
+    const int isMultiline = (style & wxTE_MULTILINE) ? 1 : 0;
+    const int isPassword = (style & wxTE_PASSWORD) ? 1 : 0;
+    const int isReadonly = (style & wxTE_READONLY) ? 1 : 0;
+
     EM_ASM_({
         var container = document.getElementById($0);
         if (!container) return;
 
-        var style = $1;
         var elem;
-        if (style & 0x0020) { // wxTE_MULTILINE
+        if ($1) { // wxTE_MULTILINE
             elem = document.createElement('textarea');
             elem.style.resize = 'none';
-        } else if (style & 0x0800) { // wxTE_PASSWORD
+        } else if ($2) { // wxTE_PASSWORD
             elem = document.createElement('input');
             elem.type = 'password';
         } else {
@@ -60,16 +63,15 @@ bool wxTextCtrl::Create(wxWindow *parent,
         }
 
         elem.className = 'wxTextCtrl';
-        elem.value = UTF8ToString($2);
+        elem.value = UTF8ToString($4);
         elem.style.width = '100%';
         elem.style.height = '100%';
         elem.style.boxSizing = 'border-box';
         elem.style.fontFamily = 'inherit';
         elem.style.fontSize = 'inherit';
 
-        if (style & 0x0004) { // wxTE_READONLY
+        if ($3) // wxTE_READONLY
             elem.readOnly = true;
-        }
 
         elem.addEventListener('input', function(e) {
             if (typeof Module !== 'undefined' && Module.ccall) {
@@ -98,13 +100,52 @@ bool wxTextCtrl::Create(wxWindow *parent,
         });
 
         container.appendChild(elem);
-    }, GetId(), style, valueBuf.data());
+    }, GetId(), isMultiline, isPassword, isReadonly, valueBuf.data());
 
     return true;
 }
 
 wxTextCtrl::~wxTextCtrl()
 {
+}
+
+void wxTextCtrl::SetEditable(bool editable)
+{
+    EM_ASM_({
+        var container = document.getElementById($0);
+        if (!container) return;
+        var elem = container.querySelector('.wxTextCtrl');
+        if (elem) elem.readOnly = !$1;
+    }, GetId(), editable ? 1 : 0);
+}
+
+void wxTextCtrl::SetMaxLength(unsigned long len)
+{
+    EM_ASM_({
+        var container = document.getElementById($0);
+        if (!container) return;
+        var elem = container.querySelector('.wxTextCtrl');
+        if (!elem) return;
+        if ($1 > 0) {
+            elem.maxLength = $1;
+            // The native maxLength silently drops the excess input, so the
+            // overflow attempt is reported separately (wxEVT_TEXT_MAXLEN):
+            // when at the limit with no selection, a printable key fires it.
+            elem.addEventListener('keydown', function(e) {
+                if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey &&
+                    elem.value.length >= elem.maxLength &&
+                    elem.selectionStart === elem.selectionEnd) {
+                    if (typeof Module !== 'undefined' && Module.ccall) {
+                        Module.ccall('addEvent', null,
+                            ['number', 'string', 'number', 'number'],
+                            [$0, 'maxlen', 0, 0]);
+                    }
+                }
+            });
+        } else {
+            elem.removeAttribute('maxlength');
+        }
+    }, GetId(), (int)len);
 }
 
 wxSize wxTextCtrl::DoGetBestSize() const
@@ -300,6 +341,7 @@ void wxTextCtrl::WasmNotifyEvent(const wxWasmEvent& event)
         if (event.eventType == "input")
         {
             wxCommandEvent evt(wxEVT_TEXT, m_windowId);
+            evt.SetEventObject(this);
             evt.SetString(GetValue());
             HandleWindowEvent(evt);
         }
@@ -312,9 +354,16 @@ void wxTextCtrl::WasmNotifyEvent(const wxWasmEvent& event)
             if (m_windowStyle & wxTE_PROCESS_ENTER)
             {
                 wxCommandEvent evt(wxEVT_TEXT_ENTER, m_windowId);
+                evt.SetEventObject(this);
                 evt.SetString(GetValue());
                 HandleWindowEvent(evt);
             }
+        }
+        else if (event.eventType == "maxlen")
+        {
+            wxCommandEvent evt(wxEVT_TEXT_MAXLEN, m_windowId);
+            evt.SetEventObject(this);
+            HandleWindowEvent(evt);
         }
         else
         {

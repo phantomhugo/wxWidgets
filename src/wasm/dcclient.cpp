@@ -33,7 +33,7 @@ wxWindowDCImpl::wxWindowDCImpl(wxDC *owner, wxWindow *win)
     {
         wxSize size = m_window->GetClientSize();
         m_size = size;
-        int winId = m_window->GetId();
+        int winId = m_window->GetDomWindowId();
 
         // The canvas is shared by all the DCs created for this window (and
         // persists after each DC is destroyed, so what was drawn with a
@@ -44,6 +44,11 @@ wxWindowDCImpl::wxWindowDCImpl(wxDC *owner, wxWindow *win)
         EM_ASM_({
             var parent = document.getElementById($0);
             if (!parent) parent = document.body;
+            // A wxGLCanvas window draws with WebGL into its own canvas: the
+            // 2D canvas would sit on top of it and hide the GL output (a
+            // wxPaintDC on such a window is created by convention but never
+            // used for drawing), so don't create it at all.
+            if (parent.querySelector('canvas.wxGLCanvas')) return;
             var canvas = document.getElementById(UTF8ToString($1));
             if (!canvas)
             {

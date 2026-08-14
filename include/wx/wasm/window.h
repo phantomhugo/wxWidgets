@@ -100,6 +100,13 @@ public:
 
     WXWidget GetHandle() const override;
 
+    // Id of this window's DOM element. Normally the same as GetId(), but
+    // when two wx windows share the same wx id (a pattern used
+    // intentionally by wxPropertyGridManager and its inner grid) the
+    // second window gets a fresh unique DOM id, so each instance always
+    // has its own <div> and drawing canvas.
+    int GetDomWindowId() const { return m_domWindowId; }
+
 #if wxUSE_DRAG_AND_DROP
     virtual void SetDropTarget( wxDropTarget *dropTarget ) override;
 #endif
@@ -168,6 +175,9 @@ private:
     // true while a "paint" pseudo-event for this window is queued in the
     // event sink: coalesces multiple Refresh() calls into a single repaint
     bool m_refreshPending;
+
+    // DOM element id of this window (see GetDomWindowId()).
+    int m_domWindowId;
 
     wxDECLARE_DYNAMIC_CLASS_NO_COPY( wxWindowWasm );
 };

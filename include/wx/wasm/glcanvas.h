@@ -9,6 +9,7 @@
 #define _WX_GLCANVAS_H_
 
 #include <GL/gl.h>
+#include <stdint.h>
 
 class WXDLLIMPEXP_GL wxGLContext : public wxGLContextBase
 {
@@ -16,9 +17,14 @@ public:
     wxGLContext(wxGLCanvas *win,
                 const wxGLContext *other = nullptr,
                 const wxGLContextAttrs *ctxAttrs = nullptr);
-///    virtual ~wxGLContext();
+    virtual ~wxGLContext();
 
     virtual bool SetCurrent(const wxGLCanvas& win) const override;
+
+private:
+    // The Emscripten WebGL context handle (EMSCRIPTEN_WEBGL_CONTEXT_HANDLE,
+    // an integer; 0 when creation failed).
+    intptr_t m_glContext = 0;
 
     wxDECLARE_CLASS(wxGLContext);
 };
@@ -30,6 +36,8 @@ public:
 class WXDLLIMPEXP_GL wxGLCanvas : public wxGLCanvasBase
 {
 public:
+    wxGLCanvas() = default;
+
     explicit // avoid implicitly converting a wxWindow* to wxGLCanvas
     wxGLCanvas(wxWindow *parent,
                const wxGLAttributes& dispAttrs,
@@ -72,7 +80,15 @@ public:
 
     virtual bool SwapBuffers() override;
 
+    // The WebGL <canvas> element id for this window ("wx_glcanvas_<domId>").
+    wxString GetGLCanvasId() const;
+
+    // The display attributes the canvas was created with, used by
+    // wxGLContext when creating the WebGL context.
+    const wxGLAttributes& GetDispAttrs() const { return m_dispAttrs; }
+
 private:
+    wxGLAttributes m_dispAttrs;
 
 //    wxDECLARE_EVENT_TABLE();
     wxDECLARE_CLASS(wxGLCanvas);

@@ -201,10 +201,24 @@ bool wxWasmEventLoopBase::Pending() const
 
 bool wxWasmEventLoopBase::Dispatch()
 {
-    wxWindow* controlToNotify = wxWindow::FindWindowById(m_sink->m_pendingEvents.front().id);
+    const int eventId = m_sink->m_pendingEvents.front().id;
+    wxWindow* controlToNotify = nullptr;
+    // DOM-originated events carry the unique DOM id of the window element:
+    // resolve them to the exact window even when several windows share the
+    // same wx id (see s_domWindowMap in window.cpp). Fall back to the wx id
+    // lookup for events queued by C++ with the plain wx id.
+    extern wxWindowWasm* wxWasmFindWindowByDomId(int domId);
+    if ( wxWindowWasm* domWindow = wxWasmFindWindowByDomId(eventId) )
+        controlToNotify = domWindow;
+    else
+        controlToNotify = wxWindow::FindWindowById(eventId);
     if(controlToNotify!=nullptr)
     {
-        controlToNotify->WasmNotifyEvent(m_sink->m_pendingEvents.front());
+        // Controls compare event.id with their wx id (m_windowId): hand the
+        // event the wx id of the resolved window, not the DOM alias id.
+        wxWasmEvent& event = m_sink->m_pendingEvents.front();
+        event.id = controlToNotify->GetId();
+        controlToNotify->WasmNotifyEvent(event);
     }
     //Always remove from the queue
     m_sink->m_pendingEvents.pop();
@@ -258,11 +272,9 @@ void wxWasmEventLoopBase::DoYieldFor(long eventsToProcess)
 
 //#############################################################################
 
-#if wxUSE_GUI
-
+// Defined also for base-only builds: wxEventLoop maps to this class for
+// wasm when wxUSE_GUI=0 (see wx/evtloop.h).
 wxGUIEventLoop::wxGUIEventLoop()
 {
 
 }
-
-#endif // wxUSE_GUI

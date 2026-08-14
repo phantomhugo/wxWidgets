@@ -290,6 +290,12 @@ private:
     #include "wx/msw/evtloopconsole.h"
 #endif
 
+// The wasm event loop header is needed in base-only builds too: wxEventLoop
+// maps to wxGUIEventLoop for wasm when wxUSE_GUI=0 (see below).
+#if defined(__WXWASM__)
+    #include "wx/wasm/evtloop.h"
+#endif
+
 #if wxUSE_GUI
 
 // include the appropriate header defining wxGUIEventLoop

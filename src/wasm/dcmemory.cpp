@@ -47,7 +47,40 @@ wxMemoryDCImpl::wxMemoryDCImpl(wxMemoryDC *owner, wxDC *WXUNUSED(dc))
 
 wxMemoryDCImpl::~wxMemoryDCImpl()
 {
+    // The drawing happened on the canvas: sync it back into the selected
+    // bitmap's pixel store, so that using the bitmap afterwards (e.g.
+    // DrawBitmap, like wxGenericAnimationCtrl does with its backing store)
+    // shows what was drawn.
+    SyncCanvasToBitmap();
     // canvas cleanup handled by ~wxWasmDCImpl
+}
+
+// Copies the canvas pixels into the selected bitmap's RGBA pixel store.
+void wxMemoryDCImpl::SyncCanvasToBitmap()
+{
+    if ( !m_selected.IsOk() || m_canvasId.empty() )
+        return;
+
+    const int w = m_selected.GetWidth();
+    const int h = m_selected.GetHeight();
+    if ( w <= 0 || h <= 0 )
+        return;
+
+    unsigned char *buf = (unsigned char *)EM_ASM_INT({
+        var canvas = document.getElementById(UTF8ToString($0));
+        if (!canvas || canvas.width !== $1 || canvas.height !== $2)
+            return 0;
+        var data = canvas.getContext('2d').getImageData(0, 0, $1, $2).data;
+        var buf = _malloc(data.length);
+        HEAPU8.set(data, buf);
+        return buf;
+    }, m_canvasId.c_str(), w, h);
+
+    if ( buf )
+    {
+        wxWasmBitmapSetPixelsRGBA(m_selected, buf);
+        free(buf);
+    }
 }
 
 wxBitmap wxMemoryDCImpl::DoGetAsBitmap(const wxRect *WXUNUSED(subrect)) const
@@ -57,6 +90,9 @@ wxBitmap wxMemoryDCImpl::DoGetAsBitmap(const wxRect *WXUNUSED(subrect)) const
 
 void wxMemoryDCImpl::DoSelect(const wxBitmap& bitmap)
 {
+    // Keep the outgoing bitmap's pixel store in sync with the canvas the
+    // drawing happened on before switching to another bitmap.
+    SyncCanvasToBitmap();
     m_selected = bitmap;
     if (m_canvasId.empty())
     {

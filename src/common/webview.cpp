@@ -25,6 +25,8 @@
 #elif defined(__WXMSW__)
 #include "wx/msw/webview_ie.h"
 #include "wx/msw/webview_edge.h"
+#elif defined(__WXWASM__)
+#include "wx/wasm/webview.h"
 #endif
 
 // DLL options compatibility check:
@@ -40,6 +42,8 @@ extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendChromium[] = "wxWebV
 
 #ifdef __WXMSW__
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendDefault[] = "";
+#elif defined(__WXWASM__)
+extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendDefault[] = "wxWebViewWasm";
 #else
 extern WXDLLIMPEXP_DATA_WEBVIEW(const char) wxWebViewBackendDefault[] = "wxWebViewWebKit";
 #endif
@@ -561,6 +565,10 @@ void wxWebView::InitFactoryMap()
     if(m_factoryMap.find(wxWebViewBackendWebKit) == m_factoryMap.end())
         RegisterFactory(wxWebViewBackendWebKit, wxSharedPtr<wxWebViewFactory>
                                                        (new wxWebViewFactoryWebKit));
+#elif defined(__WXWASM__)
+    if(m_factoryMap.find(wxWebViewBackendWasm) == m_factoryMap.end())
+        RegisterFactory(wxWebViewBackendWasm, wxSharedPtr<wxWebViewFactory>
+                                                       (new wxWebViewFactoryWasm));
 #endif
 }
 

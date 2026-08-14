@@ -34,16 +34,14 @@ private:
 };
 
 
-#if wxUSE_GUI
-
+// Always declared, also for base-only builds (wxUSE_GUI=0): wx/evtloop.h
+// maps wxEventLoop to wxGUIEventLoop for wasm in that case.
 class WXDLLIMPEXP_CORE wxGUIEventLoop : public wxWasmEventLoopBase
 {
 public:
     wxGUIEventLoop();
     ~wxGUIEventLoop() = default;
 };
-
-#endif // wxUSE_GUI
 
 #endif // _WX_WASM_EVTLOOP_H_
 

@@ -2263,7 +2263,7 @@
 
 #if wxUSE_WEBVIEW && !(wxUSE_WEBVIEW_WEBKIT || wxUSE_WEBVIEW_WEBKIT2 || \
                        wxUSE_WEBVIEW_IE || wxUSE_WEBVIEW_EDGE || \
-                       wxUSE_WEBVIEW_CHROMIUM)
+                       wxUSE_WEBVIEW_CHROMIUM || defined(__WXWASM__))
 #   ifdef wxABORT_ON_CONFIG_ERROR
 #       error "wxUSE_WEBVIEW requires at least one backend"
 #   else

@@ -472,6 +472,16 @@ void wxBitmap::UngetRawData(wxPixelDataBase& WXUNUSED(data))
     // nothing to do, we keep the pixel buffer in the bitmap
 }
 
+void wxWasmBitmapSetPixelsRGBA(wxBitmap& bmp, const unsigned char *rgba)
+{
+    if ( !bmp.IsOk() || !rgba )
+        return;
+
+    wxBitmapRefData *refData = (wxBitmapRefData *)bmp.GetRefData();
+    if ( refData->m_pixels )
+        memcpy(refData->m_pixels, rgba, refData->m_width * refData->m_height * 4);
+}
+
 //-----------------------------------------------------------------------------
 // wxMask
 //-----------------------------------------------------------------------------

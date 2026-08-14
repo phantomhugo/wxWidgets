@@ -41,10 +41,10 @@ wxMenuItem *wxMenu::DoAppend(wxMenuItem *item)
 {
     if (wxMenuBase::DoAppend(item) == nullptr)
         return nullptr;
-    
+
     // Create DOM element for the item
     item->CreateDOM(this);
-    
+
     return item;
 }
 

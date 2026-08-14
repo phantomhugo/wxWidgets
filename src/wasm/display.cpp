@@ -40,12 +40,15 @@ wxDisplayImplWasm::wxDisplayImplWasm( unsigned n )
 
 wxRect wxDisplayImplWasm::GetGeometry() const
 {
+    // In a browser the app's usable display is the page viewport, not the
+    // OS screen (window.screen is a fake 800x600 in headless Chrome and
+    // does not reflect the window size); fall back to it if unavailable.
     int width = EM_ASM_INT({
-        return window.screen.width;
+        return window.innerWidth || window.screen.width;
     });
 
     int height = EM_ASM_INT({
-        return window.screen.height;
+        return window.innerHeight || window.screen.height;
     });
 
     return wxRect(0, 0, width, height);
@@ -53,15 +56,8 @@ wxRect wxDisplayImplWasm::GetGeometry() const
 
 wxRect wxDisplayImplWasm::GetClientArea() const
 {
-    int width = EM_ASM_INT({
-        return window.screen.availWidth;
-    });
-
-    int height = EM_ASM_INT({
-        return window.screen.availHeight;
-    });
-
-    return wxRect(0, 0, width, height);
+    // No browser chrome intrudes in the page: client area == viewport.
+    return GetGeometry();
 }
 
 int wxDisplayImplWasm::GetDepth() const

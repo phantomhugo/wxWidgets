@@ -129,4 +129,9 @@ private:
     wxDECLARE_DYNAMIC_CLASS(wxBitmap);
 };
 
+// Port-internal helper: overwrite the bitmap's RGBA pixel store with the
+// given buffer (w*h*4 bytes). Used by the memory DC to sync the canvas
+// the drawing happened on back into the wxBitmap (src/wasm/dcmemory.cpp).
+void wxWasmBitmapSetPixelsRGBA(wxBitmap& bmp, const unsigned char *rgba);
+
 #endif // _WX_BITMAP_H_

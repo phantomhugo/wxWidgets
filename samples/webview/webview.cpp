@@ -20,7 +20,7 @@
 
 #if !wxUSE_WEBVIEW_WEBKIT && !wxUSE_WEBVIEW_WEBKIT2 && \
     !wxUSE_WEBVIEW_IE && !wxUSE_WEBVIEW_EDGE && \
-    !wxUSE_WEBVIEW_CHROMIUM
+    !wxUSE_WEBVIEW_CHROMIUM && !defined(__WXWASM__)
 #error "A wxWebView backend is required by this sample"
 #endif
 

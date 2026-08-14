@@ -269,7 +269,16 @@ void wxChoice::WasmNotifyEvent(const wxWasmEvent& event)
 {
     if (event.id == m_windowId && event.eventType == "change")
     {
+        // The parents/books filter by the event object and read the new
+        // index from the event itself (e.g. wxChoicebook::OnChoiceSelected);
+        // the selected item's client object travels with the event as well
+        // (wxCommandEvent::GetClientObject).
+        const int sel = GetSelection();
         wxCommandEvent evt(wxEVT_CHOICE, m_windowId);
+        evt.SetEventObject(this);
+        evt.SetInt(sel);
+        if ( sel != wxNOT_FOUND )
+            evt.SetClientObject(GetClientObject(sel));
         HandleWindowEvent(evt);
     }
     else

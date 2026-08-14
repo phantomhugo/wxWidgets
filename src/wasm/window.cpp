@@ -22,6 +22,21 @@
 #include "wx/dnd.h"
 #include "wx/tooltip.h"
 #include <emscripten.h>
+#include <map>
+
+// Map from the unique DOM element id of a window to the window itself.
+// DOM events resolve to the exact window whose element they came from,
+// even when several wx windows share the same wx id (e.g.
+// wxPropertyGridManager and its inner grid, which share the id by
+// design). GetDomWindowId() returns GetId() for all non-colliding
+// windows, so this lookup is equivalent to FindWindowById() for them.
+static std::map<int, wxWindowWasm*> s_domWindowMap;
+
+wxWindowWasm* wxWasmFindWindowByDomId(int domId)
+{
+    auto it = s_domWindowMap.find(domId);
+    return it != s_domWindowMap.end() ? it->second : nullptr;
+}
 
 #define VERT_SCROLLBAR_POSITION 0, 1
 #define HORZ_SCROLLBAR_POSITION 1, 0
@@ -30,6 +45,13 @@
 // emulated capture mechanism; defined here because the destructor releases
 // a dangling capture.
 static wxWindowWasm* s_capturedWindow = nullptr;
+
+// Set when the capture ended on the DOM side (pointerup) but the queued
+// mouse-up event has not been dispatched yet. The wx-side capture state
+// must survive until that event is processed: handlers typically call
+// ReleaseMouse() from their mouse-up handler, which asserts if the capture
+// is already gone.
+static bool s_captureReleasePending = false;
 
 // Text measurement helpers defined in src/wasm/dc.cpp: plain C++ functions
 // using EM_ASM_DOUBLE (never EM_JS: EM_JS symbols are not resolved across
@@ -94,6 +116,7 @@ void wxWindowWasm::Init()
 {
     m_mouseInside = false;
     m_refreshPending = false;
+    m_domWindowId = 0;
 }
 
 wxWindowWasm::wxWindowWasm()
@@ -113,6 +136,11 @@ wxWindowWasm::wxWindowWasm(wxWindowWasm *parent, wxWindowID id, const wxPoint& p
 
 wxWindowWasm::~wxWindowWasm()
 {
+    // The platform destructor must destroy the children: ~wxWindowBase
+    // asserts (and in other ports the platform dtor does this too) that
+    // the children are already gone by then.
+    DestroyChildren();
+
 #if wxUSE_DRAG_AND_DROP
     SetDropTarget(nullptr);
 #endif
@@ -120,6 +148,8 @@ wxWindowWasm::~wxWindowWasm()
     // Don't leave a dangling pointer if the window dies while captured.
     if ( s_capturedWindow == this )
         DoReleaseMouse();
+
+    s_domWindowMap.erase(m_domWindowId);
 
     // Remove the window's DOM element (with its contents: the listeners die
     // with it, and the wx children are destroyed separately by the base
@@ -131,7 +161,7 @@ wxWindowWasm::~wxWindowWasm()
         if (elem) elem.remove();
         var canvas = document.getElementById('wx_canvas_' + $0);
         if (canvas) canvas.remove();
-    }, GetId());
+    }, m_domWindowId);
 }
 
 
@@ -146,16 +176,34 @@ bool wxWindowWasm::Create( wxWindowWasm * parent, wxWindowID id, const wxPoint &
 
     PostCreation();
 
+    // Honour the initial geometry: the base CreateBase() ignores the
+    // position and size, so explicit ones given to the ctor would
+    // otherwise be lost (same as wxControl::Create in GTK, which calls
+    // SetInitialSize()).
+    SetInitialSize(size);
+    if ( pos != wxDefaultPosition )
+        Move(pos);
+
     return true;
 }
 
 void wxWindowWasm::PostCreation(bool generic)
 {
+    // Assign the DOM element id: normally the wx id, but if another live
+    // window already uses it (a legitimate pattern, see s_domWindowMap)
+    // this window gets a fresh unique id so every instance has its own
+    // <div> and canvas.
+    m_domWindowId = GetId();
+    if ( s_domWindowMap.find(m_domWindowId) != s_domWindowMap.end() )
+        m_domWindowId = NewControlId();
+    s_domWindowMap[m_domWindowId] = this;
+
     // Create the DOM element for this window if it doesn't exist yet.
     // Top-level windows and child controls all need a container div.
     EM_ASM_({
         var id = $0;
         var parentId = $1;
+        var frameContentId = UTF8ToString($3);
         var hasParent = $2 !== 0;
         var elem = document.getElementById(id);
         if (!elem) {
@@ -172,8 +220,8 @@ void wxWindowWasm::PostCreation(bool generic)
                 // Non top-level children of a frame live in its content
                 // container, so that their coordinates are relative to the
                 // client area (below the menubar, above the statusbar).
-                if (!$3) {
-                    var content = document.getElementById('wxFrame_content_' + parentId);
+                if (!$4) {
+                    var content = document.getElementById(frameContentId);
                     if (content) parentElem = content;
                 }
                 if (parentElem) {
@@ -185,7 +233,10 @@ void wxWindowWasm::PostCreation(bool generic)
                 document.body.appendChild(elem);
             }
         }
-    }, GetId(), m_parent ? m_parent->GetId() : -1, m_parent ? 1 : 0,
+    }, m_domWindowId,
+       m_parent ? m_parent->GetDomWindowId() : -1,
+       m_parent ? 1 : 0,
+       (wxString::Format("wxFrame_content_%d", m_parent ? m_parent->GetId() : -1)).ToUTF8().data(),
        IsTopLevel() ? 1 : 0);
 
     wxWindowCreateEvent event(this);
@@ -217,7 +268,7 @@ bool wxWindowWasm::Show( bool show )
                         elem.classList.contains('wxFrame') ? 'flex' : 'block';
                     return 1;
                 },
-                GetId()
+                m_domWindowId
             );
         }
         else
@@ -229,7 +280,7 @@ bool wxWindowWasm::Show( bool show )
                     elem.style.display="none";
                     return 1;
                 },
-                GetId()
+                m_domWindowId
             );
         }
 
@@ -260,7 +311,7 @@ void wxWindowWasm::SetLabel(const wxString& label)
         // Keep the label around in the DOM: top-level windows use it as
         // their title, other controls may show it themselves.
         elem.dataset.label = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, m_domWindowId, buf.data());
 }
 
 
@@ -277,9 +328,25 @@ void wxWindowWasm::DoEnable(bool enable)
 
         var enabled = $1 !== 0;
         var fields = elem.querySelectorAll('input, button, select, textarea');
-        fields.forEach(function(f) { f.disabled = !enabled; });
+        // Don't cross into nested top-level windows (dialogs, MDI
+        // children, floating frames): they are disabled individually by
+        // wxWindowDisabler; cascading into them would wrongly disable the
+        // controls of a modal dialog hosted inside the frame's DOM.
+        var isTopLevel = function(n) {
+            return n && (n.tagName === 'DIALOG' ||
+                         n.classList.contains('wxTopLevelWindow') ||
+                         n.classList.contains('wxFrame'));
+        };
+        fields.forEach(function(f) {
+            var n = f.parentElement;
+            while (n && n !== elem) {
+                if (isTopLevel(n)) return; // belongs to a nested top-level
+                n = n.parentElement;
+            }
+            f.disabled = !enabled;
+        });
         elem.classList.toggle('wx-disabled', !enabled);
-    }, GetId(), enable ? 1 : 0);
+    }, m_domWindowId, enable ? 1 : 0);
 }
 
 void wxWindowWasm::SetFocus()
@@ -294,7 +361,7 @@ void wxWindowWasm::SetFocus()
             target = elem;
         }
         target.focus();
-    }, GetId());
+    }, m_domWindowId);
 }
 
 bool wxWindowWasm::Reparent( wxWindowBase *parent )
@@ -315,7 +382,9 @@ bool wxWindowWasm::Reparent( wxWindowBase *parent )
             if (content) newParent = content;
         }
         (newParent || document.body).appendChild(elem);
-    }, GetId(), parent ? parent->GetId() : -1, parent ? 1 : 0,
+    }, m_domWindowId,
+       parent ? static_cast<wxWindowWasm*>(parent)->GetDomWindowId() : -1,
+       parent ? 1 : 0,
        IsTopLevel() ? 1 : 0);
 
     return true;
@@ -337,7 +406,7 @@ void wxWindowWasm::Raise()
             if (z > maxZ) maxZ = z;
         }
         elem.style.zIndex = (maxZ + 1).toString();
-    }, GetId());
+    }, m_domWindowId);
 }
 
 void wxWindowWasm::Lower()
@@ -355,7 +424,7 @@ void wxWindowWasm::Lower()
             if (z < minZ) minZ = z;
         }
         elem.style.zIndex = (minZ - 1).toString();
-    }, GetId());
+    }, m_domWindowId);
 }
 
 void wxWindowWasm::WarpPointer(int x, int y)
@@ -389,7 +458,7 @@ void wxWindowWasm::Refresh( bool WXUNUSED( eraseBackground ), const wxRect *WXUN
     if ( IsShown() && !m_refreshPending )
     {
         m_refreshPending = true;
-        addEvent(GetId(), "paint", 0, 0);
+        addEvent(m_domWindowId, "paint", 0, 0);
     }
 }
 
@@ -419,7 +488,7 @@ bool wxWindowWasm::SetCursor( const wxCursor &cursor )
         var elem = document.getElementById($0);
         if (!elem) return;
         elem.style.cursor = UTF8ToString($1);
-    }, GetId(), cssCursor);
+    }, m_domWindowId, cssCursor);
 
     return wxWindowBase::SetCursor(cursor);
 }
@@ -483,7 +552,7 @@ bool wxWindowWasm::SetFont( const wxFont &font )
             elem.style.fontStyle = UTF8ToString($3);
             elem.style.fontWeight = String($4);
             elem.style.textDecoration = UTF8ToString($5);
-        }, GetId(), familyBuf.data(), size, style, font.GetNumericWeight(),
+        }, m_domWindowId, familyBuf.data(), size, style, font.GetNumericWeight(),
            decorationBuf.data());
 
         Refresh();
@@ -637,6 +706,12 @@ void wxWindowWasm::SetScrollbar( int orientation, int pos, int thumbvisible, int
                 spacer.style.top = '0px';
                 spacer.style.pointerEvents = 'none';
                 spacer.style.visibility = 'hidden';
+                // An absolutely positioned child with zero width/height
+                // does not create any scrollable overflow at all (not even
+                // in the axis with a size), so give it a minimal base
+                // extent in both axes.
+                spacer.style.width = '1px';
+                spacer.style.height = '1px';
                 elem.appendChild(spacer);
             }
             spacer.style[horz ? 'width' : 'height'] = Math.ceil($4 * ppu) + 'px';
@@ -657,7 +732,7 @@ void wxWindowWasm::SetScrollbar( int orientation, int pos, int thumbvisible, int
                 }
             }
         }
-    }, GetId(), orientation, pos, thumbvisible, range);
+    }, m_domWindowId, orientation, pos, thumbvisible, range);
 }
 
 void wxWindowWasm::SetScrollPos( int orientation, int pos, bool WXUNUSED( refresh ))
@@ -678,7 +753,7 @@ void wxWindowWasm::SetScrollPos( int orientation, int pos, bool WXUNUSED( refres
         if (!elem) return;
         var horz = ($1 & 0x0004) !== 0; // wxHORIZONTAL == 0x0004
         elem.dataset['scrollPos' + (horz ? 'X' : 'Y')] = String($2);
-    }, GetId(), orientation, pos);
+    }, m_domWindowId, orientation, pos);
 }
 
 int wxWindowWasm::GetScrollPos( int orientation ) const
@@ -690,8 +765,8 @@ int wxWindowWasm::GetScrollPos( int orientation ) const
         var elem = document.getElementById($0);
         if (!elem) return 0;
         return ($1 & 0x0004) !== 0 ? elem.scrollLeft : elem.scrollTop;
-    }, GetId(), orientation);
-    return (int)(px / wxWasmScrollPixelsPerUnit(GetId(), orientation));
+    }, m_domWindowId, orientation);
+    return (int)(px / wxWasmScrollPixelsPerUnit(m_domWindowId, orientation));
 }
 
 int wxWindowWasm::GetScrollThumb( int orientation ) const
@@ -702,7 +777,7 @@ int wxWindowWasm::GetScrollThumb( int orientation ) const
         var v = parseInt(($1 & 0x0004) !== 0 ? elem.dataset.scrollThumbX
                                              : elem.dataset.scrollThumbY, 10);
         return isNaN(v) ? 0 : v;
-    }, GetId(), orientation);
+    }, m_domWindowId, orientation);
 }
 
 int wxWindowWasm::GetScrollRange( int orientation ) const
@@ -713,7 +788,7 @@ int wxWindowWasm::GetScrollRange( int orientation ) const
         var v = parseInt(($1 & 0x0004) !== 0 ? elem.dataset.scrollRangeX
                                              : elem.dataset.scrollRangeY, 10);
         return isNaN(v) ? 0 : v;
-    }, GetId(), orientation);
+    }, m_domWindowId, orientation);
 }
 
 // scroll window to the specified position
@@ -735,14 +810,18 @@ void wxWindowWasm::ScrollWindow( int dx, int dy, const wxRect *WXUNUSED(rect) )
         if (!elem) return;
         elem.scrollLeft -= $1;
         elem.scrollTop -= $2;
-    }, GetId(), dx, dy);
+    }, m_domWindowId, dx, dy);
 }
 
 
 #if wxUSE_DRAG_AND_DROP
 void wxWindowWasm::SetDropTarget( wxDropTarget *dropTarget )
 {
-
+    // The DOM listeners are global (installed for the duration of the drag
+    // by wxDropSource::DoDragDrop), so there is nothing to register here;
+    // just keep the target, as the GTK port does.
+    delete m_dropTarget;
+    m_dropTarget = dropTarget;
 }
 #endif
 
@@ -765,14 +844,14 @@ void wxWindowWasm::DoClientToScreen( int *x, int *y ) const
         *x += EM_ASM_INT({
             var elem = document.getElementById($0);
             return elem ? elem.getBoundingClientRect().left : 0;
-        }, GetId());
+        }, m_domWindowId);
     }
     if ( y )
     {
         *y += EM_ASM_INT({
             var elem = document.getElementById($0);
             return elem ? elem.getBoundingClientRect().top : 0;
-        }, GetId());
+        }, m_domWindowId);
     }
 }
 
@@ -784,14 +863,14 @@ void wxWindowWasm::DoScreenToClient( int *x, int *y ) const
         *x -= EM_ASM_INT({
             var elem = document.getElementById($0);
             return elem ? elem.getBoundingClientRect().left : 0;
-        }, GetId());
+        }, m_domWindowId);
     }
     if ( y )
     {
         *y -= EM_ASM_INT({
             var elem = document.getElementById($0);
             return elem ? elem.getBoundingClientRect().top : 0;
-        }, GetId());
+        }, m_domWindowId);
     }
 }
 
@@ -808,9 +887,11 @@ void wxWindowWasm::DoScreenToClient( int *x, int *y ) const
 // (auto-release, as in the desktop ports) or DoReleaseMouse().
 
 // Called from JS when the capture ends on pointerup (see DoCaptureMouse).
+// Only mark the release as pending: the actual clear happens once the
+// queued mouse-up event has been dispatched (see WasmNotifyEvent).
 extern "C" EMSCRIPTEN_KEEPALIVE void wxWasmMouseCaptureReleased()
 {
-    s_capturedWindow = nullptr;
+    s_captureReleasePending = true;
 }
 
 void wxWindowWasm::DoCaptureMouse()
@@ -858,13 +939,14 @@ void wxWindowWasm::DoCaptureMouse()
         document._wxMouseCapture.up = up;
         document.addEventListener('pointermove', move, true);
         document.addEventListener('pointerup', up, true);
-    }, GetId());
+    }, m_domWindowId);
 }
 
 
 void wxWindowWasm::DoReleaseMouse()
 {
     s_capturedWindow = nullptr;
+    s_captureReleasePending = false;
 
     EM_ASM_({
         if (document._wxMouseCapture) {
@@ -894,7 +976,7 @@ void wxWindowWasm::DoGetPosition(int *x, int *y) const
         var l = elem.style.left;
         if (l && l.slice(-2) === 'px') return parseInt(l, 10);
         return elem.offsetLeft;
-    }, GetId());
+    }, m_domWindowId);
 
     *y = EM_ASM_INT({
         var elem = document.getElementById($0);
@@ -902,7 +984,7 @@ void wxWindowWasm::DoGetPosition(int *x, int *y) const
         var t = elem.style.top;
         if (t && t.slice(-2) === 'px') return parseInt(t, 10);
         return elem.offsetTop;
-    }, GetId());
+    }, m_domWindowId);
 }
 
 
@@ -920,7 +1002,7 @@ void wxWindowWasm::DoGetSize(int *width, int *height) const
         var w = elem.style.width;
         if (w && w.slice(-2) === 'px') return parseInt(w, 10);
         return elem.offsetWidth;
-    }, GetId());
+    }, m_domWindowId);
 
     *height = EM_ASM_INT({
         var elem = document.getElementById($0);
@@ -928,7 +1010,7 @@ void wxWindowWasm::DoGetSize(int *width, int *height) const
         var h = elem.style.height;
         if (h && h.slice(-2) === 'px') return parseInt(h, 10);
         return elem.offsetHeight;
-    }, GetId());
+    }, m_domWindowId);
 }
 
 
@@ -1009,7 +1091,7 @@ void wxWindowWasm::DoMoveWindow(int x, int y, int width, int height)
             currentWindow.style.left=$1.toString()+"px";
             return 1;
         },
-        GetId(),
+        m_domWindowId,
         x,y,width,height
     );
 }
@@ -1033,7 +1115,7 @@ void wxWindowWasm::DoSetToolTip( wxToolTip *tip )
             elem.title = tip;
         else
             elem.removeAttribute('title');
-    }, GetId(), buf.data());
+    }, m_domWindowId, buf.data());
 }
 #endif // wxUSE_TOOLTIPS
 
@@ -1146,9 +1228,15 @@ bool wxWindowWasm::IsTransparentBackgroundSupported(wxString* WXUNUSED(reason)) 
     return true;
 }
 
-bool wxWindowWasm::SetTransparent(wxByte WXUNUSED(alpha))
+bool wxWindowWasm::SetTransparent(wxByte alpha)
 {
-    // Per-window opacity is not implemented; report success.
+    // CSS opacity on the window's container div. Note that, as with the
+    // native ports, this affects the whole window including its children.
+    EM_ASM_({
+        var elem = document.getElementById($0);
+        if (elem) elem.style.opacity = ($1 / 255).toString();
+    }, m_domWindowId, alpha);
+
     return true;
 }
 
@@ -1173,7 +1261,7 @@ bool wxWindowWasm::SetBackgroundColour(const wxColour& colour)
             elem.style.backgroundColor = css;
             var native = elem.querySelector('input, button, select, textarea');
             if (native) native.style.backgroundColor = css;
-        }, GetId(), buf.data());
+        }, m_domWindowId, buf.data());
 
         Refresh();
     }
@@ -1199,7 +1287,7 @@ bool wxWindowWasm::SetForegroundColour(const wxColour& colour)
             elem.style.color = css;
             var native = elem.querySelector('input, button, select, textarea');
             if (native) native.style.color = css;
-        }, GetId(), buf.data());
+        }, m_domWindowId, buf.data());
 
         Refresh();
     }
@@ -1383,6 +1471,7 @@ void wxWindowWasm::WasmNotifyEvent(const wxWasmEvent& event)
     }
     else if ( type == "wheel" )
     {
+
         // Modifier bit 16 (set by the wheel listener in app.cpp) means the
         // window's div scrolls natively in the wheel axis: the browser
         // already moved the viewport and the new position reaches the
@@ -1435,6 +1524,15 @@ void wxWindowWasm::WasmNotifyEvent(const wxWasmEvent& event)
         mouseEvent.SetId(m_windowId);
         mouseEvent.SetEventObject(this);
         HandleWindowEvent(mouseEvent);
+
+        // The DOM capture already ended on pointerup (see
+        // wxWasmMouseCaptureReleased): finish the wx-side release only now
+        // that the mouse-up event was processed.
+        if ( s_captureReleasePending && type == "mouseup" )
+        {
+            s_captureReleasePending = false;
+            s_capturedWindow = nullptr;
+        }
         return;
     }
 

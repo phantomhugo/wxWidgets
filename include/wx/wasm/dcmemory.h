@@ -27,6 +27,9 @@ public:
     virtual wxBitmap& GetSelectedBitmap() override;
 
 private:
+    // Copies the canvas pixels into the selected bitmap's pixel store.
+    void SyncCanvasToBitmap();
+
     wxBitmap m_selected;
 
     DECLARE_NO_COPY_CLASS(wxMemoryDCImpl);

@@ -38,7 +38,7 @@ public:
     // The selected files are copied into the Emscripten MEMFS under "/tmp",
     // so this is the default directory when none was explicitly set.
     virtual wxString GetDirectory() const override
-        { return m_dir.empty() ? wxString("/tmp") : m_dir; }
+        { return m_dir.empty() ? wxString(wxASCII_STR("/tmp")) : m_dir; }
     virtual void GetPaths(wxArrayString& paths) const override;
     virtual void GetFilenames(wxArrayString& files) const override;
 

@@ -39,7 +39,8 @@ public:
           m_join(data.m_join),
           m_cap(data.m_cap),
           m_dashes(data.m_dashes),
-          m_dashesSize(data.m_dashesSize)
+          m_dashesSize(data.m_dashesSize),
+          m_stipple(data.m_stipple)
     {
     }
 
@@ -53,7 +54,8 @@ public:
                m_join == data.m_join &&
                m_cap == data.m_cap &&
                m_dashes == data.m_dashes &&
-               m_dashesSize == data.m_dashesSize;
+               m_dashesSize == data.m_dashesSize &&
+               m_stipple.GetRefData() == data.m_stipple.GetRefData();
     }
 
     wxColour m_colour;
@@ -63,6 +65,7 @@ public:
     wxPenCap m_cap;
     const wxDash *m_dashes;
     int m_dashesSize;
+    wxBitmap m_stipple;
 };
 
 #define M_PENDATA ((wxPenRefData *)m_refData)
@@ -89,12 +92,15 @@ wxPen::wxPen(const wxColour& col, int width, int style)
 {
 }
 
-wxPen::wxPen(const wxBitmap& WXUNUSED(stipple), int width)
+wxPen::wxPen(const wxBitmap& stipple, int width)
 {
-    // stippled pens are not supported in this port (see SetStipple), but we
-    // still keep the rest of the pen parameters
     m_refData = new wxPenRefData();
     M_PENDATA->m_width = width;
+    if ( stipple.IsOk() )
+    {
+        M_PENDATA->m_stipple = stipple;
+        M_PENDATA->m_style = wxPENSTYLE_STIPPLE;
+    }
 }
 
 wxPen::wxPen(const wxPenInfo& info)
@@ -153,9 +159,13 @@ void wxPen::SetStyle(wxPenStyle style)
     M_PENDATA->m_style = style;
 }
 
-void wxPen::SetStipple(const wxBitmap& WXUNUSED(stipple))
+void wxPen::SetStipple(const wxBitmap& stipple)
 {
-    wxFAIL_MSG( "stippled pens not supported" );
+    AllocExclusive();
+
+    M_PENDATA->m_stipple = stipple;
+    if ( stipple.IsOk() )
+        M_PENDATA->m_style = wxPENSTYLE_STIPPLE;
 }
 
 void wxPen::SetDashes(int nb_dashes, const wxDash *dash)
@@ -189,7 +199,9 @@ wxColour wxPen::GetColour() const
 
 wxBitmap *wxPen::GetStipple() const
 {
-    return nullptr;
+    wxCHECK_MSG( IsOk(), nullptr, "invalid pen" );
+
+    return M_PENDATA->m_stipple.IsOk() ? &M_PENDATA->m_stipple : nullptr;
 }
 
 wxPenStyle wxPen::GetStyle() const

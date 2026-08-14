@@ -145,6 +145,14 @@ protected:
     // copied here in SetPen() to keep them valid after the pen is gone.
     std::vector<int> m_penDashes;
 
+    // Copy of the current pen stipple bitmap (wxPENSTYLE_STIPPLE), applied
+    // as a repeating canvas pattern in ApplyPen().
+    wxBitmap m_penStipple;
+
+    // Copy of the current brush stipple bitmap (wxBRUSHSTYLE_STIPPLE),
+    // applied as a repeating canvas pattern in ApplyBrush().
+    wxBitmap m_brushStipple;
+
     wxFont m_font;
 
     // True if this DC owns its canvas and must remove it from the DOM when

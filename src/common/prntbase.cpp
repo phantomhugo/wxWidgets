@@ -215,7 +215,7 @@ wxDialog *wxNativePrintFactory::CreatePrintSetupDialog( wxWindow *parent,
 
 wxDCImpl* wxNativePrintFactory::CreatePrinterDCImpl( wxPrinterDC *owner, const wxPrintData& data )
 {
-#if defined(__WXGTK__) || ( defined(__WXUNIVERSAL__) && !defined(__WXMAC__) )
+#if defined(__WXGTK__) || defined(__WXWASM__) || ( defined(__WXUNIVERSAL__) && !defined(__WXMAC__) )
     return new wxPostScriptDCImpl( owner, data );
 #else
     return new wxPrinterDCImpl( owner, data );

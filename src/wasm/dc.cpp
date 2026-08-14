@@ -42,7 +42,8 @@ std::string GenerateCanvasId()
 double wxWasmMeasureTextWidth(const char* fontSpec, const char* text)
 {
     return EM_ASM_DOUBLE({
-        var ctx = (window._wxWasmMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        var ctx = window._wxWasmMeasureCtx;
+        if (!ctx) { ctx = document.createElement('canvas').getContext('2d'); window._wxWasmMeasureCtx = ctx; }
         ctx.font = UTF8ToString($0);
         return ctx.measureText(UTF8ToString($1)).width;
     }, fontSpec, text);
@@ -51,7 +52,8 @@ double wxWasmMeasureTextWidth(const char* fontSpec, const char* text)
 double wxWasmMeasureCharHeight(const char* fontSpec)
 {
     return EM_ASM_DOUBLE({
-        var ctx = (window._wxWasmMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        var ctx = window._wxWasmMeasureCtx;
+        if (!ctx) { ctx = document.createElement('canvas').getContext('2d'); window._wxWasmMeasureCtx = ctx; }
         ctx.font = UTF8ToString($0);
         var metrics = ctx.measureText('Mg');
         var ascent = metrics.actualBoundingBoxAscent || 0;
@@ -74,7 +76,8 @@ double wxWasmMeasureCharHeight(const char* fontSpec)
 double wxWasmMeasureCharWidth(const char* fontSpec)
 {
     return EM_ASM_DOUBLE({
-        var ctx = (window._wxWasmMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        var ctx = window._wxWasmMeasureCtx;
+        if (!ctx) { ctx = document.createElement('canvas').getContext('2d'); window._wxWasmMeasureCtx = ctx; }
         ctx.font = UTF8ToString($0);
         return ctx.measureText('M').width;
     }, fontSpec);
@@ -83,7 +86,8 @@ double wxWasmMeasureCharWidth(const char* fontSpec)
 double wxWasmMeasureDescent(const char* fontSpec)
 {
     return EM_ASM_DOUBLE({
-        var ctx = (window._wxWasmMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        var ctx = window._wxWasmMeasureCtx;
+        if (!ctx) { ctx = document.createElement('canvas').getContext('2d'); window._wxWasmMeasureCtx = ctx; }
         ctx.font = UTF8ToString($0);
         var metrics = ctx.measureText('Mg');
         return metrics.actualBoundingBoxDescent || 0;
@@ -93,7 +97,8 @@ double wxWasmMeasureDescent(const char* fontSpec)
 double wxWasmMeasureAscent(const char* fontSpec)
 {
     return EM_ASM_DOUBLE({
-        var ctx = (window._wxWasmMeasureCtx ||= document.createElement('canvas').getContext('2d'));
+        var ctx = window._wxWasmMeasureCtx;
+        if (!ctx) { ctx = document.createElement('canvas').getContext('2d'); window._wxWasmMeasureCtx = ctx; }
         ctx.font = UTF8ToString($0);
         var metrics = ctx.measureText('Mg');
         return metrics.actualBoundingBoxAscent || 0;
@@ -333,10 +338,63 @@ void wxWasmDCImpl::SetCanvasClip(int x, int y, int w, int h)
     }, m_canvasId.c_str(), x, y, w, h);
 }
 
+// Builds a repeating canvas pattern from an image and assigns it to the
+// stroke (forStroke) or fill style of the given canvas 2D context.
+static void ApplyImagePattern(const std::string& canvasId,
+                              const wxImage& image, bool forStroke)
+{
+    const int w = image.GetWidth();
+    const int h = image.GetHeight();
+    unsigned char* rgb = image.GetData();
+    unsigned char* alpha = image.HasAlpha() ? image.GetAlpha() : nullptr;
+    EM_ASM_({
+        var canvas = document.getElementById(UTF8ToString($0));
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var w = $2;
+        var h = $3;
+        var imgData = ctx.createImageData(w, h);
+        var rgb = $4;
+        var alpha = $5;
+        for (var i = 0; i < w * h; i++) {
+            imgData.data[i * 4 + 0] = HEAPU8[rgb + i * 3 + 0];
+            imgData.data[i * 4 + 1] = HEAPU8[rgb + i * 3 + 1];
+            imgData.data[i * 4 + 2] = HEAPU8[rgb + i * 3 + 2];
+            imgData.data[i * 4 + 3] = alpha ? HEAPU8[alpha + i] : 255;
+        }
+        var tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = w;
+        tmpCanvas.height = h;
+        tmpCanvas.getContext('2d').putImageData(imgData, 0, 0);
+        var pattern = ctx.createPattern(tmpCanvas, 'repeat');
+        if ($1) ctx.strokeStyle = pattern;
+        else ctx.fillStyle = pattern;
+    }, canvasId.c_str(), forStroke ? 1 : 0, w, h, rgb, alpha);
+}
+
 void wxWasmDCImpl::ApplyPen()
 {
     if (m_canvasId.empty()) return;
     wxString col = m_penColour.GetAsString(wxC2S_CSS_SYNTAX);
+
+    if ( m_penStyle == wxPENSTYLE_STIPPLE && m_penStipple.IsOk() )
+    {
+        // Stippled pen: the stroke style is a repeating pattern made from
+        // the stipple bitmap pixels.
+        wxImage image = m_penStipple.ConvertToImage();
+        if ( !image.IsOk() )
+            return;
+        ApplyImagePattern(m_canvasId, image, true);
+        EM_ASM_({
+            var canvas = document.getElementById(UTF8ToString($0));
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            ctx.lineWidth = $1;
+            ctx.setLineDash([]);
+        }, m_canvasId.c_str(), m_penWidth);
+        return;
+    }
+
     // The dash pattern is passed as a pointer to the int copy kept in
     // m_penDashes (empty when the pen is solid, which resets setLineDash).
     EM_ASM_({
@@ -357,6 +415,18 @@ void wxWasmDCImpl::ApplyBrush()
 {
     if (m_canvasId.empty()) return;
     wxString col = m_brushColour.GetAsString(wxC2S_CSS_SYNTAX);
+
+    if ( m_brushStyle == wxBRUSHSTYLE_STIPPLE && m_brushStipple.IsOk() )
+    {
+        // Stippled brush: the fill style is a repeating pattern made from
+        // the stipple bitmap pixels.
+        wxImage image = m_brushStipple.ConvertToImage();
+        if ( !image.IsOk() )
+            return;
+        ApplyImagePattern(m_canvasId, image, false);
+        return;
+    }
+
     EM_ASM_({
         var canvas = document.getElementById(UTF8ToString($0));
         if (!canvas) return;
@@ -426,12 +496,16 @@ void wxWasmDCImpl::SetPen(const wxPen& pen)
         const int dashCount = pen.GetDashes(&dashes);
         for (int i = 0; i < dashCount; ++i)
             m_penDashes.push_back(dashes[i]);
+
+        wxBitmap *stipple = pen.GetStipple();
+        m_penStipple = stipple ? *stipple : wxBitmap();
     }
     else
     {
         // An invalid pen draws nothing (same as wxPENSTYLE_TRANSPARENT).
         m_penStyle = wxPENSTYLE_TRANSPARENT;
         m_penDashes.clear();
+        m_penStipple = wxBitmap();
     }
     ApplyPen();
 }
@@ -441,7 +515,19 @@ void wxWasmDCImpl::SetBrush(const wxBrush& brush)
     // An invalid brush fills nothing (same as wxBRUSHSTYLE_TRANSPARENT).
     m_brushStyle = brush.IsOk() ? brush.GetStyle() : wxBRUSHSTYLE_TRANSPARENT;
     if (brush.IsOk())
+    {
         m_brushColour = brush.GetColour();
+
+        // GetStipple() returns a caller-owned copy, take it over directly.
+        m_brushStipple = wxNullBitmap;
+        wxBitmap *stipple = brush.GetStipple();
+        if ( stipple )
+        {
+            if ( stipple->IsOk() )
+                m_brushStipple = *stipple;
+            delete stipple;
+        }
+    }
     ApplyBrush();
 }
 

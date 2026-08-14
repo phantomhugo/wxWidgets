@@ -138,7 +138,10 @@ void wxButton::WasmNotifyEvent(const wxWasmEvent& event)
 {
     if(event.id==m_windowId&&event.eventType=="click")
     {
+        // Handlers filter by the event object (e.g. the generic wxWizard
+        // distinguishes its Next/Back buttons this way).
         wxCommandEvent generatedEvent(wxEVT_BUTTON,event.id);
+        generatedEvent.SetEventObject(this);
         HandleWindowEvent(generatedEvent);
     }
     else

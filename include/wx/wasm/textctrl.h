@@ -59,6 +59,9 @@ public:
     virtual void DoSetValue(const wxString &text, int flags = 0) override;
     virtual void WriteText(const wxString& text) override;
 
+    virtual void SetEditable(bool editable) override;
+    virtual void SetMaxLength(unsigned long len) override;
+
     virtual WXWidget GetHandle() const override;
 
     void WasmNotifyEvent(const wxWasmEvent& event) override;

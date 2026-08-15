@@ -10,6 +10,13 @@
 
 class wxWasmEventSink;
 struct wxWasmEvent;
+
+// Enqueue an event for the event loop (the sink is created lazily inside).
+// Every JS->wasm entry point that runs from a DOM/timer callback must use
+// this instead of executing wx code synchronously: reentering instrumented
+// code while the runtime is suspended in an Asyncify sleep aborts it
+// ("cannot start an async operation when one is already running").
+void addEventFriend(const wxWasmEvent& event);
 class WXDLLIMPEXP_CORE wxWasmEventLoopBase : public wxEventLoopBase
 {
 public:

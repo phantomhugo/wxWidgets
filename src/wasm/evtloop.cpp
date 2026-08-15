@@ -198,6 +198,15 @@ bool wxWasmEventLoopBase::Pending() const
 bool wxWasmEventLoopBase::Dispatch()
 {
     const int eventId = m_sink->m_pendingEvents.front().id;
+    // Timer notifications are not tied to any window: route them straight to
+    // the timer implementation (see wxWasmTimerNotify, which only enqueues).
+    if ( m_sink->m_pendingEvents.front().eventType == "timer" )
+    {
+        extern void wxWasmTimerFire(int id);
+        wxWasmTimerFire(eventId);
+        m_sink->m_pendingEvents.pop();
+        return !m_sink->m_pendingEvents.empty();
+    }
     wxWindow* controlToNotify = nullptr;
     // DOM-originated events carry the unique DOM id of the window element:
     // resolve them to the exact window even when several windows share the

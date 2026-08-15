@@ -11,6 +11,8 @@
 #if wxUSE_TIMER
 
 #include "wx/wasm/timer.h"
+#include "wx/evtloop.h"
+#include "wx/wasm/evtloop.h"
 
 #include <emscripten.h>
 
@@ -32,6 +34,24 @@ std::unordered_map<intptr_t, wxWasmTimerImpl*> s_wasmTimers;
 // wxWasmTimerImpl::Start() expires.
 extern "C" EMSCRIPTEN_KEEPALIVE
 void wxWasmTimerNotify(int id)
+{
+    // Do NOT run OnFired() synchronously here: this is called from a JS
+    // setTimeout/setInterval callback via Module.ccall, and if the wasm side
+    // is suspended in an Asyncify sleep (event loop idle sleep, modal dialog,
+    // socket wait) reentering instrumented code aborts the runtime ("cannot
+    // start an async operation when one is already running") and leaves the
+    // event loop permanently dead. Enqueue the notification like every other
+    // DOM-originated event; the event loop Dispatch() routes it back to the
+    // timer via wxWasmTimerFire() once the stack is resumed.
+    wxWasmEvent event;
+    event.id = id;
+    event.eventType = "timer";
+    addEventFriend(event);
+}
+
+// Fires the timer if it is still alive. Called from
+// wxWasmEventLoopBase::Dispatch() when a queued "timer" event is processed.
+void wxWasmTimerFire(int id)
 {
     const auto it = s_wasmTimers.find(static_cast<intptr_t>(id));
     if ( it == s_wasmTimers.end() )

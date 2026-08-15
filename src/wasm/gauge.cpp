@@ -112,3 +112,10 @@ int wxGauge::GetValue() const
 {
     return wxGaugeBase::GetValue();
 }
+
+wxSize wxGauge::DoGetBestSize() const
+{
+    // The native <progress> is ~16 px tall; without a best size the sizers
+    // gave the control a 1-pixel height.
+    return HasFlag(wxGA_VERTICAL) ? wxSize(16, 60) : wxSize(60, 16);
+}

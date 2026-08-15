@@ -52,6 +52,13 @@ bool wxStaticText::Create(wxWindow *parent,
 
     SetLabel(label);
 
+    // The best size computed during Create() used an empty label (it is
+    // stored only by the SetLabel() above), so recompute it now and apply
+    // the initial size again: with a default size the window was left 0
+    // pixels wide.
+    InvalidateBestSize();
+    SetInitialSize(size);
+
     return true;
 }
 

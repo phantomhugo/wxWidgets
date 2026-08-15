@@ -2565,6 +2565,15 @@ set(WEBVIEW_GTK_HDR
     wx/gtk/webviewhistoryitem_webkit.h
 )
 
+set(WEBVIEW_WASM_SRC
+    src/wasm/webview.cpp
+)
+
+set(WEBVIEW_WASM_HDR
+    wx/wasm/webview.h
+    wx/wasm/webviewhistoryitem_wasm.h
+)
+
 set(WEBVIEW_WEBKIT2_EXTENSION_SRC
     src/gtk/webview_webkit2_extension.cpp
 )
@@ -2788,6 +2797,14 @@ set(OPENGL_QT_SRC
 
 set(OPENGL_QT_HDR
     wx/qt/glcanvas.h
+)
+
+set(OPENGL_WASM_SRC
+    src/wasm/glcanvas.cpp
+)
+
+set(OPENGL_WASM_HDR
+    wx/wasm/glcanvas.h
 )
 
 set(UNIX_SOUND_SDL_SRC

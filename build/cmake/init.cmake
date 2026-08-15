@@ -519,7 +519,13 @@ if(wxUSE_GUI)
 
     # extra dependencies
     if(wxUSE_OPENGL)
-        if(WXOSX_IPHONE)
+        if(WXWASM)
+            # Emscripten implements OpenGL ES 2/3 on top of WebGL, there is
+            # no system OpenGL package to find.
+            set(OPENGL_FOUND TRUE)
+            set(OPENGL_INCLUDE_DIR "")
+            set(OPENGL_LIBRARIES "")
+        elseif(WXOSX_IPHONE)
             set(OPENGL_FOUND TRUE)
             set(OPENGL_INCLUDE_DIR "")
             set(OPENGL_LIBRARIES "-framework OpenGLES" "-framework QuartzCore" "-framework GLKit")

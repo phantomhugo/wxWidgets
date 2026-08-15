@@ -117,6 +117,42 @@ bool wxCollapsiblePane::Create(wxWindow *parent,
     // start as collapsed:
     m_pPane->Hide();
 
+    // Lay out the pane window when we are resized (the generic version does
+    // this in its OnSize handler): the header button keeps its DOM height
+    // and the pane gets the rest of our client area.
+    Bind(wxEVT_SIZE, [this](wxSizeEvent& event)
+    {
+        if ( m_pPane )
+        {
+            const int domId = GetId();
+            const int btnH = EM_ASM_INT({
+                var container = document.getElementById($0);
+                if (!container) return 26;
+                var btn = container.querySelector('.wxCollapsiblePane-button');
+                return btn ? btn.offsetHeight : 26;
+            }, domId);
+
+            const wxSize sz = GetClientSize();
+            const int paneH = wxMax(0, sz.y - btnH);
+
+            EM_ASM_({
+                var container = document.getElementById($0);
+                if (!container) return;
+                var pane = container.querySelector('.wxCollapsiblePane-pane');
+                if (pane) {
+                    pane.style.position = 'relative';
+                    pane.style.height = $2 + 'px';
+                    pane.style.overflow = 'hidden';
+                }
+            }, domId, 0, paneH);
+
+            // the panel element sits at (0,0) inside the pane div (it was
+            // moved there in Create and positioned relative)
+            m_pPane->SetSize(0, 0, sz.x, paneH);
+        }
+        event.Skip();
+    });
+
     return true;
 }
 

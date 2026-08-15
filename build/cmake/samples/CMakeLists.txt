@@ -105,6 +105,18 @@ if(wxUSE_OPENGL)
         pyramid.cpp oglstuff.cpp mathstuff.cpp oglpfuncs.cpp
         pyramid.h oglstuff.h mathstuff.h oglpfuncs.h
         LIBRARIES wxgl)
+    if(WXWASM)
+        # cube, isosurf and penguin use the fixed-function pipeline
+        # (glBegin/glEnd), which Emscripten only provides through its legacy
+        # GL emulation.
+        target_link_options(cube PRIVATE -sLEGACY_GL_EMULATION=1)
+        target_link_options(isosurf PRIVATE -sLEGACY_GL_EMULATION=1)
+        target_link_options(penguin PRIVATE -sLEGACY_GL_EMULATION=1)
+        # pyramid loads GLES3/WebGL2 entry points via GetProcAddress, which
+        # are only linked in when WebGL2 support is enabled (Emscripten
+        # 3.1.x defaults MAX_WEBGL_VERSION to 1).
+        target_link_options(pyramid PRIVATE -sMAX_WEBGL_VERSION=2)
+    endif()
     set(wxSAMPLE_SUBDIR)
     set(wxSAMPLE_FOLDER)
 endif()

@@ -150,7 +150,7 @@ extern "C"
     }
 }
 
-wxWasmEventLoopBase::wxWasmEventLoopBase():m_shouldExit(false), m_exitcode(0)
+wxWasmEventLoopBase::wxWasmEventLoopBase()
 {
     // Keep any events already queued (see addEventFriend): only allocate
     // the sink if it does not exist yet.
@@ -160,13 +160,15 @@ wxWasmEventLoopBase::wxWasmEventLoopBase():m_shouldExit(false), m_exitcode(0)
 
 int wxWasmEventLoopBase::DoRun()
 {
-    m_shouldExit=false;
     // NOTE: emscripten_set_main_loop() is not usable here: it never returns
     // (or unwinds via Asyncify) and cannot support nested event loops (modal
     // dialogs), which must run to completion and return their exit code.
     // Instead we poll the queue, draining ALL pending events each iteration
     // (so bursts are processed at full speed, not one event per cycle) and
     // then sleeping briefly to yield the browser main thread.
+    // m_shouldExit and m_exitcode are the wxEventLoopBase members: the base
+    // (non virtual) ScheduleExit() sets them and calls our DoStop() — this
+    // loop must read the base flag or it never notices the exit request.
     while(!m_shouldExit)
     {
         while(!m_shouldExit&&Pending())
@@ -186,12 +188,6 @@ int wxWasmEventLoopBase::DoRun()
         emscripten_sleep(wxWASM_EVTLOOP_SLEEP_MS);
     }
     return m_exitcode;
-}
-
-void wxWasmEventLoopBase::ScheduleExit(int rc)
-{
-    m_shouldExit=true;
-    DoStop(rc);
 }
 
 bool wxWasmEventLoopBase::Pending() const

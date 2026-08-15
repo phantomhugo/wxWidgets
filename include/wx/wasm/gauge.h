@@ -42,6 +42,9 @@ public:
     virtual void SetValue(int pos) override;
     virtual int GetValue() const override;
 
+protected:
+    virtual wxSize DoGetBestSize() const override;
+
 private:
     wxDECLARE_DYNAMIC_CLASS(wxGauge);
 };

@@ -40,6 +40,8 @@ elseif(WXGTK)
     wx_append_sources(WEBVIEW_FILES WEBVIEW_GTK)
 elseif(APPLE)
     wx_append_sources(WEBVIEW_FILES WEBVIEW_OSX_SHARED)
+elseif(WXWASM)
+    wx_append_sources(WEBVIEW_FILES WEBVIEW_WASM)
 endif()
 
 wx_add_library(wxwebview ${WEBVIEW_FILES})

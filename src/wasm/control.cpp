@@ -96,6 +96,10 @@ void wxControl::SetLabel(const wxString& label)
     // cache the label in the base (without the accel markers)
     wxWindow::SetLabel(m_label);
 
+    // The label typically contributes to the best size (and the common
+    // wxWindowBase::SetLabel() does not invalidate it).
+    InvalidateBestSize();
+
     // Update the DOM element when it is a simple text-bearing widget.
     wxCharBuffer buf = m_label.ToUTF8();
     EM_ASM_({

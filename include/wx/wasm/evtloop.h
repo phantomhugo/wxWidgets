@@ -17,7 +17,10 @@ public:
     ~wxWasmEventLoopBase()=default;
 
     virtual int DoRun() override;
-    virtual void ScheduleExit(int rc = 0);
+    // NOTE: ScheduleExit() is NOT overridden on purpose: the base class
+    // method is not virtual and sets wxEventLoopBase::m_shouldExit, which is
+    // the flag DoRun() reads (overriding it with a shadow flag left modal
+    // loops running forever).
     virtual bool Pending() const override;
     virtual bool Dispatch() override;
     virtual int DispatchTimeout(unsigned long timeout) override;
@@ -28,8 +31,11 @@ public:
     friend void addEventFriend(const wxWasmEvent& event);
 private:
     static std::unique_ptr<wxWasmEventSink> m_sink;
-    bool m_shouldExit;
-    int m_exitcode;
+    // Exit code returned by DoRun(): set by our DoStop() (called from the
+    // base ScheduleExit()). wxEventLoopBase has no such member — it lives in
+    // wxEventLoopManual, which this class does not inherit from. The exit
+    // FLAG is the base m_shouldExit instead (see the ScheduleExit note above).
+    int m_exitcode = 0;
     wxDECLARE_NO_COPY_CLASS(wxWasmEventLoopBase);
 };
 

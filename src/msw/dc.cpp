@@ -938,7 +938,19 @@ void wxMSWDCImpl::DoDrawRectangle(wxCoord x, wxCoord y, wxCoord width, wxCoord h
         y2dev++;
     }
 
-    (void)Rectangle(GetHdc(), x1dev, y1dev, x2dev, y2dev);
+    const wxCoord widthDev = x2dev - x1dev;
+    const wxCoord heightDev = y2dev - y1dev;
+    if ( m_pen.IsNonTransparent() && (widthDev == 1 || widthDev == -1) &&
+         (heightDev == 1 || heightDev == -1) )
+    {
+        // GDI Rectangle() doesn't draw this degenerate outline at all.
+        SetPixel(GetHdc(), widthDev > 0 ? x1dev : x2dev,
+                 heightDev > 0 ? y1dev : y2dev, m_pen.GetColour().GetPixel());
+    }
+    else
+    {
+        (void)Rectangle(GetHdc(), x1dev, y1dev, x2dev, y2dev);
+    }
 
     if ( AreAutomaticBoundingBoxUpdatesEnabled() )
         CalcBoundingBox(x, y, x2, y2);
@@ -2127,8 +2139,10 @@ wxAffineMatrix2D wxMSWDCImpl::GetTransformMatrix() const
         return transform;
     }
 
-    wxMatrix2D m(xform.eM11, xform.eM12, xform.eM21, xform.eM22);
-    wxPoint2DDouble p(xform.eDx, xform.eDy);
+    wxMatrix2D m(
+        double(xform.eM11), double(xform.eM12),
+        double(xform.eM21), double(xform.eM22));
+    wxPoint2DDouble p(double(xform.eDx), double(xform.eDy));
     transform.Set(m, p);
 
     return transform;

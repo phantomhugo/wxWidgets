@@ -555,6 +555,7 @@ WX_ARG_WITHOUT(gtkprint,   [  --without-gtkprint      don't use GTK printing sup
 WX_ARG_WITHOUT(wayland,    [  --without-wayland       don't use Wayland-specific code], wxUSE_WAYLAND)
 WX_ARG_WITH(gnomevfs,      [  --with-gnomevfs         use GNOME VFS for associating MIME types], wxUSE_LIBGNOMEVFS)
 WX_ARG_WITH(libnotify,     [  --with-libnotify        use libnotify for notifications], wxUSE_LIBNOTIFY)
+WX_ARG_WITH(appindicator,  [  --with-appindicator     use AppIndicator (required for wxTaskBarIcon under Wayland)], wxUSE_APPINDICATOR)
 WX_ARG_WITH(opengl,        [  --with-opengl           use OpenGL (or Mesa)], wxUSE_OPENGL)
 WX_ARG_WITH(xtest,         [  --with-xtest            use XTest extension], wxUSE_XTEST)
 WX_ARG_WITH(nanosvg,       [  --with-nanosvg          use NanoSVG for rasterizing SVG], wxUSE_NANOSVG)
@@ -3117,19 +3118,103 @@ installed, where VER is 2, 3 or 4.
             fi
 
             if test -n "$WAYLAND_SCANNER" ; then
+                dnl Check if we can use the session management protocol which
+                dnl normally requires GTK >= 3.24.53 but allow using it with
+                dnl the versions of 3.24.52 that already have the support
+                dnl required for it, at least until 3.24.53 is released.
+                AC_CACHE_CHECK([for support of the Wayland session management protocol],
+                    wx_cv_gtk_wayland_sm,
+                    [
+                        GTK_VERSION=`$PKG_CONFIG --modversion gtk+-3.0`
+                        AS_VERSION_COMPARE([$GTK_VERSION], [3.24.52],
+                            wx_cv_gtk_wayland_sm=no,
+                            wx_cv_gtk_wayland_sm=maybe,
+                            wx_cv_gtk_wayland_sm=yes
+                        )
+
+                        if test "$wx_cv_gtk_wayland_sm" = "maybe"; then
+                            save_CFLAGS=$CFLAGS
+                            save_LIBS=$LIBS
+                            CFLAGS="$CFLAGS $TOOLKIT_INCLUDE"
+                            LIBS="$LIBS $GUI_TK_LIBRARY"
+                            AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <gdk/gdkwayland.h>],
+                                [
+                                    gdk_wayland_window_get_xdg_toplevel(0)
+                                ])],
+                                wx_cv_gtk_wayland_sm=yes,
+                                wx_cv_gtk_wayland_sm=no
+                            )
+                            LIBS=$save_LIBS
+                            CFLAGS=$save_CFLAGS
+                        fi
+                    ]
+                )
+
+                if test "$wx_cv_gtk_wayland_sm" = "yes"; then
+                    dnl wayland-protocols is normally a dependency of
+                    dnl libgtk-3-dev or similar, but it's not always pulled in
+                    dnl automatically, so still check that it's really there.
+                    AC_CACHE_CHECK([for wayland-protocols data directory],
+                        wx_cv_wayland_protocols_dir,
+                        [
+                            wx_cv_wayland_protocols_dir=`$PKG_CONFIG --variable=pkgdatadir wayland-protocols 2>/dev/null`
+                        ]
+                    )
+                    WAYLAND_PROTOCOLS_DIR=$wx_cv_wayland_protocols_dir
+
+                    if test -n "$WAYLAND_PROTOCOLS_DIR" -a \
+                            -f "$WAYLAND_PROTOCOLS_DIR/stable/xdg-shell/xdg-shell.xml"; then
+                        AC_DEFINE(wxHAVE_WAYLAND_SESSION_MANAGEMENT)
+                    else
+                        AC_MSG_WARN([wayland-protocols package not found, Wayland session management support will be disabled])
+                        WAYLAND_SM_SUPPORT=':'
+                    fi
+                else
+                    dnl Don't bother running wayland-scanner for this protocol.
+                    WAYLAND_SM_SUPPORT=':'
+                fi
+
                 AC_DEFINE(wxHAVE_WAYLAND_CLIENT)
                 AC_CONFIG_COMMANDS([wayland-protocols],
                     [
                         mkdir -p lib/wx/include/${TOOLCHAIN_FULLNAME}/wx/protocols
                         $WAYLAND_SCANNER client-header $srcdir/src/unix/protocols/pointer-warp-v1.xml lib/wx/include/${TOOLCHAIN_FULLNAME}/wx/protocols/pointer-warp-v1-client-protocol.h
                         $WAYLAND_SCANNER private-code $srcdir/src/unix/protocols/pointer-warp-v1.xml lib/wx/include/${TOOLCHAIN_FULLNAME}/wx/protocols/pointer-warp-v1-client-protocol.c
+                        $WAYLAND_SM_SUPPORT $WAYLAND_SCANNER client-header $srcdir/src/unix/protocols/xdg-session-management-v1.xml lib/wx/include/${TOOLCHAIN_FULLNAME}/wx/protocols/xdg-session-management-v1-client-protocol.h
+                        $WAYLAND_SM_SUPPORT $WAYLAND_SCANNER private-code $srcdir/src/unix/protocols/xdg-session-management-v1.xml lib/wx/include/${TOOLCHAIN_FULLNAME}/wx/protocols/xdg-session-management-v1-client-protocol.c
+                        $WAYLAND_SM_SUPPORT $WAYLAND_SCANNER client-header $WAYLAND_PROTOCOLS_DIR/stable/xdg-shell/xdg-shell.xml lib/wx/include/${TOOLCHAIN_FULLNAME}/wx/protocols/xdg-shell-client-protocol.h
+                        $WAYLAND_SM_SUPPORT $WAYLAND_SCANNER private-code $WAYLAND_PROTOCOLS_DIR/stable/xdg-shell/xdg-shell.xml lib/wx/include/${TOOLCHAIN_FULLNAME}/wx/protocols/xdg-shell-client-protocol.c
                     ],
                     [
                         WAYLAND_SCANNER=$WAYLAND_SCANNER
+                        WAYLAND_SM_SUPPORT=$WAYLAND_SM_SUPPORT
+                        WAYLAND_PROTOCOLS_DIR=$WAYLAND_PROTOCOLS_DIR
                     ]
                 )
             else
                 AC_MSG_WARN([Wayland-specific code will be disabled])
+            fi
+        fi
+
+        if test "$wxUSE_TASKBARICON" = "yes"; then
+            if test "$wxUSE_APPINDICATOR" = "yes"; then
+                if test "$WXGTK3" = 1; then
+                    PKG_CHECK_MODULES(APPINDICATOR,
+                        [ayatana-appindicator3-0.1],
+                        [
+                            GUI_TK_LIBRARY="$GUI_TK_LIBRARY $APPINDICATOR_LIBS"
+                            CFLAGS="$APPINDICATOR_CFLAGS $CFLAGS"
+                            CXXFLAGS="$APPINDICATOR_CFLAGS $CXXFLAGS"
+                            AC_DEFINE(wxUSE_APPINDICATOR)
+                        ],
+                        [
+                            AC_MSG_WARN([libayatana-appindicator not found; wxTaskBarIcon won't work under Wayland])
+                        ])
+                else
+                    dnl In principle, we could look for ayatana-appindicator-0.1
+                    dnl when using GTK2, but for now we don't support it there.
+                    wxUSE_APPINDICATOR=no
+                fi
             fi
         fi
     fi

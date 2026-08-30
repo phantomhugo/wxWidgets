@@ -83,6 +83,7 @@ public:
         ID_CHANGE_TEXT2,
         ID_UI_CHANGE_TEXT_UPDATED,
         ID_REMOVE_PAGE,
+        ID_REMOVE_PANEL,
         ID_HIDE_PAGES,
         ID_SHOW_PAGES,
         ID_PLUS_MINUS,
@@ -141,6 +142,7 @@ public:
     void OnPositionLeftBoth(wxCommandEvent& evt);
     void OnPositionLeftDropdown(wxRibbonToolBarEvent& evt);
     void OnRemovePage(wxRibbonButtonBarEvent& evt);
+    void OnRemovePanel(wxRibbonButtonBarEvent& evt);
     void OnHidePages(wxRibbonButtonBarEvent& evt);
     void OnShowPages(wxRibbonButtonBarEvent& evt);
     void OnPlusMinus(wxRibbonButtonBarEvent& evt);
@@ -163,10 +165,11 @@ protected:
     wxColour GetGalleryColour(wxRibbonGallery *gallery,
         wxRibbonGalleryItem* item, wxString* name);
     void ResetGalleryArtProviders();
-    void SetArtProvider(wxRibbonArtProvider* prov);
+    void SetArtProvider(int button_id, wxRibbonArtProvider* prov);
     void SetBarStyle(long style);
 
     wxRibbonBar* m_ribbon;
+    wxRibbonButtonBar* m_provider_bar;
     wxRibbonGallery* m_primary_gallery;
     wxRibbonGallery* m_secondary_gallery;
     wxTextCtrl* m_logwindow;
@@ -255,6 +258,7 @@ EVT_MENU(ID_POSITION_TOP_BOTH, MyFrame::OnPositionTopBoth)
 EVT_TOGGLEBUTTON(ID_TOGGLE_PANELS, MyFrame::OnTogglePanels)
 EVT_RIBBONPANEL_EXTBUTTON_ACTIVATED(wxID_ANY, MyFrame::OnExtButton)
 EVT_RIBBONBUTTONBAR_CLICKED(ID_REMOVE_PAGE, MyFrame::OnRemovePage)
+EVT_RIBBONBUTTONBAR_CLICKED(ID_REMOVE_PANEL, MyFrame::OnRemovePanel)
 EVT_RIBBONBUTTONBAR_CLICKED(ID_HIDE_PAGES, MyFrame::OnHidePages)
 EVT_RIBBONBUTTONBAR_CLICKED(ID_SHOW_PAGES, MyFrame::OnShowPages)
 EVT_RIBBONBUTTONBAR_CLICKED(ID_PLUS_MINUS, MyFrame::OnPlusMinus)
@@ -586,11 +590,11 @@ MyFrame::MyFrame()
 
         wxSizer* sizer_panelsizer_h = new wxBoxSizer(wxHORIZONTAL);
         wxSizer* sizer_panelsizer_v = new wxBoxSizer(wxVERTICAL);
-        sizer_panelsizer_v->AddStretchSpacer(1);
-        sizer_panelsizer_v->Add(sizer_panelcombo, 0, wxALL|wxEXPAND, 2);
-        sizer_panelsizer_v->Add(sizer_panelcombo2, 0, wxALL|wxEXPAND, 2);
-        sizer_panelsizer_v->AddStretchSpacer(1);
-        sizer_panelsizer_h->Add(bar, 0, wxEXPAND);
+        sizer_panelsizer_v->AddStretchSpacer();
+        sizer_panelsizer_v->Add(sizer_panelcombo, wxSizerFlags().Expand().Border(wxALL, FromDIP(2)));
+        sizer_panelsizer_v->Add(sizer_panelcombo2, wxSizerFlags().Expand().Border(wxALL, FromDIP(2)));
+        sizer_panelsizer_v->AddStretchSpacer();
+        sizer_panelsizer_h->Add(bar, wxSizerFlags().Expand());
         sizer_panelsizer_h->Add(sizer_panelsizer_v, 0);
         sizer_panel->SetSizer(sizer_panelsizer_h);
 
@@ -604,15 +608,17 @@ MyFrame::MyFrame()
         wxRibbonPanel *provider_panel = new wxRibbonPanel(scheme, wxID_ANY,
             "Art", wxBitmapBundle(), wxDefaultPosition, wxDefaultSize,
             wxRIBBON_PANEL_NO_AUTO_MINIMISE);
-        wxRibbonButtonBar *provider_bar = new wxRibbonButtonBar(provider_panel, wxID_ANY);
-        provider_bar->AddButton(ID_DEFAULT_PROVIDER, "Default Provider",
+        m_provider_bar = new wxRibbonButtonBar(provider_panel, wxID_ANY);
+        m_provider_bar->AddToggleButton(ID_DEFAULT_PROVIDER, "Default Provider",
             wxArtProvider::GetBitmap(wxART_QUESTION, wxART_OTHER, wxSize(32, 32)));
-        provider_bar->AddButton(ID_AUI_PROVIDER, "AUI Provider",
+        m_provider_bar->AddToggleButton(ID_AUI_PROVIDER, "AUI Provider",
             MakeSvgBundle(aui_style_svg, wxSize(32, 32)));
-        provider_bar->AddButton(ID_MSW_PROVIDER, "MSW Provider",
+        m_provider_bar->AddToggleButton(ID_MSW_PROVIDER, "MSW Provider",
             MakeSvgBundle(msw_style_svg, wxSize(32, 32)));
-        provider_bar->AddButton(ID_MSW_FLAT_PROVIDER, "MSW Flat Provider",
+        m_provider_bar->AddToggleButton(ID_MSW_FLAT_PROVIDER, "MSW Flat Provider",
             MakeSvgBundle(msw_flat_style_svg, wxSize(32, 32)));
+
+        m_provider_bar->ToggleButton(ID_DEFAULT_PROVIDER, true);
         wxRibbonPanel *primary_panel = new wxRibbonPanel(scheme, wxID_ANY,
             "Primary Colour", MakeSvgBundle(colours_svg, wxSize(16, 16)));
         m_primary_gallery = PopulateColoursPanel(primary_panel,
@@ -643,9 +649,11 @@ MyFrame::MyFrame()
 
         panel = new wxRibbonPanel(page, wxID_ANY, "Change text", ribbon_small);
         bar = new wxRibbonButtonBar(panel, wxID_ANY);
-        bar->AddButton(ID_CHANGE_TEXT1, "One", ribbon_large);
-        bar->AddButton(ID_CHANGE_TEXT2, "Two", ribbon_large);
-        bar->AddButton(ID_UI_CHANGE_TEXT_UPDATED, "Zero", ribbon_large);
+        bar->AddButton(ID_CHANGE_TEXT1, "Set short text", ribbon_large);
+        bar->AddButton(ID_CHANGE_TEXT2, "Set long text", ribbon_large);
+        // This button is never clicked, its label is set from its
+        // wxEVT_UPDATE_UI handler by the two buttons above.
+        bar->AddButton(ID_UI_CHANGE_TEXT_UPDATED, "Target", ribbon_large);
 
         //Also set the general disabled text colour:
         wxRibbonArtProvider* artProvider = m_ribbon->GetArtProvider();
@@ -660,6 +668,7 @@ MyFrame::MyFrame()
             ribbon_small);
         wxRibbonButtonBar *bar = new wxRibbonButtonBar(panel, wxID_ANY);
         bar->AddButton(ID_REMOVE_PAGE, "Remove", wxArtProvider::GetBitmap(wxART_DELETE, wxART_OTHER, wxSize(24, 24)));
+        bar->AddButton(ID_REMOVE_PANEL, "Remove Panel", wxArtProvider::GetBitmap(wxART_DELETE, wxART_OTHER, wxSize(24, 24)));
         bar->AddButton(ID_HIDE_PAGES, "Hide Pages", ribbon_large);
         bar->AddButton(ID_SHOW_PAGES, "Show Pages", ribbon_large);
 
@@ -728,8 +737,8 @@ MyFrame::MyFrame()
 
     wxSizer *s = new wxBoxSizer(wxVERTICAL);
 
-    s->Add(m_ribbon, 0, wxEXPAND);
-    s->Add(m_logwindow, 1, wxEXPAND);
+    s->Add(m_ribbon, wxSizerFlags().Expand());
+    s->Add(m_logwindow, wxSizerFlags(1).Expand());
     s->Add(m_togglePanels, wxSizerFlags().Border());
 
     SetSizer(s);
@@ -908,12 +917,12 @@ void MyFrame::ResetGalleryArtProviders()
 
 void MyFrame::OnChangeText1(wxRibbonButtonBarEvent& WXUNUSED(evt))
 {
-    m_new_text = "One";
+    m_new_text = "Short";
 }
 
 void MyFrame::OnChangeText2(wxRibbonButtonBarEvent& WXUNUSED(evt))
 {
-    m_new_text = "Two";
+    m_new_text = "A much longer label";
 }
 
 void MyFrame::OnEnable(wxRibbonButtonBarEvent& WXUNUSED(evt))
@@ -1275,28 +1284,28 @@ void MyFrame::OnColourGalleryButton(wxCommandEvent& evt)
 void MyFrame::OnDefaultProvider(wxRibbonButtonBarEvent& WXUNUSED(evt))
 {
     m_ribbon->DismissExpandedPanel();
-    SetArtProvider(new wxRibbonDefaultArtProvider);
+    SetArtProvider(ID_DEFAULT_PROVIDER, new wxRibbonDefaultArtProvider);
 }
 
 void MyFrame::OnAUIProvider(wxRibbonButtonBarEvent& WXUNUSED(evt))
 {
     m_ribbon->DismissExpandedPanel();
-    SetArtProvider(new wxRibbonAUIArtProvider);
+    SetArtProvider(ID_AUI_PROVIDER, new wxRibbonAUIArtProvider);
 }
 
 void MyFrame::OnMSWProvider(wxRibbonButtonBarEvent& WXUNUSED(evt))
 {
     m_ribbon->DismissExpandedPanel();
-    SetArtProvider(new wxRibbonMSWArtProvider);
+    SetArtProvider(ID_MSW_PROVIDER, new wxRibbonMSWArtProvider);
 }
 
 void MyFrame::OnMSWFlatProvider(wxRibbonButtonBarEvent& WXUNUSED(evt))
 {
     m_ribbon->DismissExpandedPanel();
-    SetArtProvider(new wxRibbonMSWFlatArtProvider);
+    SetArtProvider(ID_MSW_FLAT_PROVIDER, new wxRibbonMSWFlatArtProvider);
 }
 
-void MyFrame::SetArtProvider(wxRibbonArtProvider *prov)
+void MyFrame::SetArtProvider(int button_id, wxRibbonArtProvider *prov)
 {
     m_ribbon->Freeze();
     m_ribbon->SetArtProvider(prov);
@@ -1307,6 +1316,15 @@ void MyFrame::SetArtProvider(wxRibbonArtProvider *prov)
         ID_PRIMARY_COLOUR);
     PopulateColoursPanel(m_secondary_gallery->GetParent(), m_default_secondary,
         ID_SECONDARY_COLOUR);
+
+    m_provider_bar->ToggleButton(ID_DEFAULT_PROVIDER,
+        button_id == ID_DEFAULT_PROVIDER);
+    m_provider_bar->ToggleButton(ID_AUI_PROVIDER,
+        button_id == ID_AUI_PROVIDER);
+    m_provider_bar->ToggleButton(ID_MSW_PROVIDER,
+        button_id == ID_MSW_PROVIDER);
+    m_provider_bar->ToggleButton(ID_MSW_FLAT_PROVIDER,
+        button_id == ID_MSW_FLAT_PROVIDER);
 
     m_ribbon->Realize();
     m_ribbon->Thaw();
@@ -1321,6 +1339,33 @@ void MyFrame::OnRemovePage(wxRibbonButtonBarEvent& WXUNUSED(evt))
         m_ribbon->DeletePage(n-1);
         m_ribbon->Realize();
     }
+}
+
+void MyFrame::OnRemovePanel(wxRibbonButtonBarEvent& WXUNUSED(evt))
+{
+    // Delete a panel of the current page and then make the page too narrow for
+    // the remaining ones, so that they have to be collapsed.
+    wxRibbonPage* page = m_ribbon->GetPage(m_ribbon->GetActivePage());
+    if(page == nullptr || page->GetPanelCount() < 2)
+    {
+        AddText("No panel to remove on the current page");
+        return;
+    }
+
+    page->Realize();
+
+    // Any panel other than the one containing this button will do.
+    wxRibbonPanel* panel = page->GetPanel(1);
+    AddText("Deleting panel \"" + panel->GetLabel() + "\"");
+    panel->Destroy();
+
+    const wxPoint pos = page->GetPosition();
+    const wxSize size = page->GetSize();
+    page->SetSizeWithScrollButtonAdjustment(pos.x, pos.y, size.x / 8, size.y);
+
+    // Not reached if the stale entry was used above.
+    m_ribbon->Realize();
+    GetSizer()->Layout();
 }
 
 void MyFrame::OnHidePages(wxRibbonButtonBarEvent& WXUNUSED(evt))

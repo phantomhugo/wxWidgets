@@ -29,6 +29,7 @@
 namespace
 {
 
+#if wxUSE_STATUSBAR
 int GetMacStatusbarHeight()
 {
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_16
@@ -38,6 +39,7 @@ int GetMacStatusbarHeight()
 #endif
         return 24;
 }
+#endif // wxUSE_STATUSBAR
 
 } // anonymous namespace
 
@@ -60,6 +62,7 @@ bool wxFrame::Create(wxWindow *parent,
     if ( !wxTopLevelWindow::Create(parent, id, title, pos, size, style, name) )
         return false;
 
+#if wxUSE_TOOLBAR
     if ( wxTheApp->OSXIsFullScreenApp() )
     {
         if ((parent != nullptr) && (HasFlag(wxCAPTION) || HasFlag(wxCLOSE_BOX)))
@@ -80,6 +83,7 @@ bool wxFrame::Create(wxWindow *parent,
             tb->Realize();
         }
     }
+#endif
 
     return true;
 }

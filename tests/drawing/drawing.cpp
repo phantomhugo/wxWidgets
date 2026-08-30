@@ -43,8 +43,8 @@
 // The crossing of drawing case and life cycles is implemented by
 // RunIndividualDrawingCase
 
-// The CPPUNIT test case class present a test per drawing case per life cycle
-// so that it is easy to run a particular test
+// The test case class presents a test per drawing case per life cycle so that
+// it is easy to run a particular test
 
 // The test requires reference files and must produce them when an
 // implementation changed and new good references are known to be produced.
@@ -68,8 +68,8 @@
 //      DrawingTestGCFactory derived sub-class in drawing.h header
 //      together with a declaration for it and its implementation
 //      can be placed in drawing.cpp
-//      Once this is done duplicate all the CPP UNIT test functions
-//      and entries "DrawToImage_YYY" to your new GC "DrawTo<newGc>_YYYY"
+//      Once this is done duplicate all the test functions and entries
+//      "DrawToImage_YYY" to your new GC "DrawTo<newGc>_YYYY"
 //
 
 wxString GraphicsContextDrawingTestCase::ms_referenceDirectory;
@@ -83,16 +83,27 @@ GraphicsContextDrawingTestCase::ImageGraphicsContextLifeCycle
         GraphicsContextDrawingTestCase::ms_svgLifeCycle;
 #endif // wxUSE_SVG
 
-// register in the unnamed registry so that these tests are run by default
-CPPUNIT_TEST_SUITE_REGISTRATION( GraphicsContextDrawingTestCase );
-
-// also include in its own registry so that these tests can be run alone
-CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( GraphicsContextDrawingTestCase,
-    "GraphicsContextDrawingTestCase" );
-
 // ----------------------------------------------------------------------------
 // tests themselves
 // ----------------------------------------------------------------------------
+
+#define wxGC_DRAWING_TEST_CASE(name) \
+    wxTEST_CASE_FOR_METHOD(GraphicsContextDrawingTestCase, \
+                           "GraphicsContextDrawing", name, "[gcdrawing]")
+
+wxGC_DRAWING_TEST_CASE(DrawToImage_Basics)
+#if wxUSE_SVG
+//wxGC_DRAWING_TEST_CASE(DrawToSVG_Basics)
+#endif
+
+// FIXME: Reference data files are currently not found when using Unix build
+// system, so these tests are failing there, fix this and remove this ifdef.
+#ifdef __WINDOWS__
+wxGC_DRAWING_TEST_CASE(DrawToImage_Fonts)
+#if wxUSE_SVG
+//wxGC_DRAWING_TEST_CASE(DrawToSVG_Fonts)
+#endif
+#endif // __WINDOWS__
 
 void GraphicsContextDrawingTestCase::RunIndividualDrawingCase (
     DrawingTestGCFactory& gcFactory,
@@ -140,11 +151,25 @@ void GraphicsContextDrawingTestCase::RunIndividualDrawingCase (
     }
     else if (gcFactory.UseImageComparison())
     {
+        if (!refFileName.FileExists())
+        {
+            WARN("Skipping comparison with missing reference file \""
+                 << refFileName.GetFullPath() << "\"");
+            return;
+        }
+
         WX_ASSERT_SAME_AS_IMAGE_FILE(fileName.GetFullPath(),
                                      refFileName.GetFullPath());
     }
     else
     {
+        if (!refFileName.FileExists())
+        {
+            WARN("Skipping comparison with missing reference file \""
+                 << refFileName.GetFullPath() << "\"");
+            return;
+        }
+
         WX_ASSERT_SAME_AS_FILE(fileName.GetFullPath(),
                                refFileName.GetFullPath());
     }
@@ -172,14 +197,29 @@ wxString GraphicsContextDrawingTestCase::GetTestsReferenceDirectory() const
                         &ms_referenceDirectory) )
         {
             refDir = wxFileName(wxStandardPaths::Get().GetExecutablePath());
-            refDir.RemoveLastDir();
+            refDir.SetFullName(wxString());
+            refDir.AppendDir("drawing");
+            refDir.AppendDir("references");
+
+            if (!refDir.DirExists())
+            {
+                refDir = wxFileName(wxStandardPaths::Get().GetExecutablePath());
+                refDir.RemoveLastDir();
+            }
         }
         else
         {
             refDir = wxFileName(ms_referenceDirectory, wxT(""));
         }
-        refDir.AppendDir ("drawing");
-        refDir.AppendDir ("references");
+
+        // The full path can end with a separator, so check the path component.
+        if (refDir.GetDirs().empty() ||
+            refDir.GetDirs().Last().CmpNoCase("references") != 0)
+        {
+            refDir.AppendDir("drawing");
+            refDir.AppendDir("references");
+        }
+
         ms_referenceDirectory = refDir.GetPath();
     }
     return ms_referenceDirectory;

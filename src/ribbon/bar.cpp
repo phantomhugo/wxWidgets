@@ -389,6 +389,19 @@ void wxRibbonBar::DeletePage(size_t n)
         {
             m_current_page--;
         }
+
+        // If the current hovered page is the one getting deleted, then we
+        // don't have a hovered page anymore.
+        if ( m_current_hovered_page == static_cast<int>(n) )
+        {
+            m_current_hovered_page = wxNOT_FOUND;
+        }
+        // ...otherwise, the pages after it shifted down by one,
+        // so adjust the index to keep referring to the same (still hovered) page.
+        else if ( m_current_hovered_page > static_cast<int>(n) )
+        {
+            m_current_hovered_page--;
+        }
     }
 }
 
@@ -410,6 +423,7 @@ void wxRibbonBar::ClearPages()
     m_pages.Empty();
     Realize();
     m_current_page = wxNOT_FOUND;
+    m_current_hovered_page = wxNOT_FOUND;
     Refresh();
 }
 
@@ -626,7 +640,9 @@ void wxRibbonBar::RecalculateTabSizes()
                 int delta = info.ideal_width - info.small_must_have_separator_width;
                 info.rect.x = x;
                 info.rect.y = y;
-                info.rect.width = info.small_must_have_separator_width + delta * (width - total_small_width) / total_delta;
+                info.rect.width = info.small_must_have_separator_width;
+                if ( total_delta != 0 )
+                    info.rect.width += delta * (width - total_small_width) / total_delta;
                 info.rect.height = m_tab_height;
 
                 x += info.rect.width + tabsep;
@@ -703,7 +719,9 @@ void wxRibbonBar::RecalculateTabSizes()
                     int delta = smallest_tab_width - info.minimum_width;
                     info.rect.x = x;
                     info.rect.y = y;
-                    info.rect.width = info.minimum_width + delta * (width - total_small_width) / total_delta;
+                    info.rect.width = info.minimum_width;
+                    if( total_delta != 0 )
+                        info.rect.width += delta * (width - total_small_width) / total_delta;
                     info.rect.height = m_tab_height;
 
                     x += info.rect.width + tabsep;
@@ -789,6 +807,9 @@ wxImageList* wxRibbonBar::GetButtonImageList(wxSize size, int initialCount)
 
 void wxRibbonBar::SetArtProvider(wxRibbonArtProvider* art)
 {
+    if ( art == m_art )
+        return;
+
     wxRibbonArtProvider *old = m_art;
     m_art = art;
 
@@ -960,7 +981,8 @@ void wxRibbonBar::OnDPIChanged(wxDPIChangedEvent& event)
 void wxRibbonBar::OnSysColourChanged(wxSysColourChangedEvent& event)
 {
     event.Skip();
-    m_art->UpdateColoursFromSystem();
+    if ( m_art )
+        m_art->UpdateColoursFromSystem();
 }
 
 void wxRibbonBar::RepositionPage(wxRibbonPage *page)

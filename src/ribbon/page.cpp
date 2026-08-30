@@ -391,7 +391,7 @@ bool wxRibbonPage::ScrollSections(int sections)
         gap = m_art->GetMetric(wxRIBBON_ART_PANEL_Y_SEPARATION_SIZE);
         if (scrollForward)
         {
-            scrollpos = width - m_art->GetMetric(wxRIBBON_ART_PAGE_BORDER_BOTTOM_SIZE);
+            scrollpos = height - m_art->GetMetric(wxRIBBON_ART_PAGE_BORDER_BOTTOM_SIZE);
         }
         else
         {
@@ -574,33 +574,32 @@ void wxRibbonPage::OnDPIChanged(wxDPIChangedEvent& event)
 void wxRibbonPage::OnSysColourChanged(wxSysColourChangedEvent& event)
 {
     event.Skip();
-    m_art->UpdateColoursFromSystem();
+    if ( m_art )
+        m_art->UpdateColoursFromSystem();
 }
 
 void wxRibbonPage::RemoveChild(wxWindowBase *child)
 {
-    // Remove all references to the child from the collapse stack
+    // Remove all references to the child from the collapse stack. It can occur
+    // there any number of times, so keep only the entries which are not it.
     size_t count = m_collapse_stack.GetCount();
     size_t src, dst;
-    for(src = 0, dst = 0; src < count; ++src, ++dst)
+    for( src = 0, dst = 0; src < count; ++src )
     {
         wxRibbonControl *item = m_collapse_stack.Item(src);
         if(item == child)
         {
-            ++src;
-            if(src == count)
-            {
-                break;
-            }
+            continue;
         }
         if(src != dst)
         {
             m_collapse_stack.Item(dst) = item;
         }
+        ++dst;
     }
-    if(src > dst)
+    if( count > dst )
     {
-        m_collapse_stack.RemoveAt(dst, src - dst);
+        m_collapse_stack.RemoveAt(dst, count - dst);
     }
 
     // ... and then proceed as normal

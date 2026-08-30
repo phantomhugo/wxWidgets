@@ -43,10 +43,6 @@ See the last subsection for more details about running the tests.
 Testing with Catch
 ------------------
 
-**WARNING**: Most of the existing tests are currently still written in the
-CppUnit style, please do _not_ follow them when writing new tests, the old
-style is too complex and unnecessary.
-
 Writing tests with Catch is almost embarrassingly simple: you need to just
 add a new test case and use Catch assertion macros inside it, e.g.
 
@@ -96,6 +92,10 @@ clicking buttons or typing text. A simple example of this can be found in
 `tests/controls/buttontest.cpp`. After simulating some user input always
 call `wxYield()` to allow event processing. When writing a test using
 `wxUIActionSimulator` wrap it in `#if wxUSE_UIACTIONSIMULATOR` block.
+On MSW, `wxUIActionSimulator` respects the user's swapped mouse-button
+configuration, so `MouseClick()` still produces a primary-button click,
+while `MouseClick(wxMOUSE_BTN_RIGHT)` still produces a secondary-button
+click.
 
 There are a number of classes that are available to help with testing GUI
 elements. Firstly throughout the test run there is a frame of type

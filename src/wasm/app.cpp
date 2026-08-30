@@ -10,6 +10,7 @@
 
 #include "wx/app.h"
 #include "wx/apptrait.h"
+#include "wx/image.h"
 #include "wx/wasm/cssstyles.h"
 
 #if wxUSE_ACCEL
@@ -50,6 +51,11 @@ bool wxApp::Initialize( int &argc, wxChar **argv )
 
     // Inject default CSS styles (GTK3-like)
     wxWasmCSSManager::InjectDefaultStyles();
+
+    // This port's wxBitmap loads everything through wxImage, so register
+    // all the image handlers up front (the native ports load bitmaps via
+    // the platform APIs and don't need this).
+    wxInitAllImageHandlers();
 
     // Register global keydown listener for menu accelerators
     EM_ASM_({

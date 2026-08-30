@@ -118,8 +118,8 @@ void wxMenuItem::SetItemLabel(const wxString& label)
 {
     wxMenuItemBase::SetItemLabel(label);
 
-    // Update DOM if it exists
-    wxCharBuffer buffer = label.ToUTF8();
+    // Update DOM if it exists (without mnemonic markers)
+    wxCharBuffer buffer = wxControl::GetLabelText(label).ToUTF8();
     EM_ASM_({
         var item = document.getElementById('wxMenuItem_' + $0);
         if (item) {
@@ -304,7 +304,7 @@ void wxMenuItem::CreateDOM(wxMenu* parentMenu)
 
     int parentId = parentMenu->GetId();
     int itemId = GetId();
-    wxCharBuffer textBuffer = m_text.ToUTF8();
+    wxCharBuffer textBuffer = wxControl::GetLabelText(m_text).ToUTF8();
 
     EM_ASM_({
         // Menu popup containers are namespaced ('wxMenuPopup_' + menu id):

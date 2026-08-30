@@ -38,7 +38,6 @@ bool wxStaticText::Create(wxWindow *parent,
         return false;
 
     int domId = GetId();
-    wxCharBuffer labelBuffer = label.ToUTF8();
 
     EM_ASM_({
         var container = document.getElementById($0);
@@ -46,9 +45,8 @@ bool wxStaticText::Create(wxWindow *parent,
 
         var span = document.createElement('span');
         span.className = 'wxStaticText';
-        span.textContent = UTF8ToString($1);
         container.appendChild(span);
-    }, domId, labelBuffer.data());
+    }, domId);
 
     SetLabel(label);
 
@@ -65,7 +63,9 @@ bool wxStaticText::Create(wxWindow *parent,
 void wxStaticText::SetLabel(const wxString& label)
 {
     wxControl::SetLabel(label);
-    WXSetVisibleLabel(label);
+    // Display the label without the mnemonic markers: wxControl::SetLabel
+    // stored the stripped text (GetLabel()), as GTK shows it.
+    WXSetVisibleLabel(GetLabel());
 }
 
 void wxStaticText::WXSetVisibleLabel(const wxString& label)

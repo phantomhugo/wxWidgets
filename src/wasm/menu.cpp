@@ -141,9 +141,17 @@ bool wxMenuBar::Append(wxMenu *menu, const wxString& title)
     if (!wxMenuBarBase::Append(menu, title))
         return false;
 
+    // Store the title in the menu itself, as the other ports do: the base
+    // class only keeps the menus list and GetMenuLabel()/FindMenu() read
+    // the title back from the menu.
+    menu->SetTitle(title);
+
     // Create the menu container in the DOM
     int menuId = menu->GetId();
-    wxCharBuffer titleBuffer = title.ToUTF8();
+    // The DOM label shows the title without mnemonic markers (GTK strips
+    // them too, showing the accelerator letter underlined instead — we
+    // just strip).
+    wxCharBuffer titleBuffer = wxControl::GetLabelText(title).ToUTF8();
     
     EM_ASM_({
         var menuBar = document.getElementById($0);
@@ -217,6 +225,9 @@ bool wxMenuBar::Insert(size_t pos, wxMenu *menu, const wxString& title)
     if (!wxMenuBarBase::Insert(pos, menu, title))
         return false;
 
+    // Same as in Append(): keep the title in the menu (see there).
+    menu->SetTitle(title);
+
     // Re-append all menus in correct DOM order
     int menuBarId = GetId();
     EM_ASM_({
@@ -241,7 +252,7 @@ bool wxMenuBar::Insert(size_t pos, wxMenu *menu, const wxString& title)
         wxMenu* m = GetMenu(i);
         wxString lbl = GetMenuLabel(i);
         int menuId = m->GetId();
-        wxCharBuffer titleBuffer = lbl.ToUTF8();
+        wxCharBuffer titleBuffer = wxControl::GetLabelText(lbl).ToUTF8();
         EM_ASM_({
             var menuBar = document.getElementById($0);
             if (!menuBar) return;
@@ -342,7 +353,7 @@ void wxMenuBar::SetMenuLabel(size_t pos, const wxString& label)
 {
     wxMenu* menu = GetMenu(pos);
     if (menu) {
-        wxCharBuffer labelBuffer = label.ToUTF8();
+        wxCharBuffer labelBuffer = wxControl::GetLabelText(label).ToUTF8();
         EM_ASM_({
             var container = document.getElementById('menubar_menu_' + $0);
             if (container) {

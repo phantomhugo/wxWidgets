@@ -37,7 +37,7 @@ bool wxStaticBox::Create(wxWindow *parent, wxWindowID id,
     if ( !wxControl::Create(parent, id, pos, size, style, wxDefaultValidator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     wxCharBuffer labelBuffer = label.ToUTF8();
 
     EM_ASM_({

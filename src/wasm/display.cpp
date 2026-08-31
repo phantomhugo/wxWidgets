@@ -87,7 +87,11 @@ bool wxDisplayImplWasm::IsPrimary() const
 #if wxUSE_DISPLAY
 wxArrayVideoModes wxDisplayImplWasm::GetModes(const wxVideoMode& WXUNUSED(mode)) const
 {
-    return wxArrayVideoModes();
+    // The browser doesn't expose display modes: report just the current one
+    // (better than an empty list, which makes mode selectors useless).
+    wxArrayVideoModes modes;
+    modes.Add(GetCurrentMode());
+    return modes;
 }
 
 wxVideoMode wxDisplayImplWasm::GetCurrentMode() const

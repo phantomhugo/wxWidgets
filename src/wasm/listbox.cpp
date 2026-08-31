@@ -292,6 +292,11 @@ int wxListBox::DoInsertOneItem(const wxString& item, unsigned int pos)
         pos = (unsigned)m_items.size();
 
     m_items.insert(m_items.begin() + pos, item);
+    // Keep the client data array in sync (it may be shorter if no client
+    // data was ever set on any item).
+    while ( m_itemsClientData.GetCount() < pos )
+        m_itemsClientData.Add(nullptr);
+    m_itemsClientData.Insert(nullptr, pos);
 
     wxCharBuffer buf = item.ToUTF8();
     EM_ASM_({
@@ -325,14 +330,14 @@ int wxListBox::DoListHitTest(const wxPoint& point) const
 
 void wxListBox::DoSetItemClientData(unsigned int n, void *clientData)
 {
-    wxUnusedVar(n);
-    wxUnusedVar(clientData);
+    while ( m_itemsClientData.GetCount() <= n )
+        m_itemsClientData.Add(nullptr);
+    m_itemsClientData[n] = clientData;
 }
 
 void *wxListBox::DoGetItemClientData(unsigned int n) const
 {
-    wxUnusedVar(n);
-    return nullptr;
+    return n < m_itemsClientData.GetCount() ? m_itemsClientData[n] : nullptr;
 }
 
 wxSize wxListBox::DoGetBestClientSize() const
@@ -348,6 +353,7 @@ void wxListBox::DoSetSize(int x, int y, int width, int height, int sizeFlags)
 void wxListBox::DoClear()
 {
     m_items.clear();
+    m_itemsClientData.clear();
     m_selections.Clear();
 
     EM_ASM_({
@@ -367,6 +373,8 @@ void wxListBox::DoDeleteOneItem(unsigned int pos)
         return;
 
     m_items.erase(m_items.begin() + pos);
+    if ( pos < m_itemsClientData.GetCount() )
+        m_itemsClientData.RemoveAt(pos);
 
     wxArrayInt newSelections;
     for (size_t i = 0; i < m_selections.GetCount(); ++i)

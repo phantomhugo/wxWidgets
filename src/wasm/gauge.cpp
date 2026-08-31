@@ -38,7 +38,7 @@ bool wxGauge::Create(wxWindow *parent,
         return false;
 
     // Replace the <div> created by wxControl/wxWindow with <progress>
-    int domId = GetId();
+    int domId = GetDomWindowId();
     bool isVertical = HasFlag(wxGA_VERTICAL);
 
     EM_ASM_({

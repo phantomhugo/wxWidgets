@@ -37,7 +37,7 @@ bool wxStaticText::Create(wxWindow *parent,
     if ( !wxControl::Create(parent, id, pos, size, style, wxDefaultValidator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
 
     EM_ASM_({
         var container = document.getElementById($0);

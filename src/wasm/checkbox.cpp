@@ -32,7 +32,7 @@ bool wxCheckBox::Create(wxWindow *parent, wxWindowID id, const wxString& label,
     if ( !wxControl::Create(parent, id, pos, size, style, validator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     wxCharBuffer labelBuffer = label.ToUTF8();
 
     EM_ASM_({

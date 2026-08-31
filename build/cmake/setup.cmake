@@ -636,6 +636,15 @@ wx_check_funcs_if_not_linux(
     wcslen
 )
 
+if(EMSCRIPTEN)
+    # Emscripten's musl vswprintf() doesn't support %p: it returns -1, which
+    # makes wxString::Printf() grow its buffer in a loop until it runs out of
+    # memory. Force the use of wxWidgets' own wxVsnprintf implementation
+    # (which handles %p) instead.
+    unset(HAVE_VSWPRINTF CACHE)
+    set(HAVE_VSWPRINTF "")
+endif()
+
 cmake_pop_check_state()
 
 # Check various functions

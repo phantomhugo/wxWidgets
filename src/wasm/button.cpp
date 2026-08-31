@@ -40,7 +40,7 @@ bool wxButton::Create(wxWindow *parent, wxWindowID id,
     if ( !wxControl::Create(parent, id, pos, size, style, validator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     wxString btnLabel = label;
     if (btnLabel.empty() && wxIsStockID(id))
         btnLabel = wxGetStockLabel(id);

@@ -281,8 +281,27 @@ bool wxToolBar::DoInsertTool(size_t pos, wxToolBarToolBase *toolBase)
     }
     else if (tool->IsControl())
     {
-        // Controls are handled by their own window creation;
-        // reparenting into the toolbar div could be added here.
+        // The control's own window was created as a child of the toolbar:
+        // move its DOM element into the toolbar's flex row at the tool's
+        // position (with static positioning it flows between the tools
+        // instead of overlapping the first one at (0,0)).
+        wxControl* ctrl = tool->GetControl();
+        EM_ASM_({
+            var container = document.getElementById($0);
+            if (!container) return;
+            var toolbar = container.querySelector('.wxToolBar');
+            if (!toolbar) return;
+            var elem = document.getElementById($1);
+            if (!elem) return;
+            elem.style.position = 'static';
+            elem.style.flex = '0 0 auto';
+            if ($2 >= 0 && $2 < toolbar.children.length) {
+                toolbar.insertBefore(elem, toolbar.children[$2]);
+            } else {
+                toolbar.appendChild(elem);
+            }
+        }, toolbarId,
+        static_cast<wxWindowWasm*>(ctrl)->GetDomWindowId(), (int)pos);
     }
 
     return true;
@@ -379,6 +398,16 @@ void wxToolBar::WasmNotifyEvent(const wxWasmEvent& event)
     if (event.id == m_windowId && event.eventType == "click")
     {
         int toolId = event.x;
+
+        // Checkable tools toggle on click (the DOM button has no checked
+        // state of its own); the base ToggleTool updates the state and the
+        // DOM visuals via DoToggleTool, including radio group exclusivity.
+        if ( wxToolBarToolBase* tool = FindById(toolId) )
+        {
+            if ( tool->CanBeToggled() )
+                ToggleTool(toolId, !tool->IsToggled());
+        }
+
         wxCommandEvent generatedEvent(wxEVT_TOOL, toolId);
         generatedEvent.SetEventObject(this);
         HandleWindowEvent(generatedEvent);

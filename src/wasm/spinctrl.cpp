@@ -183,8 +183,12 @@ void wxSpinCtrl::SetSelection(long from, long to)
         if (!container) return;
         var spin = container.querySelector('.wxSpinCtrl');
         if (spin) {
-            spin.selectionStart = $1;
-            spin.selectionEnd = $2;
+            // NB: input[type=number] doesn't support text selection and
+            // Chrome throws InvalidStateError on selectionStart assignment.
+            try {
+                spin.selectionStart = $1;
+                spin.selectionEnd = $2;
+            } catch (e) { /* unsupported input type: nothing to select */ }
         }
     }, GetId(), (int)from, (int)to);
 }

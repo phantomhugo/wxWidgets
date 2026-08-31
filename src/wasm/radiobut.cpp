@@ -39,7 +39,7 @@ bool wxRadioButton::Create( wxWindow *parent,
     if ( !wxControl::Create(parent, id, pos, size, style, validator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     wxCharBuffer labelBuffer = label.ToUTF8();
     int groupId = parent ? parent->GetId() : 0;
 

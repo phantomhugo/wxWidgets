@@ -61,6 +61,33 @@ extern "C" EMSCRIPTEN_KEEPALIVE void ProcessMenuEvent(int menuItemId)
     {
         item->Toggle();
         checked = item->IsChecked() ? 1 : 0;
+
+        // Radio items are exclusive within their contiguous group: checking
+        // one unchecks the others (the native ports get this from the
+        // platform widget; here we must do it ourselves).
+        if ( item->GetKind() == wxITEM_RADIO && item->IsChecked() )
+        {
+            const wxMenuItemList& items = parentMenu->GetMenuItems();
+            wxMenuItemList::compatibility_iterator node = items.Find(item);
+            if ( node )
+            {
+                // walk the group in both directions from the clicked item
+                for ( auto n = node->GetPrevious(); n; n = n->GetPrevious() )
+                {
+                    wxMenuItem* other = n->GetData();
+                    if ( other->GetKind() != wxITEM_RADIO )
+                        break;
+                    if ( other->IsChecked() ) other->Check(false);
+                }
+                for ( auto n = node->GetNext(); n; n = n->GetNext() )
+                {
+                    wxMenuItem* other = n->GetData();
+                    if ( other->GetKind() != wxITEM_RADIO )
+                        break;
+                    if ( other->IsChecked() ) other->Check(false);
+                }
+            }
+        }
     }
 
     wxCommandEvent* event = new wxCommandEvent(wxEVT_MENU, menuItemId);

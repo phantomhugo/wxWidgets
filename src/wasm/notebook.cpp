@@ -93,7 +93,7 @@ bool wxNotebook::Create(wxWindow *parent,
     if ( !wxControl::Create(parent, id, pos, size, style, wxDefaultValidator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
 
     EM_ASM_({
         var container = document.getElementById($0);
@@ -147,7 +147,7 @@ bool wxNotebook::SetPageText(size_t n, const wxString &text)
 {
     wxCHECK_MSG(n < GetPageCount(), false, "invalid notebook index");
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     wxCharBuffer textBuffer = text.ToUTF8();
 
     EM_ASM_({
@@ -167,7 +167,7 @@ wxString wxNotebook::GetPageText(size_t n) const
 {
     wxCHECK_MSG(n < GetPageCount(), wxString(), "invalid notebook index");
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
 
     char *buf = (char*)EM_ASM_INT({
         var container = document.getElementById($0);
@@ -212,7 +212,7 @@ bool wxNotebook::InsertPage(size_t n, wxWindow *page, const wxString& text,
     wxCHECK_MSG(page != nullptr, false, "null page in wxNotebook::InsertPage");
     wxCHECK_MSG(n <= GetPageCount(), false, "invalid index in wxNotebook::InsertPage");
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     int pageId = page->GetId();
     wxCharBuffer textBuffer = text.ToUTF8();
 
@@ -278,7 +278,7 @@ wxSize wxNotebook::CalcSizeFromPage(const wxSize& sizePage) const
 
 bool wxNotebook::DeleteAllPages()
 {
-    int domId = GetId();
+    int domId = GetDomWindowId();
     EM_ASM_({
         var container = document.getElementById($0);
         if (!container) return;
@@ -314,7 +314,7 @@ int wxNotebook::SetSelection(size_t page)
     if ( m_pages[page] )
         DoShowPage(m_pages[page], true);
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     EM_ASM_({
         var container = document.getElementById($0);
         if (!container) return;
@@ -349,7 +349,7 @@ wxWindow *wxNotebook::DoRemovePage(size_t page)
 {
     wxCHECK_MSG(page < GetPageCount(), nullptr, "invalid page index in wxNotebook::DoRemovePage");
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     EM_ASM_({
         var container = document.getElementById($0);
         if (!container) return;

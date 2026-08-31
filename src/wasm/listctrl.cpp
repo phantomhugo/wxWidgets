@@ -51,7 +51,7 @@ bool wxListCtrl::Create(wxWindow *parent,
     if ( !wxControl::Create(parent, id, pos, size, style, validator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     bool isReport = HasFlag(wxLC_REPORT);
 
     EM_ASM_({

@@ -60,7 +60,7 @@ bool wxInfoBar::Create(wxWindow *parent, wxWindowID winid, long style)
                             style, wxDefaultValidator, "wxInfoBar") )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
 
     EM_ASM_({
         var container = document.getElementById($0);

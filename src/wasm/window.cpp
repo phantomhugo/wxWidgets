@@ -184,6 +184,14 @@ bool wxWindowWasm::Create( wxWindowWasm * parent, wxWindowID id, const wxPoint &
     if ( pos != wxDefaultPosition )
         Move(pos);
 
+    // SetInitialSize() primed the best-size cache from the BASE-class
+    // DoGetBestClientSize() (derived overrides are not active while the
+    // base Create() is still running). Invalidate it so the first
+    // GetBestSize() after construction recomputes with the derived
+    // override (otherwise plain windows with DoGetBestClientSize(), e.g.
+    // the font sample's canvas, keep a bogus tiny best size forever).
+    InvalidateBestSize();
+
     return true;
 }
 
@@ -571,8 +579,6 @@ int wxWindowWasm::GetCharHeight() const
 
     return 16;
 }
-
-
 int wxWindowWasm::GetCharWidth() const
 {
     return GetCharHeight() / 2 + 1;
@@ -990,27 +996,34 @@ void wxWindowWasm::DoGetPosition(int *x, int *y) const
 
 void wxWindowWasm::DoGetSize(int *width, int *height) const
 {
-    wxCHECK_RET( width && height, "invalid pointer" );
-
+    // The caller may query just one component: accept null pointers (the
+    // common code does this, e.g. GetClientSize(nullptr, &h) in the generic
+    // grid).
     // Read the inline style first: unlike offsetWidth it stays valid
     // even while the element is hidden (display:none). But only trust it
     // when it is a pure pixel value: parseInt('100vw') would return 100
     // (toplevel.cpp fixes 100vw/100vh/100% after Maximize).
-    *width = EM_ASM_INT({
-        var elem = document.getElementById($0);
-        if (!elem) return 0;
-        var w = elem.style.width;
-        if (w && w.slice(-2) === 'px') return parseInt(w, 10);
-        return elem.offsetWidth;
-    }, m_domWindowId);
+    if ( width )
+    {
+        *width = EM_ASM_INT({
+            var elem = document.getElementById($0);
+            if (!elem) return 0;
+            var w = elem.style.width;
+            if (w && w.slice(-2) === 'px') return parseInt(w, 10);
+            return elem.offsetWidth;
+        }, m_domWindowId);
+    }
 
-    *height = EM_ASM_INT({
-        var elem = document.getElementById($0);
-        if (!elem) return 0;
-        var h = elem.style.height;
-        if (h && h.slice(-2) === 'px') return parseInt(h, 10);
-        return elem.offsetHeight;
-    }, m_domWindowId);
+    if ( height )
+    {
+        *height = EM_ASM_INT({
+            var elem = document.getElementById($0);
+            if (!elem) return 0;
+            var h = elem.style.height;
+            if (h && h.slice(-2) === 'px') return parseInt(h, 10);
+            return elem.offsetHeight;
+        }, m_domWindowId);
+    }
 }
 
 
@@ -1574,9 +1587,15 @@ void wxWindowWasm::WasmNotifyEvent(const wxWasmEvent& event)
         // wxEVT_CHAR is only generated for text-producing keys: a single
         // printable character (already Shift-translated by the browser) or
         // Enter/Tab/Backspace, and never with Ctrl/Alt held (those combos
-        // are commands, not text).
+        // are commands, not text). Navigation keys (arrows, Home/End,
+        // PageUp/Down, Delete, Insert) also produce CHAR, as in wxGTK.
         const bool printable = (key.length() == 1) ||
-            keyCode == WXK_RETURN || keyCode == WXK_TAB || keyCode == WXK_BACK;
+            keyCode == WXK_RETURN || keyCode == WXK_TAB ||
+            keyCode == WXK_BACK || keyCode == WXK_LEFT ||
+            keyCode == WXK_RIGHT || keyCode == WXK_UP || keyCode == WXK_DOWN ||
+            keyCode == WXK_HOME || keyCode == WXK_END ||
+            keyCode == WXK_PAGEUP || keyCode == WXK_PAGEDOWN ||
+            keyCode == WXK_DELETE || keyCode == WXK_INSERT;
         if ( down && printable && (event.mods & 6) == 0 )
         {
             wxKeyEvent charEvent(wxEVT_CHAR, keyEvent);

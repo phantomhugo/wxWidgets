@@ -61,7 +61,7 @@ bool wxChoice::Create( wxWindow *parent, wxWindowID id,
     if ( !wxControl::Create(parent, id, pos, size, style, validator, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
 
     EM_ASM_({
         var container = document.getElementById($0);
@@ -277,7 +277,11 @@ void wxChoice::WasmNotifyEvent(const wxWasmEvent& event)
         wxCommandEvent evt(wxEVT_CHOICE, m_windowId);
         evt.SetEventObject(this);
         evt.SetInt(sel);
-        if ( sel != wxNOT_FOUND )
+        // NB: GetClientObject() asserts when the item has no object client
+        // data at all (HasClientObjectData() false), which is the case for
+        // most choices — guard it (the assert opens a modal dialog, which
+        // suspends this dispatch via Asyncify and loses the event).
+        if ( sel != wxNOT_FOUND && HasClientObjectData() )
             evt.SetClientObject(GetClientObject(sel));
         HandleWindowEvent(evt);
     }

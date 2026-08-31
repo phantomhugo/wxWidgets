@@ -54,7 +54,7 @@ bool wxCollapsiblePane::Create(wxWindow *parent,
     if ( !wxControl::Create(parent, id, pos, size, style, val, name) )
         return false;
 
-    int domId = GetId();
+    int domId = GetDomWindowId();
     wxCharBuffer labelBuffer = label.ToUTF8();
 
     EM_ASM_({
@@ -124,7 +124,7 @@ bool wxCollapsiblePane::Create(wxWindow *parent,
     {
         if ( m_pPane )
         {
-            const int domId = GetId();
+            const int domId = GetDomWindowId();
             const int btnH = EM_ASM_INT({
                 var container = document.getElementById($0);
                 if (!container) return 26;

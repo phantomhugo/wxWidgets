@@ -197,6 +197,11 @@ protected:
     // these classes may call our DismissAndNotify()
     friend class wxPopupWindowHandler;
     friend class wxPopupFocusHandler;
+#ifdef __WXWASM__
+    // The wasm port dismisses transient popups on outside pointer presses
+    // from a DOM listener (see src/wasm/popupwin.cpp).
+    friend void wxWasmPopupOutsideClickCpp(int domId);
+#endif
 
     // the handlers we created, may be null (if not, must be deleted)
     wxPopupWindowHandler *m_handlerPopup;

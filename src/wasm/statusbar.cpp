@@ -36,13 +36,14 @@ wxStatusBar::wxStatusBar(wxWindow *parent, wxWindowID winid,
 }
 
 bool wxStatusBar::Create(wxWindow *parent, wxWindowID WXUNUSED(winid),
-                         long style, const wxString& WXUNUSED(name))
+                         long style, const wxString& name)
 {
     // Register in the wx window hierarchy so the event dispatch can find
     // us (the DOM element is created manually below, bypassing
     // wxWindow::Create and its CreateBase bookkeeping).
     if ( GetId() == wxID_ANY || GetId() == wxID_NONE )
         SetId(NewControlId());
+    SetName(name);
     if ( parent )
         parent->AddChild(this);
 

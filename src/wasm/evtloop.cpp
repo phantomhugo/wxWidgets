@@ -197,14 +197,23 @@ bool wxWasmEventLoopBase::Pending() const
 
 bool wxWasmEventLoopBase::Dispatch()
 {
-    const int eventId = m_sink->m_pendingEvents.front().id;
+    if ( m_sink->m_pendingEvents.empty() )
+        return false;
+
+    // Copy and remove the event BEFORE dispatching it: a handler that opens
+    // a nested modal loop (ShowModal) makes the nested Dispatch() look at
+    // the front of the queue again — with the event still there it would be
+    // re-dispatched, recursing until the stack overflowed.
+    wxWasmEvent event = m_sink->m_pendingEvents.front();
+    m_sink->m_pendingEvents.pop();
+
+    const int eventId = event.id;
     // Timer notifications are not tied to any window: route them straight to
     // the timer implementation (see wxWasmTimerNotify, which only enqueues).
-    if ( m_sink->m_pendingEvents.front().eventType == "timer" )
+    if ( event.eventType == "timer" )
     {
         extern void wxWasmTimerFire(int id);
         wxWasmTimerFire(eventId);
-        m_sink->m_pendingEvents.pop();
         return !m_sink->m_pendingEvents.empty();
     }
     wxWindow* controlToNotify = nullptr;
@@ -221,12 +230,9 @@ bool wxWasmEventLoopBase::Dispatch()
     {
         // Controls compare event.id with their wx id (m_windowId): hand the
         // event the wx id of the resolved window, not the DOM alias id.
-        wxWasmEvent& event = m_sink->m_pendingEvents.front();
         event.id = controlToNotify->GetId();
         controlToNotify->WasmNotifyEvent(event);
     }
-    //Always remove from the queue
-    m_sink->m_pendingEvents.pop();
     return !m_sink->m_pendingEvents.empty();
 }
 

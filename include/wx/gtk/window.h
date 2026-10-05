@@ -188,6 +188,22 @@ public:
     // base version just calls HandleWindowEvent()
     virtual bool GTKProcessEvent(wxEvent& event) const;
 
+#if wxUSE_ACCEL
+    // Called when processing key presses to determine whether they should
+    // trigger an accelerator or be processed normally in the window itself.
+    enum class AcceleratorVerdict
+    {
+        Nothing,    // No accelerator defined for this key event.
+        Menu,       // Accelerator defined for a menu item.
+        Table,      // Accelerator defined in the wxAcceleratorTable.
+        Window      // Window claims the key event and will process it itself.
+    };
+    AcceleratorVerdict
+    GTKShouldUseAccelerator(const wxKeyEvent& event,
+                            wxWindowGTK** accelOwner,
+                            int* command) const;
+#endif // wxUSE_ACCEL
+
     // Map GTK widget direction of the given widget to/from wxLayoutDirection
     static wxLayoutDirection GTKGetLayout(GtkWidget *widget);
     static void GTKSetLayout(GtkWidget *widget, wxLayoutDirection dir);
@@ -339,6 +355,9 @@ public:
     // "commit" signal handler.
     bool GTKDoInsertTextFromIM(const char* text);
 
+    // Actual implementation of DoUpdateInputMethodCursorRect().
+    void GTKUpdateIMCursorRect(GtkIMContext* imContext) const;
+
 
     // indices for the arrays below
     enum ScrollDir { ScrollDir_Horz, ScrollDir_Vert, ScrollDir_Max };
@@ -416,6 +435,8 @@ protected:
     virtual void DoSetClientSize(int width, int height) override;
     virtual void DoMoveWindow(int x, int y, int width, int height) override;
     virtual void DoEnable(bool enable) override;
+    virtual void DoEnableInputMethod(bool enable) override;
+    virtual void DoUpdateInputMethodCursorRect() override;
 
 #if wxUSE_MENUS_NATIVE
     virtual bool DoPopupMenu( wxMenu *menu, int x, int y ) override;

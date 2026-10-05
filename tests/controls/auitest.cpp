@@ -20,6 +20,7 @@
     #include "wx/frame.h"
 #endif // WX_PRECOMP
 
+#include "wx/button.h"
 #include "wx/panel.h"
 
 #include "wx/aui/auibar.h"
@@ -28,6 +29,11 @@
 #include "wx/aui/serializer.h"
 
 #include "asserthelper.h"
+#include "waitfor.h"
+
+#ifdef __WXMSW__
+    #include "wx/msw/wrapwin.h"
+#endif
 
 #include <memory>
 
@@ -48,6 +54,68 @@ protected:
     const std::unique_ptr<wxAuiNotebook> nb;
 };
 
+class TestAuiNotebook : public wxAuiNotebook
+{
+public:
+    TestAuiNotebook()
+        : wxAuiNotebook(wxTheApp->GetTopWindow())
+    {
+    }
+
+    using wxAuiNotebook::OnTabButton;
+    using wxAuiNotebook::OnTabMiddleDown;
+    using wxAuiNotebook::OnTabMiddleUp;
+    using wxAuiNotebook::OnTabRightDown;
+    using wxAuiNotebook::OnTabRightUp;
+};
+
+class TestAuiManager : public wxAuiManager
+{
+public:
+    TestAuiManager(wxWindow* managedWindow)
+        : wxAuiManager(managedWindow)
+    {
+    }
+
+    wxAuiDockUIPart* FindPaneSizer()
+    {
+        for ( auto& part : m_uiParts )
+        {
+            if ( part.type == wxAuiDockUIPart::typePaneSizer )
+                return &part;
+        }
+
+        return nullptr;
+    }
+
+    void ClickWithoutMoving(wxAuiDockUIPart* part)
+    {
+        DragBy(part, wxPoint());
+    }
+
+    // Simulate a complete drag of the given sash by the given offset.
+    void DragBy(wxAuiDockUIPart* part, const wxPoint& offset)
+    {
+        const wxPoint pos = part->rect.GetPosition() +
+            wxPoint(part->rect.GetWidth()/2, part->rect.GetHeight()/2);
+
+        wxMouseEvent down(wxEVT_LEFT_DOWN);
+        down.m_x = pos.x;
+        down.m_y = pos.y;
+        OnLeftDown(down);
+
+        wxMouseEvent motion(wxEVT_MOTION);
+        motion.m_x = pos.x + offset.x;
+        motion.m_y = pos.y + offset.y;
+        OnMotion(motion);
+
+        wxMouseEvent up(wxEVT_LEFT_UP);
+        up.m_x = pos.x + offset.x;
+        up.m_y = pos.y + offset.y;
+        OnLeftUp(up);
+    }
+};
+
 class AuiManagerTestCase
 {
 public:
@@ -56,6 +124,10 @@ public:
         , manager(frame.get())
     {
         frame->SetClientSize(800, 600);
+        // GTK needs a realized TLW before the synthetic sash click below can
+        // capture the mouse.
+        frame->Show();
+        wxYield();
     }
 
     ~AuiManagerTestCase()
@@ -65,21 +137,7 @@ public:
 
 protected:
     std::unique_ptr<wxFrame> frame;
-    wxAuiManager manager;
-};
-
-class TestAuiNotebook : public wxAuiNotebook
-{
-public:
-    TestAuiNotebook()
-        : wxAuiNotebook(wxTheApp->GetTopWindow())
-    {
-    }
-
-    using wxAuiNotebook::OnTabMiddleDown;
-    using wxAuiNotebook::OnTabMiddleUp;
-    using wxAuiNotebook::OnTabRightDown;
-    using wxAuiNotebook::OnTabRightUp;
+    TestAuiManager manager;
 };
 
 // ----------------------------------------------------------------------------
@@ -117,6 +175,154 @@ TEST_CASE_METHOD(AuiManagerTestCase, "wxAuiManager::AddPaneDockSize", "[aui]")
     manager.Update();
 
     CHECK( pane->GetSize().x == 180 );
+}
+
+TEST_CASE_METHOD(AuiManagerTestCase, "wxAuiManager::DockFloatingPaneOnDClick", "[aui]")
+{
+    wxPanel* const panel = new wxPanel(frame.get());
+
+    REQUIRE( manager.AddPane(panel,
+                             wxAuiPaneInfo().Name("pane").Caption("Pane").Left()) );
+    manager.Update();
+
+    wxAuiPaneInfo& pane = manager.GetPane(panel);
+    pane.Float();
+    manager.Update();
+
+    wxFrame* const floatingFrame = pane.frame;
+    REQUIRE( floatingFrame );
+    CHECK( panel->GetParent() == floatingFrame );
+
+#ifdef __WXMSW__
+    (void)::SendMessage((HWND)floatingFrame->GetHWND(), WM_NCLBUTTONDBLCLK,
+                        HTCAPTION, 0);
+#else
+    wxMouseEvent event(wxEVT_LEFT_DCLICK);
+    floatingFrame->GetEventHandler()->ProcessEvent(event);
+#endif
+
+    CHECK( pane.IsDocked() );
+    CHECK( pane.frame == nullptr );
+    CHECK( panel->GetParent() == frame.get() );
+}
+
+TEST_CASE_METHOD(AuiManagerTestCase, "wxAuiManager::DestroyFloatingFrame", "[aui]")
+{
+    wxPanel* const panel = new wxPanel(frame.get());
+
+    REQUIRE( manager.AddPane(panel,
+                             wxAuiPaneInfo().Name("pane").Caption("Pane").Left()) );
+    manager.Update();
+
+    manager.GetPane(panel).Float();
+    manager.Update();
+
+    wxFrame* const floatingFrame = manager.GetPane(panel).frame;
+    REQUIRE( floatingFrame );
+
+    SECTION( "Dock" )
+    {
+        manager.GetPane(panel).Dock();
+        manager.Update();
+    }
+
+    SECTION( "Detach" )
+    {
+        REQUIRE( manager.DetachPane(panel) );
+    }
+
+    SECTION( "Close" )
+    {
+        wxAuiPaneInfo& pane = manager.GetPane(panel);
+        pane.DestroyOnClose();
+        manager.ClosePane(pane);
+    }
+
+    SECTION( "Close frame" )
+    {
+        // This calls Destroy() twice: first from wxAuiManager::ClosePane()
+        // called by the frame close event handler and then from the handler
+        // itself.
+        floatingFrame->Close();
+
+        CHECK( manager.GetPane(panel).frame == nullptr );
+        CHECK( !manager.GetPane(panel).IsShown() );
+    }
+
+    // The floating frame is destroyed only during the next idle time, but it
+    // may still get events before this happens and this used to result in
+    // accessing already deleted sizer items, see #26264.
+    REQUIRE( wxPendingDelete.Member(floatingFrame) );
+    floatingFrame->SendSizeEvent();
+}
+
+TEST_CASE_METHOD(AuiManagerTestCase, "wxAuiManager::SizerClick", "[aui]")
+{
+    wxWindow* const first = new wxPanel(frame.get());
+    wxWindow* const second = new wxPanel(frame.get());
+    wxWindow* const center = new wxPanel(frame.get());
+
+    REQUIRE( manager.AddPane(first, wxAuiPaneInfo().Top().
+        MinSize(200, 100).CaptionVisible(false).PaneBorder(false)) );
+    REQUIRE( manager.AddPane(second, wxAuiPaneInfo().Top().
+        MinSize(200, 100).CaptionVisible(false).PaneBorder(false)) );
+    REQUIRE( manager.AddPane(center, wxAuiPaneInfo().CenterPane()) );
+
+    manager.Update();
+
+    const wxSize firstSize = first->GetSize();
+    const wxSize secondSize = second->GetSize();
+    const int firstProportion = manager.GetPane(first).dock_proportion;
+    const int secondProportion = manager.GetPane(second).dock_proportion;
+
+    wxAuiDockUIPart* sizer = manager.FindPaneSizer();
+    REQUIRE( sizer );
+
+    for ( int n = 0; n < 4; n++ )
+    {
+        manager.ClickWithoutMoving(sizer);
+
+        sizer = manager.FindPaneSizer();
+        REQUIRE( sizer );
+    }
+
+    CHECK( first->GetSize() == firstSize );
+    CHECK( second->GetSize() == secondSize );
+    CHECK( manager.GetPane(first).dock_proportion == firstProportion );
+    CHECK( manager.GetPane(second).dock_proportion == secondProportion );
+}
+
+TEST_CASE_METHOD(AuiManagerTestCase, "wxAuiManager::SizerDragReleasesMouse", "[aui]")
+{
+    // Use a dock in which the resizable pane is followed by a fixed one: there
+    // is then no pane after it to take the space from and DoEndResizeAction()
+    // gives up -- but this must still not leave the mouse captured once the
+    // drag is over.
+    wxWindow* const first = new wxPanel(frame.get());
+    wxWindow* const second = new wxPanel(frame.get());
+    wxWindow* const center = new wxPanel(frame.get());
+
+    REQUIRE( manager.AddPane(first, wxAuiPaneInfo().Top().
+        MinSize(200, 100).CaptionVisible(false).PaneBorder(false)) );
+    REQUIRE( manager.AddPane(second, wxAuiPaneInfo().Top().Fixed().
+        MinSize(200, 100).CaptionVisible(false).PaneBorder(false)) );
+    REQUIRE( manager.AddPane(center, wxAuiPaneInfo().CenterPane()) );
+
+    manager.Update();
+
+    wxAuiDockUIPart* const sizer = manager.FindPaneSizer();
+    REQUIRE( sizer );
+
+    manager.DragBy(sizer, wxPoint(20, 0));
+
+    const bool stillCaptured = wxWindow::GetCapture() == frame.get();
+
+    // Don't let the rest of the tests run with the mouse captured even if the
+    // check below fails.
+    if ( stillCaptured )
+        frame->ReleaseMouse();
+
+    CHECK( !stillCaptured );
 }
 
 TEST_CASE_METHOD(AuiNotebookTestCase, "wxAuiNotebook::DoGetBestSize", "[aui]")
@@ -218,6 +424,28 @@ TEST_CASE_METHOD(AuiNotebookTestCase, "wxAuiNotebook::RTTI", "[aui][rtti]")
     CHECK( wxDynamicCast(book, wxAuiNotebook) == nb.get() );
 
     CHECK( wxDynamicCast(nb.get(), wxBookCtrlBase) == book );
+}
+
+TEST_CASE_METHOD(AuiNotebookTestCase, "wxAuiNotebook::NonTabPaneRejected",
+                 "[aui]")
+{
+    wxPanel *page = new wxPanel(nb.get());
+    REQUIRE( nb->AddPage(page, "Page") );
+
+    wxPanel *pane = new wxPanel(nb.get());
+    wxAuiManager* const mgr = wxAuiManager::GetManager(nb.get());
+    REQUIRE( mgr );
+
+    wxAuiPaneInfo paneInfo;
+    paneInfo.Name("plain-pane").Right().CaptionVisible(false);
+
+#if wxDEBUG_LEVEL
+    WX_ASSERT_FAILS_WITH_ASSERT( mgr->AddPane(pane, paneInfo) );
+#else
+    CHECK( !mgr->AddPane(pane, paneInfo) );
+#endif
+
+    CHECK( !mgr->GetPane("plain-pane").IsOk() );
 }
 
 TEST_CASE_METHOD(AuiNotebookTestCase, "wxAuiNotebook::FindPage", "[aui]")
@@ -332,6 +560,106 @@ TEST_CASE("wxAuiNotebook::SplitTabEventSelections", "[aui]")
 
     REQUIRE( selections.size() == 1 );
     CHECK( selections[0] == 1 );
+}
+
+// This tests for the problem of https://github.com/wxWidgets/wxWidgets/issues/26801
+TEST_CASE("wxAuiNotebook::ButtonEvent", "[aui]")
+{
+    TestAuiNotebook nb;
+    wxPanel *p1 = new wxPanel(&nb);
+    wxPanel *p2 = new wxPanel(&nb);
+    REQUIRE( nb.AddPage(p1, "Page 1") );
+    REQUIRE( nb.AddPage(p2, "Page 2") );
+
+    // Split the notebook to check that the event uses the index of the page in
+    // the notebook and not its position in its own tab control.
+    nb.Split(1, wxRIGHT);
+
+    wxAuiTabCtrl *tabCtrl = nullptr;
+    int tabIdx = wxNOT_FOUND;
+    REQUIRE( nb.FindTab(p2, &tabCtrl, &tabIdx) );
+    REQUIRE( tabCtrl );
+    REQUIRE( tabIdx == 0 );
+
+    int numEvents = 0;
+    int selection = wxNOT_FOUND;
+    int button = wxID_NONE;
+    bool skip = true;
+
+    nb.Bind(wxEVT_AUINOTEBOOK_BUTTON,
+            [&](wxAuiNotebookEvent& event)
+            {
+                numEvents++;
+                selection = event.GetSelection();
+                button = event.GetInt();
+                event.Skip(skip);
+            });
+
+    // Note that this event must be skipped by the handler if the default
+    // action, e.g. closing the page, is still to be performed.
+
+    SECTION( "Custom button" )
+    {
+        nb.OnTabButton(tabCtrl, tabIdx, wxAUI_BUTTON_CUSTOM1);
+
+        CHECK( numEvents == 1 );
+        CHECK( selection == 1 );
+        CHECK( button == wxAUI_BUTTON_CUSTOM1 );
+    }
+
+    SECTION( "Close button" )
+    {
+        nb.OnTabButton(tabCtrl, tabIdx, wxAUI_BUTTON_CLOSE);
+
+        CHECK( numEvents == 1 );
+        CHECK( selection == 1 );
+        CHECK( button == wxAUI_BUTTON_CLOSE );
+
+        CHECK( nb.GetPageCount() == 1 );
+    }
+
+    SECTION( "Close button not skipped" )
+    {
+        skip = false;
+
+        nb.OnTabButton(tabCtrl, tabIdx, wxAUI_BUTTON_CLOSE);
+
+        CHECK( numEvents == 1 );
+
+        // Handling the event without skipping it prevents the page from being
+        // closed, as this was the case in the previous versions too.
+        CHECK( nb.GetPageCount() == 2 );
+    }
+}
+
+TEST_CASE_METHOD(AuiNotebookTestCase,
+                 "wxAuiNotebook::ChildFocusUsesCurrentFocus", "[aui][focus]")
+{
+    wxPanel *const page1 = new wxPanel(nb.get());
+    wxButton *const button1 = new wxButton(page1, wxID_ANY, "Button 1");
+    wxPanel *const page2 = new wxPanel(nb.get());
+    wxButton *const button2 = new wxButton(page2, wxID_ANY, "Button 2");
+
+    REQUIRE( nb->AddPage(page1, "Page 1", true) );
+    REQUIRE( nb->AddPage(page2, "Page 2") );
+
+    nb->SetSize(nb->FromDIP(wxSize(400, 300)));
+
+    REQUIRE( nb->SetSelection(1) == 0 );
+
+    button2->SetFocus();
+
+    if ( !WaitFor("second page button focus",
+                  [button2]() { return wxWindow::FindFocus() == button2; }) )
+    {
+        WARN("Skipping stale child focus test: couldn't focus the button");
+        return;
+    }
+
+    wxChildFocusEvent event(button1);
+    nb->ProcessWindowEvent(event);
+
+    CHECK( nb->GetSelection() == 1 );
 }
 
 TEST_CASE_METHOD(AuiNotebookTestCase, "wxAuiNotebook::Layout", "[aui]")
@@ -514,7 +842,7 @@ TEST_CASE_METHOD(AuiNotebookTestCase, "wxAuiNotebook::Layout", "[aui]")
 
 TEST_CASE("wxAuiToolBar::Items", "[aui][toolbar]")
 {
-    std::unique_ptr<wxAuiToolBar> tbar{new wxAuiToolBar(wxTheApp->GetTopWindow())};
+    auto tbar = make_unique<wxAuiToolBar>(wxTheApp->GetTopWindow());
 
     // Check that adding more toolbar elements doesn't invalidate the existing
     // pointers.

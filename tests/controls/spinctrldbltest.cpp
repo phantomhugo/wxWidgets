@@ -52,7 +52,7 @@ TEST_CASE("SpinCtrlDouble::NoEventsInCtor", "[spinctrl][spinctrldouble]")
 {
     // Verify that creating the control does not generate any events. This is
     // unexpected and shouldn't happen.
-    std::unique_ptr<wxSpinCtrlDouble> spin(new wxSpinCtrlDouble);
+    auto spin = make_unique<wxSpinCtrlDouble>();
 
     EventCounter updatedSpin(spin.get(), wxEVT_SPINCTRLDOUBLE);
     EventCounter updatedText(spin.get(), wxEVT_TEXT);
@@ -70,6 +70,9 @@ TEST_CASE("SpinCtrlDouble::NoEventsInCtor", "[spinctrl][spinctrldouble]")
 TEST_CASE_METHOD(SpinCtrlDoubleTestCase,
                  "SpinCtrlDouble::Arrows", "[spinctrl][spinctrldouble]")
 {
+    if ( !EnableUITests() )
+        return;
+
     EventCounter updated(m_spin.get(), wxEVT_SPINCTRLDOUBLE);
 
     wxUIActionSimulator sim;
@@ -94,6 +97,9 @@ TEST_CASE_METHOD(SpinCtrlDoubleTestCase,
 TEST_CASE_METHOD(SpinCtrlDoubleTestCaseWrap,
                  "SpinCtrlDouble::Wrap", "[spinctrl][spinctrldouble]")
 {
+    if ( !EnableUITests() )
+        return;
+
     wxUIActionSimulator sim;
 
     m_spin->SetFocus();
@@ -196,6 +202,9 @@ TEST_CASE_METHOD(SpinCtrlDoubleTestCase,
 TEST_CASE_METHOD(SpinCtrlDoubleTestCase,
                  "SpinCtrlDouble::Increment", "[spinctrl][spinctrldouble]")
 {
+    if ( !EnableUITests() )
+        return;
+
     CHECK( m_spin->GetIncrement() == 1.0 );
 
     m_spin->SetDigits(1);
@@ -249,17 +258,14 @@ TEST_CASE_METHOD(SpinCtrlDoubleTestCase,
 
 static inline unsigned int GetInitialDigits(double inc)
 {
-    std::unique_ptr<wxSpinCtrlDouble> sc(new wxSpinCtrlDouble
-        (
-            wxTheApp->GetTopWindow(),
-            wxID_ANY,
-            wxEmptyString,
-            wxDefaultPosition,
-            wxDefaultSize,
-            wxSP_ARROW_KEYS,
-            0, 50, 0,
-            inc
-        ));
+    auto sc = make_unique<wxSpinCtrlDouble>(wxTheApp->GetTopWindow(),
+                                            wxID_ANY,
+                                            wxEmptyString,
+                                            wxDefaultPosition,
+                                            wxDefaultSize,
+                                            wxSP_ARROW_KEYS,
+                                            0, 50, 0,
+                                            inc);
     return sc->GetDigits();
 }
 

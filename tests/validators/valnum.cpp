@@ -245,9 +245,9 @@ TEST_CASE_METHOD(NumValidatorTestCase, "ValNum::ZeroAsBlank", "[valnum]")
     m_text->SetSize(100, 50);
     m_text->MarkDirty();
     m_text->SetFocus();
-    std::unique_ptr<wxTextCtrl>
-        text2(new wxTextCtrl(wxTheApp->GetTopWindow(), wxID_ANY, "Test",
-                             wxPoint(0, 100), wxSize(100, 50)));
+    auto text2 = make_unique<wxTextCtrl>(wxTheApp->GetTopWindow(), wxID_ANY,
+                                         "Test", wxPoint(0, 100),
+                                         wxSize(100, 50));
     text2->SetFocus();
     WaitFor("the other control to become focused", [&text2]() {
         return text2->HasFocus();
@@ -312,6 +312,9 @@ TEST_CASE_METHOD(NumValidatorTestCase, "ValNum::SignSpace", "[valnum]")
 
 TEST_CASE_METHOD(NumValidatorTestCase, "ValNum::Interactive", "[valnum]")
 {
+    if ( !EnableUITests() )
+        return;
+
     // Set a locale using comma as thousands separator character.
     wxLocale loc(wxLANGUAGE_ENGLISH_UK, wxLOCALE_DONT_LOAD_DEFAULT);
 

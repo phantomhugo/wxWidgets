@@ -15,11 +15,19 @@
 #if wxUSE_RIBBON
 
 class WXDLLIMPEXP_FWD_CORE wxImageList;
+class WXDLLIMPEXP_FWD_CORE wxKeyEvent;
+class WXDLLIMPEXP_FWD_CORE wxActivateEvent;
+class WXDLLIMPEXP_FWD_CORE wxWindowDestroyEvent;
+class wxRibbonButtonBar;
+class wxRibbonToolBar;
 
 #include "wx/ribbon/control.h"
 #include "wx/ribbon/page.h"
 
 #include "wx/vector.h"
+#include "wx/weakref.h"
+
+#include <vector>
 
 enum wxRibbonBarOption
 {
@@ -91,6 +99,7 @@ public:
     bool hovered;
     bool highlight;
     bool shown;
+    wxString keytip;
 };
 
 // This must be a class because it's forward declared.
@@ -154,10 +163,16 @@ public:
     void SetWindowStyleFlag(long style) override;
     long GetWindowStyleFlag() const override;
     virtual bool Realize() override;
+    bool Reparent(wxWindowBase* newParent) override;
 
     // Implementation only.
     bool IsToggleButtonHovered() const { return m_toggle_button_hovered; }
     bool IsHelpButtonHovered() const { return m_help_button_hovered; }
+
+    // Implementation only: true if the keyboard focus is on the tabs
+    // themselves, rather than on an item in the page or on a bar button.
+    bool IsTabRowFocused() const
+        { return m_focusedControl == nullptr && m_focusedButton == BarButton_None; }
 
     void HideIfExpanded();
 
@@ -167,8 +182,46 @@ public:
     wxDEPRECATED_MSG("wxRibbonButtonBar now uses wxBitmapBundle for DPI support")
     wxImageList* GetButtonImageList(wxSize size, int initialCount = 1);
 
+    // Key tips (popup windows showing associated keys).
+    void SetPageKeyTip(size_t page, const wxString& keytip);
+    void SetPageKeyTip(wxRibbonPage* page, const wxString& keytip);
+    void SetToggleButtonKeyTip(const wxString& keytip);
+    void SetHelpButtonKeyTip(const wxString& keytip);
+
+    bool ShowKeyTips();
+    void HideKeyTips();
+    bool AreKeyTipsShown() const { return m_keyTipsActive; }
+
+    struct TriggerKey
+    {
+        int keyCode;
+        int modifiers;
+    };
+
+    // Replaces all trigger keys with just this one (default is WXK_F10).
+    void SetKeyTipsTriggerKey(int keyCode, int modifiers = wxMOD_NONE);
+    // Adds an additional trigger key (e.g., Ctrl+F10 alongside F10).
+    void AddKeyTipsTriggerKey(int keyCode, int modifiers = wxMOD_NONE);
+    void ClearKeyTipsTriggerKeys();
+    const std::vector<TriggerKey>& GetKeyTipsTriggerKeys() const { return m_keyTipsTriggerKeys; }
+
+    // Implementation only: draw the badges of the keytip targets on 'window',
+    // if any, using the given art provider.
+    void DrawKeyTipsFor(wxDC& dc, wxWindow* window, wxRibbonArtProvider* art) const;
+
+    // Implementation only: give the keyboard focus back to the bar, with
+    // the focus on the first item of 'control'.
+    void FocusItemOf(wxRibbonControl* control);
+
+#if wxUSE_ACCESSIBILITY
+    virtual wxAccessible* CreateAccessible() override;
+#endif // wxUSE_ACCESSIBILITY
+
 protected:
     friend class wxRibbonPage;
+#if wxUSE_ACCESSIBILITY
+    friend class wxRibbonBarAccessible;
+#endif // wxUSE_ACCESSIBILITY
 
     virtual wxSize DoGetBestSize() const override;
     wxBorder GetDefaultBorder() const override { return wxBORDER_NONE; }
@@ -200,6 +253,41 @@ protected:
     void OnMouseDoubleClick(wxMouseEvent& evt);
     void DoMouseButtonCommon(wxMouseEvent& evt, wxEventType tab_event_type);
     void OnKillFocus(wxFocusEvent& evt);
+    void OnSetFocus(wxFocusEvent& evt);
+    void OnKeyDown(wxKeyEvent& evt);
+
+    // Make the bar a tab stop so that it can be reached with the keyboard.
+    bool AcceptsFocus() const override { return IsShown() && IsEnabled(); }
+
+    // Activate the given page the same way a click on its tab does.
+    bool DoChangeActivePage(size_t page);
+
+    int FindShownPage(int from, int step) const;
+
+    // Keyboard focus in the active page's controls.
+    std::vector<wxRibbonControl*> GetFocusableControls() const;
+    bool FocusPageItem(bool forward);
+    bool MoveFocusedItem(bool forward);
+    void ClearPageFocus();
+    void OnPageKeyDown(wxKeyEvent& evt);
+
+    // Like Navigate(), but also works if the parent doesn't handle Tab.
+    void NavigateOut(int flags);
+    static wxWindow* FindFocusableWindow(wxWindow* window, bool forward);
+
+    // The buttons after the tabs which can also have the keyboard focus.
+    enum BarButton
+    {
+        BarButton_None,
+        BarButton_Toggle,
+        BarButton_Help
+    };
+
+    std::vector<BarButton> GetFocusableBarButtons() const;
+    wxRect GetBarButtonRect(BarButton button) const;
+    bool MoveBarButtonFocus(bool forward);
+    void DoActivateToggleButton();
+    void DoActivateHelpButton();
 
     wxRibbonPageTabInfoArray m_pages;
     wxRect m_tab_scroll_left_button_rect;
@@ -227,6 +315,67 @@ protected:
 
     wxVector<wxImageList*> m_image_lists;
 
+    // The control whose item has the keyboard focus, null if it's on the tabs.
+    wxWeakRef<wxRibbonControl> m_focusedControl;
+    // The button with the keyboard focus, if it isn't on a tab or in the page.
+    BarButton m_focusedButton = BarButton_None;
+
+    // Key tips implementation.
+private:
+    struct wxRibbonKeyTipInfo
+    {
+        enum class Kind
+        {
+            PageTab,
+            ToggleButton,
+            HelpButton,
+            ExtButton,
+            MinimisedPanel,
+            ButtonBarItem,
+            ToolBarItem,
+            Gallery
+        };
+
+        wxString fullKeyTip;
+        wxString remaining;
+        wxRect rect;
+        wxWindow* window = nullptr;
+        Kind kind = Kind::PageTab;
+
+        // For Kind::ButtonBarItem/Kind::ToolBarItem: targets the item's
+        // dropdown arrow instead of its main click area.
+        bool dropdown = false;
+
+        // Data needed to activate this target. Only the member(s) matching
+        // 'kind' are used.
+        size_t pageIndex = 0;
+        wxRibbonPanel* panel = nullptr;
+        wxRibbonButtonBar* buttonBar = nullptr;
+        wxWindowID buttonBarItemId = wxID_ANY;
+        wxRibbonToolBar* toolBar = nullptr;
+        wxWindowID toolBarItemId = wxID_ANY;
+    };
+
+    void DoBuildKeyTipTargets();
+    void DoActivateKeyTipTarget(const wxRibbonKeyTipInfo& target);
+    bool IsKeyTipsTriggerKey(int keyCode, int modifiers) const;
+    void OnKeyTipsCharHook(wxKeyEvent& event);
+    void OnKeyTipsActivate(wxActivateEvent& event);
+    void OnKeyTipsWindowDestroy(wxWindowDestroyEvent& event);
+    void RefreshKeyTipTargetWindows();
+
+    bool m_keyTipsActive = false;
+    wxString m_keyTipsTypedPrefix;
+    std::vector<wxRibbonKeyTipInfo> m_keyTipsTargets;
+    // Every window with a badge this session, so a narrowed-away badge
+    // still gets its window refreshed once (to erase it).
+    std::vector<wxWindow*> m_keyTipsWindows;
+    wxWindow* m_keyTipsTopLevelParent = nullptr;
+    std::vector<TriggerKey> m_keyTipsTriggerKeys;
+    wxString m_toggleButtonKeyTip;
+    wxString m_helpButtonKeyTip;
+
+protected:
 #ifndef SWIG
     wxDECLARE_CLASS(wxRibbonBar);
     wxDECLARE_EVENT_TABLE();

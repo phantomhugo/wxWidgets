@@ -498,6 +498,9 @@ TEST_CASE_METHOD(GridTestCase, "Grid::CellEditResize", "[grid]")
 TEST_CASE_METHOD(GridTestCase, "Grid::CellClick", "[grid]")
 {
 #if wxUSE_UIACTIONSIMULATOR
+    if ( !EnableUITests() )
+        return;
+
     EventCounter lclick(m_grid, wxEVT_GRID_CELL_LEFT_CLICK);
     EventCounter ldclick(m_grid, wxEVT_GRID_CELL_LEFT_DCLICK);
     EventCounter rclick(m_grid, wxEVT_GRID_CELL_RIGHT_CLICK);
@@ -556,6 +559,9 @@ TEST_CASE_METHOD(GridTestCase, "Grid::CellClick", "[grid]")
 TEST_CASE_METHOD(GridTestCase, "Grid::ReorderedColumnsCellClick", "[grid]")
 {
 #if wxUSE_UIACTIONSIMULATOR
+    if ( !EnableUITests() )
+        return;
+
     EventCounter click(m_grid, wxEVT_GRID_CELL_LEFT_CLICK);
 
     wxUIActionSimulator sim;
@@ -587,6 +593,9 @@ TEST_CASE_METHOD(GridTestCase, "Grid::ReorderedColumnsCellClick", "[grid]")
 TEST_CASE_METHOD(GridTestCase, "Grid::CellSelect", "[grid]")
 {
 #if wxUSE_UIACTIONSIMULATOR
+    if ( !EnableUITests() )
+        return;
+
     EventCounter cell(m_grid, wxEVT_GRID_SELECT_CELL);
 
     wxUIActionSimulator sim;
@@ -797,9 +806,17 @@ TEST_CASE_METHOD(GridTestCase, "Grid::Size", "[grid]")
 
     sim.MouseDragDrop(pt.x, pt.y, pt.x, pt.y + 50);
 
-    WaitFor("mouse drag to be processed", [&]() {
-        return rowsize.GetCount() != 0;
-    });
+    if ( !WaitFor("mouse drag to be processed", [&]() {
+            return rowsize.GetCount() != 0;
+        }) )
+    {
+#ifdef wxHAS_QT5
+        WARN("Ignoring known test failure under Qt5: column resize "
+             "event not received (column width is "
+             << m_grid->GetColSize(0) << ")");
+        return;
+#endif // wxHAS_QT5
+    }
 
     CHECK(rowsize.GetCount() == 1);
 #endif
@@ -1875,6 +1892,29 @@ void GridTestCase::CheckFirstColAutoSize(int expected)
     CHECK(m_grid->GetColSize(0) == expected);
 }
 
+TEST_CASE_METHOD(GridTestCase, "Grid::AutoWrapStringRendererBestHeight",
+                 "[grid]")
+{
+    wxGridCellAutoWrapStringRenderer renderer;
+    wxGridCellAttrPtr attr(new wxGridCellAttr);
+
+    const int autoWrapMargin = 4;
+    const wxFont cellFont = m_grid->GetDefaultCellFont().Smaller();
+    attr->SetFont(cellFont);
+
+    m_grid->SetCellValue(0, 0, "one line");
+
+    wxClientDC dc(m_grid->GetGridWindow());
+    dc.SetFont(m_grid->GetDefaultCellFont().Larger());
+
+    const int height =
+        renderer.GetBestHeight(*m_grid, *attr, dc, 0, 0,
+                               m_grid->GetColSize(0));
+
+    dc.SetFont(cellFont);
+    CHECK( height == dc.GetCharHeight() + autoWrapMargin );
+}
+
 TEST_CASE_METHOD(GridTestCase, "Grid::AutoSizeColumn", "[grid]")
 {
 #ifdef wxHAS_NATIVE_HEADER
@@ -1981,6 +2021,36 @@ TEST_CASE_METHOD(GridTestCase, "Grid::AutoSizeColumn", "[grid]")
         wxYield();
         CHECK( m_grid->GetRowSize(0) == m_grid->GetDefaultRowSize() );
     }
+}
+
+TEST_CASE_METHOD(GridTestCase, "Grid::AutoSizeRow", "[grid]")
+{
+    // Hardcoded extra margin for the rows used in grid.cpp.
+    const int margin = m_grid->FromDIP(6);
+    const int autoWrapMargin = 4;
+
+    m_grid->SetRowLabelValue(0, wxString());
+
+    const wxFont cellFont = m_grid->GetDefaultCellFont();
+    m_grid->SetCellFont(0, 0, cellFont);
+
+    wxClientDC dc(m_grid->GetGridWindow());
+    dc.SetFont(cellFont);
+
+    const wxString text = "Spanned text should fit";
+    const int textWidth = dc.GetTextExtent(text).x;
+
+    m_grid->SetCellValue(0, 0, text);
+    m_grid->SetCellRenderer(0, 0, new wxGridCellAutoWrapStringRenderer);
+    m_grid->SetCellSize(0, 0, 1, 2);
+    m_grid->SetColSize(0, textWidth / 2);
+    m_grid->SetColSize(1, textWidth - textWidth / 2);
+
+    m_grid->AutoSizeRow(0);
+
+    wxYield();
+    CHECK( m_grid->GetRowSize(0) ==
+           dc.GetCharHeight() + autoWrapMargin + margin );
 }
 
 TEST_CASE_METHOD(GridTestCase, "Grid::DrawInvalidCell", "[grid][multicell]")
@@ -2231,7 +2301,13 @@ public:
 // test below.
 inline void UpdateGrid(wxGrid* grid)
 {
-#ifndef __WXQT__
+#if defined(__WXGTK__)
+    // Update() is a no-op under GTK3/Wayland, so wait for the actual
+    // paint event instead of relying on it being synchronous.
+    WaitForPaint waitForPaint(grid);
+    grid->Refresh();
+    waitForPaint.YieldUntilPainted();
+#elif !defined(__WXQT__)
     grid->Refresh();
     grid->Update();
 #else
@@ -2768,7 +2844,7 @@ TEST_CASE("GridBlockCoords::SymDifference", "[grid]")
 
 TEST_CASE("wxGrid::Events", "[grid][event]")
 {
-    const std::unique_ptr<wxGrid> grid(new wxGrid());
+    const auto grid = make_unique<wxGrid>();
 
     EventCounter selectEvents(grid.get(), wxEVT_GRID_SELECT_CELL);
 

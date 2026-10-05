@@ -12,6 +12,7 @@
 
 #include "wx/app.h"
 #include "wx/frame.h"
+#include "wx/panel.h"
 #include "wx/textctrl.h"
 #include "wx/ribbon/bar.h"
 #include "wx/ribbon/buttonbar.h"
@@ -168,6 +169,7 @@ protected:
     void SetArtProvider(int button_id, wxRibbonArtProvider* prov);
     void SetBarStyle(long style);
 
+    wxPanel* m_panel;
     wxRibbonBar* m_ribbon;
     wxRibbonButtonBar* m_provider_bar;
     wxRibbonGallery* m_primary_gallery;
@@ -468,12 +470,18 @@ wxBitmapBundle MakeSvgBundle(const char* svg_data, const wxSize& size,
 MyFrame::MyFrame()
     : wxFrame(nullptr, wxID_ANY, "wxRibbon Sample Application", wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE)
 {
-    m_ribbon = new wxRibbonBar(this,-1,wxDefaultPosition, wxDefaultSize, wxRIBBON_BAR_FLOW_HORIZONTAL
+    m_panel = new wxPanel(this);
+
+    m_ribbon = new wxRibbonBar(m_panel,-1,wxDefaultPosition, wxDefaultSize, wxRIBBON_BAR_FLOW_HORIZONTAL
                                 | wxRIBBON_BAR_SHOW_PAGE_LABELS
                                 | wxRIBBON_BAR_SHOW_PANEL_EXT_BUTTONS
                                 | wxRIBBON_BAR_SHOW_TOGGLE_BUTTON
                                 | wxRIBBON_BAR_SHOW_HELP_BUTTON
                                 );
+
+    // Press F10 (the default trigger key) to try keyboard access mode.
+    m_ribbon->SetToggleButtonKeyTip("Q");
+    m_ribbon->SetHelpButtonKeyTip("H");
 
     // Reusable bitmap bundles for the generic ribbon and empty-page icons.
     const wxBitmapBundle ribbon_small = MakeSvgBundle(ribbon_svg, wxSize(16, 16));
@@ -483,31 +491,36 @@ MyFrame::MyFrame()
     {
         wxRibbonPage* home = new wxRibbonPage(m_ribbon, wxID_ANY, "Examples",
             ribbon_small);
+        m_ribbon->SetPageKeyTip(home, "E");
         wxRibbonPanel *toolbar_panel = new wxRibbonPanel(home, wxID_ANY, "Toolbar",
                                             wxBitmapBundle(), wxDefaultPosition, wxDefaultSize,
                                             wxRIBBON_PANEL_NO_AUTO_MINIMISE |
                                             wxRIBBON_PANEL_EXT_BUTTON);
+        toolbar_panel->SetExtButtonKeyTip("X");
         wxRibbonToolBar *toolbar = new wxRibbonToolBar(toolbar_panel, ID_MAIN_TOOLBAR);
         toolbar->AddToggleTool(wxID_JUSTIFY_LEFT,
-            MakeSvgBundle(align_left_svg, wxSize(16, 16)));
+            MakeSvgBundle(align_left_svg, wxSize(16, 16)), "Align left");
         toolbar->AddToggleTool(wxID_JUSTIFY_CENTER,
-            MakeSvgBundle(align_center_svg, wxSize(16, 16)));
+            MakeSvgBundle(align_center_svg, wxSize(16, 16)), "Center");
         toolbar->AddToggleTool(wxID_JUSTIFY_RIGHT,
-            MakeSvgBundle(align_right_svg, wxSize(16, 16)));
+            MakeSvgBundle(align_right_svg, wxSize(16, 16)), "Align right");
         toolbar->AddSeparator();
-        toolbar->AddHybridTool(wxID_NEW, wxArtProvider::GetBitmap(wxART_NEW, wxART_OTHER, wxSize(16, 15)));
+        toolbar->AddHybridTool(wxID_NEW, wxArtProvider::GetBitmap(wxART_NEW, wxART_OTHER, wxSize(16, 15)), "New");
         toolbar->AddTool(wxID_OPEN, wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_OTHER, wxSize(16, 15)), "Open something");
         toolbar->AddTool(wxID_SAVE, wxArtProvider::GetBitmap(wxART_FILE_SAVE, wxART_OTHER, wxSize(16, 15)), "Save something");
         toolbar->AddTool(wxID_SAVEAS, wxArtProvider::GetBitmap(wxART_FILE_SAVE_AS, wxART_OTHER, wxSize(16, 15)), "Save something as ...");
+        toolbar->SetKeyTip(wxID_OPEN, "O");
+        toolbar->SetKeyTip(wxID_SAVE, "SV");
+        toolbar->SetKeyTip(wxID_SAVEAS, "SA");
         toolbar->EnableTool(wxID_OPEN, false);
         toolbar->EnableTool(wxID_SAVE, false);
         toolbar->EnableTool(wxID_SAVEAS, false);
         toolbar->AddSeparator();
-        toolbar->AddDropdownTool(wxID_UNDO, wxArtProvider::GetBitmap(wxART_UNDO, wxART_OTHER, wxSize(16, 15)));
-        toolbar->AddDropdownTool(wxID_REDO, wxArtProvider::GetBitmap(wxART_REDO, wxART_OTHER, wxSize(16, 15)));
+        toolbar->AddDropdownTool(wxID_UNDO, wxArtProvider::GetBitmap(wxART_UNDO, wxART_OTHER, wxSize(16, 15)), "Undo");
+        toolbar->AddDropdownTool(wxID_REDO, wxArtProvider::GetBitmap(wxART_REDO, wxART_OTHER, wxSize(16, 15)), "Redo");
         toolbar->AddSeparator();
-        toolbar->AddTool(wxID_ANY, wxArtProvider::GetBitmap(wxART_REPORT_VIEW, wxART_OTHER, wxSize(16, 15)));
-        toolbar->AddTool(wxID_ANY, wxArtProvider::GetBitmap(wxART_LIST_VIEW, wxART_OTHER, wxSize(16, 15)));
+        toolbar->AddTool(wxID_ANY, wxArtProvider::GetBitmap(wxART_REPORT_VIEW, wxART_OTHER, wxSize(16, 15)), "Report view");
+        toolbar->AddTool(wxID_ANY, wxArtProvider::GetBitmap(wxART_LIST_VIEW, wxART_OTHER, wxSize(16, 15)), "List view");
         toolbar->AddSeparator();
         toolbar->AddHybridTool(ID_POSITION_LEFT,
                                 MakeSvgBundle(position_left_svg, wxSize(16, 16)),
@@ -519,6 +532,10 @@ MyFrame::MyFrame()
         wxRibbonToolBarToolBase* print_tool;
         print_tool = toolbar->AddHybridTool(wxID_PRINT, wxArtProvider::GetBitmap(wxART_PRINT, wxART_OTHER, wxSize(16, 15)),
                                 "This is the Print button tooltip\ndemonstrating a tooltip");
+        toolbar->SetKeyTip(wxID_PRINT, "PT");
+        // "PO" reaches the dropdown arrow's menu, separate from "PT"'s main action.
+        // Neither is a prefix of the other, unlike "P"/"PM" would be.
+        toolbar->SetDropdownKeyTip(wxID_PRINT, "PO");
         toolbar->SetRows(2, 3);
 
         size_t tool_pos = toolbar->GetToolPos(wxID_PRINT);
@@ -542,6 +559,9 @@ MyFrame::MyFrame()
         wxBitmapBundle crop_bundle = MakeSvgBundle(auto_crop_selection_svg, wxSize(32, 32));
         selection->AddButton(ID_SELECTION_CONTRACT, "Contract",
             crop_bundle, crop_bundle);
+        selection->SetKeyTip(ID_SELECTION_EXPAND_V, "V");
+        selection->SetKeyTip(ID_SELECTION_EXPAND_H, "Z");
+        selection->SetKeyTip(ID_SELECTION_CONTRACT, "C");
 
         wxRibbonPanel *shapes_panel = new wxRibbonPanel(home, wxID_ANY, "Shapes",
             MakeSvgBundle(circle_svg, wxSize(16, 16)));
@@ -558,6 +578,14 @@ MyFrame::MyFrame()
             MakeSvgBundle(square_svg, wxSize(32, 32)), wxEmptyString);
         shapes->AddDropdownButton(ID_POLYGON, "Other Polygon",
             MakeSvgBundle(hexagon_svg, wxSize(32, 32)), wxEmptyString);
+        // Shared "S" prefix demonstrates keytip narrowing.
+        shapes->SetKeyTip(ID_CIRCLE, "SC");
+        shapes->SetKeyTip(ID_CROSS, "SX");
+        shapes->SetKeyTip(ID_TRIANGLE, "ST");
+        // "SD" reaches the dropdown arrow's menu, separate from "ST"'s main action.
+        shapes->SetDropdownKeyTip(ID_TRIANGLE, "SD");
+        shapes->SetKeyTip(ID_SQUARE, "SQ");
+        shapes->SetKeyTip(ID_POLYGON, "SP");
 
         wxRibbonPanel *sizer_panel = new wxRibbonPanel(home, wxID_ANY, "Panel with Sizer",
                                                     wxBitmapBundle(), wxDefaultPosition, wxDefaultSize,
@@ -587,6 +615,9 @@ MyFrame::MyFrame()
         // This prevents ribbon buttons in panels with sizer from collapsing.
         bar->SetButtonMinSizeClass(ID_BUTTON_XX, wxRIBBON_BUTTONBAR_BUTTON_LARGE);
         bar->SetButtonMinSizeClass(ID_BUTTON_XY, wxRIBBON_BUTTONBAR_BUTTON_LARGE);
+        // Digit keytips work too.
+        bar->SetKeyTip(ID_BUTTON_XX, "1");
+        bar->SetKeyTip(ID_BUTTON_XY, "2");
 
         wxSizer* sizer_panelsizer_h = new wxBoxSizer(wxHORIZONTAL);
         wxSizer* sizer_panelsizer_v = new wxBoxSizer(wxVERTICAL);
@@ -603,6 +634,7 @@ MyFrame::MyFrame()
 
         wxRibbonPage* scheme = new wxRibbonPage(m_ribbon, wxID_ANY, "Appearance",
             MakeSvgBundle(eye_svg, wxSize(16, 16)));
+        m_ribbon->SetPageKeyTip(scheme, "A");
         m_ribbon->GetArtProvider()->GetColourScheme(&m_default_primary,
             &m_default_secondary, &m_default_tertiary);
         wxRibbonPanel *provider_panel = new wxRibbonPanel(scheme, wxID_ANY,
@@ -617,20 +649,27 @@ MyFrame::MyFrame()
             MakeSvgBundle(msw_style_svg, wxSize(32, 32)));
         m_provider_bar->AddToggleButton(ID_MSW_FLAT_PROVIDER, "MSW Flat Provider",
             MakeSvgBundle(msw_flat_style_svg, wxSize(32, 32)));
+        m_provider_bar->SetKeyTip(ID_DEFAULT_PROVIDER, "D");
+        m_provider_bar->SetKeyTip(ID_AUI_PROVIDER, "I");
+        m_provider_bar->SetKeyTip(ID_MSW_PROVIDER, "M");
+        m_provider_bar->SetKeyTip(ID_MSW_FLAT_PROVIDER, "F");
 
         m_provider_bar->ToggleButton(ID_DEFAULT_PROVIDER, true);
         wxRibbonPanel *primary_panel = new wxRibbonPanel(scheme, wxID_ANY,
             "Primary Colour", MakeSvgBundle(colours_svg, wxSize(16, 16)));
         m_primary_gallery = PopulateColoursPanel(primary_panel,
             m_default_primary, ID_PRIMARY_COLOUR);
+        m_primary_gallery->SetKeyTip("P");
         wxRibbonPanel *secondary_panel = new wxRibbonPanel(scheme, wxID_ANY,
             "Secondary Colour", MakeSvgBundle(colours_svg, wxSize(16, 16)));
         m_secondary_gallery = PopulateColoursPanel(secondary_panel,
             m_default_secondary, ID_SECONDARY_COLOUR);
+        m_secondary_gallery->SetKeyTip("S");
     }
     {
         wxRibbonPage* page = new wxRibbonPage(m_ribbon, wxID_ANY, "UI Updated",
             ribbon_small);
+        m_ribbon->SetPageKeyTip(page, "U");
         wxRibbonPanel *panel = new wxRibbonPanel(page, wxID_ANY, "Enable/Disable",
             ribbon_small);
         wxRibbonButtonBar *bar = new wxRibbonButtonBar(panel, wxID_ANY);
@@ -661,9 +700,11 @@ MyFrame::MyFrame()
         artProvider->SetColor(wxRIBBON_ART_BUTTON_BAR_LABEL_DISABLED_COLOUR, tColour.MakeDisabled());
     }
     new wxRibbonPage(m_ribbon, wxID_ANY, "Empty Page", empty_small);
+    m_ribbon->SetPageKeyTip(m_ribbon->GetPageCount()-1, "T");
     {
         wxRibbonPage* page = new wxRibbonPage(m_ribbon, wxID_ANY, "Another Page",
             empty_small);
+        m_ribbon->SetPageKeyTip(page, "N");
         wxRibbonPanel *panel = new wxRibbonPanel(page, wxID_ANY, "Page manipulation",
             ribbon_small);
         wxRibbonButtonBar *bar = new wxRibbonButtonBar(panel, wxID_ANY);
@@ -671,6 +712,8 @@ MyFrame::MyFrame()
         bar->AddButton(ID_REMOVE_PANEL, "Remove Panel", wxArtProvider::GetBitmap(wxART_DELETE, wxART_OTHER, wxSize(24, 24)));
         bar->AddButton(ID_HIDE_PAGES, "Hide Pages", ribbon_large);
         bar->AddButton(ID_SHOW_PAGES, "Show Pages", ribbon_large);
+        bar->SetKeyTip(ID_REMOVE_PAGE, "R");
+        bar->SetKeyTip(ID_REMOVE_PANEL, "P");
 
         panel = new wxRibbonPanel(page, wxID_ANY, "Button bar manipulation",
             ribbon_small);
@@ -698,10 +741,12 @@ MyFrame::MyFrame()
     }
     new wxRibbonPage(m_ribbon, wxID_ANY, "Highlight Page", empty_small);
     m_ribbon->AddPageHighlight(m_ribbon->GetPageCount()-1);
+    m_ribbon->SetPageKeyTip(m_ribbon->GetPageCount()-1, "L");
 
     {
         wxRibbonPage* page = new wxRibbonPage(m_ribbon, wxID_ANY, "Advanced",
             empty_small);
+        m_ribbon->SetPageKeyTip(page, "B");
         wxRibbonPanel* panel = new wxRibbonPanel(page, wxID_ANY, "Button bar manipulation",
             ribbon_small);
         wxRibbonButtonBar* button_bar = new wxRibbonButtonBar(panel, wxID_ANY);
@@ -728,11 +773,11 @@ MyFrame::MyFrame()
     }
     m_ribbon->Realize();
 
-    m_logwindow = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
+    m_logwindow = new wxTextCtrl(m_panel, wxID_ANY, wxEmptyString,
         wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY |
         wxTE_LEFT | wxTE_BESTWRAP | wxBORDER_NONE);
 
-    m_togglePanels = new wxToggleButton(this, ID_TOGGLE_PANELS, "&Toggle panels");
+    m_togglePanels = new wxToggleButton(m_panel, ID_TOGGLE_PANELS, "&Toggle panels");
     m_togglePanels->SetValue(true);
 
     wxSizer *s = new wxBoxSizer(wxVERTICAL);
@@ -741,14 +786,18 @@ MyFrame::MyFrame()
     s->Add(m_logwindow, wxSizerFlags(1).Expand());
     s->Add(m_togglePanels, wxSizerFlags().Border());
 
-    SetSizer(s);
+    m_panel->SetSizer(s);
+
+    wxSizer* frameSizer = new wxBoxSizer{ wxVERTICAL };
+    frameSizer->Add(m_panel, wxSizerFlags{ 1 }.Expand());
+    SetSizer(frameSizer);
 }
 
 void MyFrame::SetBarStyle(long style)
 {
     m_ribbon->Freeze();
     m_ribbon->SetWindowStyleFlag(style);
-    wxBoxSizer *pTopSize = reinterpret_cast<wxBoxSizer*>(GetSizer());
+    wxBoxSizer *pTopSize = reinterpret_cast<wxBoxSizer*>(m_panel->GetSizer());
     wxRibbonToolBar *pToolbar = wxDynamicCast(FindWindow(ID_MAIN_TOOLBAR), wxRibbonToolBar);
     if(style & wxRIBBON_BAR_FLOW_VERTICAL)
     {
@@ -765,7 +814,7 @@ void MyFrame::SetBarStyle(long style)
             pToolbar->SetRows(2, 3);
     }
     m_ribbon->Realise();
-    Layout();
+    m_panel->Layout();
     m_ribbon->Thaw();
 }
 
@@ -1227,7 +1276,7 @@ wxRibbonGalleryItem* MyFrame::AddColourToGallery(wxRibbonGallery *gallery,
             (iHeight - size.GetHeight()) / 2);
         dc.SelectObjectAsSource(wxNullBitmap);
 
-        item = gallery->Append(bitmap, wxID_ANY);
+        item = gallery->Append(bitmap, wxID_ANY, colour);
         gallery->SetItemClientObject(item, new ColourClientData(colour, c));
     }
     return item;
@@ -1328,7 +1377,7 @@ void MyFrame::SetArtProvider(int button_id, wxRibbonArtProvider *prov)
 
     m_ribbon->Realize();
     m_ribbon->Thaw();
-    GetSizer()->Layout();
+    m_panel->Layout();
 }
 
 void MyFrame::OnRemovePage(wxRibbonButtonBarEvent& WXUNUSED(evt))
@@ -1365,7 +1414,7 @@ void MyFrame::OnRemovePanel(wxRibbonButtonBarEvent& WXUNUSED(evt))
 
     // Not reached if the stale entry was used above.
     m_ribbon->Realize();
-    GetSizer()->Layout();
+    m_panel->Layout();
 }
 
 void MyFrame::OnHidePages(wxRibbonButtonBarEvent& WXUNUSED(evt))

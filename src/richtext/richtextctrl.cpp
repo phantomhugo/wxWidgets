@@ -1423,7 +1423,7 @@ void wxRichTextCtrl::OnChar(wxKeyEvent& event)
                     GetId());
                 cmdEvent1.SetEventObject(this);
                 cmdEvent1.SetFlags(flags);
-                cmdEvent1.SetCharacter(event.GetUnicodeKey());
+                cmdEvent1.SetCharacter(event.GetUnicodeChar());
                 cmdEvent1.SetPosition(m_caretPosition+1);
                 cmdEvent1.SetContainer(GetFocusObject());
                 if (GetEventHandler()->ProcessEvent(cmdEvent1) && !cmdEvent1.IsAllowed())
@@ -1436,7 +1436,7 @@ void wxRichTextCtrl::OnChar(wxKeyEvent& event)
                     GetId());
                 cmdEvent.SetEventObject(this);
                 cmdEvent.SetFlags(flags);
-                cmdEvent.SetCharacter(event.GetUnicodeKey());
+                cmdEvent.SetCharacter(event.GetUnicodeChar());
                 cmdEvent.SetPosition(m_caretPosition+1);
                 cmdEvent.SetContainer(GetFocusObject());
 
@@ -1475,7 +1475,7 @@ void wxRichTextCtrl::OnChar(wxKeyEvent& event)
                 long newPos = m_caretPosition;
                 DeleteSelectedContent(& newPos);
 
-                wxString str = event.GetUnicodeKey();
+                wxString str = event.GetUnicodeChar();
                 GetFocusObject()->InsertTextWithUndo(& GetBuffer(), newPos+1, str, this, 0);
 
                 EndBatchUndo();
@@ -1988,6 +1988,17 @@ bool wxRichTextCtrl::IsPositionVisible(long pos) const
            (rect.GetBottom() <= (startY + clientSize.y - bottomMargin));
 }
 
+static bool wxRichTextCtrlIsLineBreakAtPosition(const wxRichTextParagraphLayoutBox* container,
+                                                long pos)
+{
+    if ( !container || pos < 0 )
+        return false;
+
+    wxString text = container->GetTextForRange(wxRichTextRange(pos, pos));
+
+    return !text.empty() && text[0] == wxRichTextLineBreakChar;
+}
+
 void wxRichTextCtrl::SetCaretPosition(long position, bool showAtLineStart)
 {
     m_caretPosition = position;
@@ -2010,6 +2021,25 @@ void wxRichTextCtrl::MoveCaretForward(long oldPosition)
         if (line)
         {
             wxRichTextRange lineRange = line->GetAbsoluteRange();
+
+            const long lineBreakPos = lineRange.GetEnd() + 1;
+            if ( wxRichTextCtrlIsLineBreakAtPosition(GetFocusObject(), lineBreakPos) &&
+                 (oldPosition == lineRange.GetEnd() ||
+                  oldPosition == lineBreakPos) )
+            {
+                if ( oldPosition == lineBreakPos && m_caretAtLineStart )
+                {
+                    m_caretPosition = oldPosition + 1;
+                    m_caretAtLineStart = false;
+                }
+                else
+                {
+                    m_caretPosition = lineBreakPos;
+                    m_caretAtLineStart = true;
+                }
+                SetDefaultStyleToCursorStyle();
+                return;
+            }
 
             // We're at the end of a line. See whether we need to
             // stay at the same actual caret position but change visual
@@ -2044,6 +2074,14 @@ void wxRichTextCtrl::MoveCaretForward(long oldPosition)
 /// to the start of the next, which may be the exact same caret position.
 void wxRichTextCtrl::MoveCaretBack(long oldPosition)
 {
+    if ( wxRichTextCtrlIsLineBreakAtPosition(GetFocusObject(), oldPosition) )
+    {
+        m_caretPosition = oldPosition - 1;
+        m_caretAtLineStart = false;
+        SetDefaultStyleToCursorStyle();
+        return;
+    }
+
     wxRichTextParagraph* para = GetFocusObject()->GetParagraphAtPosition(oldPosition);
 
     // Only do the check if we're not at the start of the paragraph (where things work OK
@@ -2559,6 +2597,9 @@ bool wxRichTextCtrl::MoveToLineEnd(int flags)
     {
         wxRichTextRange lineRange = line->GetAbsoluteRange();
         long newPos = lineRange.GetEnd();
+        if ( wxRichTextCtrlIsLineBreakAtPosition(GetFocusObject(), newPos) )
+            newPos --;
+
         bool extendSel = ExtendSelection(m_caretPosition, newPos, flags);
         if (!extendSel)
             SelectNone();
@@ -3340,7 +3381,13 @@ void wxRichTextCtrl::DoWriteText(const wxString& value, int flags)
 
 void wxRichTextCtrl::AppendText(const wxString& text)
 {
+    const bool hasStyleStack = GetBuffer().GetStyleStackSize() > 0;
+    const wxRichTextAttr defaultStyle = GetDefaultStyleEx();
+
     SetInsertionPointEnd();
+
+    if ( hasStyleStack )
+        SetDefaultStyle(defaultStyle);
 
     WriteText(text);
 }
@@ -3468,7 +3515,19 @@ bool wxRichTextCtrl::LineBreak()
 {
     wxString text;
     text = wxRichTextLineBreakChar;
-    return GetFocusObject()->InsertTextWithUndo(& GetBuffer(), m_caretPosition+1, text, this);
+    const bool inserted =
+        GetFocusObject()->InsertTextWithUndo(& GetBuffer(),
+                                             m_caretPosition+1,
+                                             text, this);
+
+    if ( inserted &&
+         wxRichTextCtrlIsLineBreakAtPosition(GetFocusObject(), GetCaretPosition()) )
+    {
+        SetCaretPosition(GetCaretPosition(), true);
+        PositionCaret();
+    }
+
+    return inserted;
 }
 
 // ----------------------------------------------------------------------------

@@ -26,6 +26,8 @@
 #include "wx/bmpbndl.h"
 #include "wx/overlay.h"
 
+#include <memory>
+
 enum wxAuiManagerDock
 {
     wxAUI_DOCK_NONE = 0,
@@ -432,9 +434,14 @@ using wxAuiPaneInfoArray = wxBaseObjectArray<wxAuiPaneInfo>;
 
 class WXDLLIMPEXP_FWD_AUI wxAuiFloatingFrame;
 
+// Private helper classes used to drag the panes under Wayland.
+class wxAuiPaneDragHandler;
+class wxTLWDragSession;
+
 class WXDLLIMPEXP_AUI wxAuiManager : public wxEvtHandler
 {
     friend class wxAuiFloatingFrame;
+    friend class wxAuiPaneDragHandler;
 
 public:
 
@@ -573,6 +580,9 @@ protected:
 
     void DoFrameLayout();
 
+    virtual bool CanAddPane(wxWindow* window,
+                            const wxAuiPaneInfo& paneInfo) const;
+
     void LayoutAddPane(wxSizer* container,
                        wxAuiDockInfo& dock,
                        wxAuiPaneInfo& pane,
@@ -607,6 +617,41 @@ protected:
     void OnFloatingPaneActivated(wxWindow* window);
     void OnFloatingPaneClosed(wxWindow* window, wxCloseEvent& evt);
     void OnFloatingPaneResized(wxWindow* window, const wxRect& rect);
+
+    // Common parts of OnFloatingPaneMoving() and OnFloatingPaneMoved() and of
+    // the drag session handlers below: "pt" is the current pointer position in
+    // screen coordinates and "offset" the position of the pointer inside the
+    // frame being dragged.
+    void DoMovePane(wxAuiPaneInfo& pane, const wxPoint& pt, const wxPoint& offset);
+    void DoDropPane(wxAuiPaneInfo& pane, const wxPoint& pt, const wxPoint& offset);
+    void DoEndMovePane(wxAuiPaneInfo& pane);
+
+    // Ensure that the panes of the dock containing the given pane use
+    // sequential positions after finishing dragging a toolbar pane.
+    void SaveDockPositions(const wxAuiPaneInfo& pane);
+
+    // Try to start dragging the given pane using the system drag support,
+    // "origin" is the window in which the mouse is currently captured.
+    void StartDragSession(wxAuiPaneInfo& pane, wxWindow* origin);
+
+    // By default the origin window is the managed window itself.
+    void StartDragSession(wxAuiPaneInfo& pane)
+    {
+        StartDragSession(pane, m_frame);
+    }
+
+    // Handlers for the drag session events, used under Wayland only, see
+    // wxAuiPaneDragHandler. Here "win" is the TLW under the pointer or null.
+    void OnPaneDragMove(wxWindow* paneWindow,
+                        wxWindow* win,
+                        const wxPoint& pt,
+                        const wxPoint& offset);
+    void OnPaneDragDrop(wxWindow* paneWindow,
+                        wxWindow* win,
+                        const wxPoint& pt,
+                        const wxPoint& offset);
+    void OnPaneDragEnd(wxWindow* paneWindow);
+
     void Render(wxDC* dc);
     void Repaint(wxDC* dc = nullptr);
     void ProcessMgrEvent(wxAuiManagerEvent& event);
@@ -727,10 +772,17 @@ private:
     // Common part of ClosePane() and MinimizePane(): hide the pane window.
     void DoHidePaneWindow(wxAuiPaneInfo& paneInfo);
 
+    // Reparent the pane window back to the managed window and destroy the
+    // floating frame containing it, which must be non-null.
+    void DestroyFloatingFrame(wxAuiPaneInfo& paneInfo);
+
 
     // This flag is set to true if Update() is called while the window is
     // minimized, in which case we postpone updating it until it is restored.
     bool m_updateOnRestore = false;
+
+    // Number of (possibly nested) calls to DoFrameLayout() currently executing.
+    int m_frameLayoutDepth = 0;
 
     // Toolbars used to show minimized panes. Some, or all, of them can be null.
     //
@@ -745,6 +797,11 @@ private:
 
     // Style flags to use for the docks containing minimized panes.
     unsigned int m_minDockStyle = wxAUI_MIN_DOCK_DEFAULT;
+
+    // Non-null only while dragging a pane using the system drag machinery,
+    // which is currently only done under Wayland, where we can't move the
+    // floating frame ourselves.
+    std::unique_ptr<wxTLWDragSession> m_dragSession;
 
 #ifndef SWIG
     wxDECLARE_CLASS(wxAuiManager);

@@ -86,7 +86,7 @@ void wxGauge::SetRange(int range)
         if (elem && elem.tagName === 'PROGRESS') {
             elem.max = $1;
         }
-    }, GetId(), range);
+    }, GetDomWindowId(), range);
 }
 
 int wxGauge::GetRange() const
@@ -105,7 +105,7 @@ void wxGauge::SetValue(int pos)
             // Make sure indeterminate mode is deactivated when a value is set
             elem.removeAttribute('aria-valuenow');
         }
-    }, GetId(), pos);
+    }, GetDomWindowId(), pos);
 }
 
 int wxGauge::GetValue() const

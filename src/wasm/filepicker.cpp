@@ -67,7 +67,7 @@ bool wxFilePickerWidget::Create(wxWindow *parent,
         });
 
         container.appendChild(input);
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }
@@ -96,7 +96,7 @@ void wxFilePickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
-        }, GetId());
+        }, GetDomWindowId());
 
         if (val)
         {
@@ -172,7 +172,7 @@ bool wxDirPickerWidget::Create(wxWindow *parent,
         });
 
         container.appendChild(input);
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }
@@ -202,7 +202,7 @@ void wxDirPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
-        }, GetId());
+        }, GetDomWindowId());
 
         if (val)
         {

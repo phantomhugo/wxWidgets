@@ -75,7 +75,7 @@ bool wxSpinButton::Create(wxWindow *parent,
             vertical ? '▲' : '◀', 'spinup'));
         container.appendChild(makeButton('wxSpinButton-down',
             vertical ? '▼' : '▶', 'spindown'));
-    }, GetId(), style);
+    }, GetDomWindowId(), style);
 
     return true;
 }
@@ -95,7 +95,7 @@ int wxSpinButton::GetValue() const
         if (!container) return 0;
         var v = parseInt(container.dataset.value, 10);
         return isNaN(v) ? 0 : v;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxSpinButton::SetValue(int val)
@@ -110,7 +110,7 @@ void wxSpinButton::SetValue(int val)
         var container = document.getElementById($0);
         if (!container) return;
         container.dataset.value = String($1);
-    }, GetId(), val);
+    }, GetDomWindowId(), val);
 }
 
 void wxSpinButton::WasmNotifyEvent(const wxWasmEvent& event)

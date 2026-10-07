@@ -79,7 +79,7 @@ bool wxScrollBar::Create( wxWindow *parent, wxWindowID id,
         });
 
         container.appendChild(scrollbar);
-    }, GetId(), IsVertical() ? 1 : 0);
+    }, GetDomWindowId(), IsVertical() ? 1 : 0);
 
     return true;
 }
@@ -91,7 +91,7 @@ int wxScrollBar::GetThumbPosition() const
         if (!container) return 0;
         var scrollbar = container.querySelector('.wxScrollBar');
         return scrollbar ? parseInt(scrollbar.value, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 int wxScrollBar::GetThumbSize() const
@@ -111,7 +111,7 @@ int wxScrollBar::GetRange() const
         if (!container) return 0;
         var scrollbar = container.querySelector('.wxScrollBar');
         return scrollbar ? parseInt(scrollbar.max, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxScrollBar::SetThumbPosition(int viewStart)
@@ -121,7 +121,7 @@ void wxScrollBar::SetThumbPosition(int viewStart)
         if (!container) return;
         var scrollbar = container.querySelector('.wxScrollBar');
         if (scrollbar) scrollbar.value = $1;
-    }, GetId(), viewStart);
+    }, GetDomWindowId(), viewStart);
 }
 
 void wxScrollBar::SetScrollbar(int position, int WXUNUSED(thumbSize),
@@ -142,7 +142,7 @@ void wxScrollBar::SetScrollbar(int position, int WXUNUSED(thumbSize),
             scrollbar.step = 1;
             scrollbar.value = $2;
         }
-    }, GetId(), max, position);
+    }, GetDomWindowId(), max, position);
 }
 
 WXWidget wxScrollBar::GetHandle() const

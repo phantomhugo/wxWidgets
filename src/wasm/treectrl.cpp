@@ -85,7 +85,7 @@ bool wxTreeCtrl::Create(wxWindow *parent, wxWindowID id,
                 }
             }
         });
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }
@@ -206,7 +206,7 @@ void wxTreeCtrl::SetItemText(const wxTreeItemId& item, const wxString& text)
         if (!li) return;
         var label = li.querySelector('.wxTreeLabel');
         if (label) label.textContent = UTF8ToString($2);
-    }, GetId(), (int)(wxIntPtr)item.GetID(), buf.data());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID(), buf.data());
 }
 
 void wxTreeCtrl::SetItemImage(
@@ -266,7 +266,7 @@ void wxTreeCtrl::SetItemHasChildren(const wxTreeItemId& item, bool has)
                 toggle.style.userSelect = 'none';
                 li.insertBefore(toggle, li.firstChild);
             }
-        }, GetId(), (int)(wxIntPtr)item.GetID());
+        }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
     }
 }
 
@@ -333,7 +333,7 @@ bool wxTreeCtrl::ItemHasChildren(const wxTreeItemId& item) const
         var ul = li.querySelector(':scope > ul');
         if (!ul) return 0;
         return ul.children.length > 0 ? 1 : 0;
-    }, GetId(), (int)(wxIntPtr)item.GetID()) != 0;
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID()) != 0;
 }
 
 bool wxTreeCtrl::IsExpanded(const wxTreeItemId& item) const
@@ -465,7 +465,7 @@ wxTreeItemId wxTreeCtrl::GetNextChild(
             }
         }
         return 0;
-    }, GetId(), (int)(wxIntPtr)item.GetID(), currentIndex);
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID(), currentIndex);
 
     if (childId == 0)
         return wxTreeItemId();
@@ -493,7 +493,7 @@ wxTreeItemId wxTreeCtrl::GetLastChild(const wxTreeItemId& item) const
             }
         }
         return 0;
-    }, GetId(), (int)(wxIntPtr)item.GetID());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
 
     if (childId == 0)
         return wxTreeItemId();
@@ -519,7 +519,7 @@ wxTreeItemId wxTreeCtrl::GetNextSibling(const wxTreeItemId& item) const
             next = next.nextElementSibling;
         }
         return 0;
-    }, GetId(), (int)(wxIntPtr)item.GetID());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
 
     if (siblingId == 0)
         return wxTreeItemId();
@@ -545,7 +545,7 @@ wxTreeItemId wxTreeCtrl::GetPrevSibling(const wxTreeItemId& item) const
             prev = prev.previousElementSibling;
         }
         return 0;
-    }, GetId(), (int)(wxIntPtr)item.GetID());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
 
     if (siblingId == 0)
         return wxTreeItemId();
@@ -664,7 +664,7 @@ wxTreeItemId wxTreeCtrl::AddRoot(const wxString& text,
 
         li.appendChild(label);
         ul.appendChild(li);
-    }, GetId(), (int)(wxIntPtr)idValue, buf.data());
+    }, GetDomWindowId(), (int)(wxIntPtr)idValue, buf.data());
 
     return itemId;
 }
@@ -692,7 +692,7 @@ void wxTreeCtrl::Delete(const wxTreeItemId& item)
         if (li && li.parentNode) {
             li.parentNode.removeChild(li);
         }
-    }, GetId(), (int)(wxIntPtr)item.GetID());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
 }
 
 void wxTreeCtrl::DeleteChildren(const wxTreeItemId& item)
@@ -717,7 +717,7 @@ void wxTreeCtrl::DeleteChildren(const wxTreeItemId& item)
         if (toggle) li.removeChild(toggle);
         var ul = li.querySelector(':scope > ul');
         if (ul) li.removeChild(ul);
-    }, GetId(), (int)(wxIntPtr)item.GetID());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
 }
 
 void wxTreeCtrl::DeleteAllItems()
@@ -741,7 +741,7 @@ void wxTreeCtrl::DeleteAllItems()
                 ul.removeChild(ul.firstChild);
             }
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxTreeCtrl::Expand(const wxTreeItemId& item)
@@ -761,7 +761,7 @@ void wxTreeCtrl::Expand(const wxTreeItemId& item)
         if (ul) ul.style.display = 'block';
         var toggle = li.querySelector(':scope > .wxTreeToggle');
         if (toggle) toggle.textContent = '\u25BC'; // ▼
-    }, GetId(), (int)(wxIntPtr)item.GetID());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
 
     wxTreeEvent event(wxEVT_TREE_ITEM_EXPANDED, m_windowId);
     event.SetItem(item);
@@ -786,7 +786,7 @@ void wxTreeCtrl::Collapse(const wxTreeItemId& item)
         if (ul) ul.style.display = 'none';
         var toggle = li.querySelector(':scope > .wxTreeToggle');
         if (toggle) toggle.textContent = '\u25B6'; // ▶
-    }, GetId(), (int)(wxIntPtr)item.GetID());
+    }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
 
     wxTreeEvent event(wxEVT_TREE_ITEM_COLLAPSED, m_windowId);
     event.SetItem(item);
@@ -821,7 +821,7 @@ void wxTreeCtrl::Unselect()
             if (!container) return;
             var li = container.querySelector('li[data-item-id="' + $1 + '"]');
             if (li) li.classList.remove('selected');
-        }, GetId(), (int)(wxIntPtr)m_selectedItem.GetID());
+        }, GetDomWindowId(), (int)(wxIntPtr)m_selectedItem.GetID());
         m_selectedItem = wxTreeItemId();
     }
 }
@@ -844,7 +844,7 @@ void wxTreeCtrl::SelectItem(const wxTreeItemId& item, bool select)
                 if (!container) return;
                 var li = container.querySelector('li[data-item-id="' + $1 + '"]');
                 if (li) li.classList.remove('selected');
-            }, GetId(), (int)(wxIntPtr)m_selectedItem.GetID());
+            }, GetDomWindowId(), (int)(wxIntPtr)m_selectedItem.GetID());
         }
 
         if (select)
@@ -855,7 +855,7 @@ void wxTreeCtrl::SelectItem(const wxTreeItemId& item, bool select)
                 if (!container) return;
                 var li = container.querySelector('li[data-item-id="' + $1 + '"]');
                 if (li) li.classList.add('selected');
-            }, GetId(), (int)(wxIntPtr)item.GetID());
+            }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
         }
         else if (m_selectedItem == item)
         {
@@ -865,7 +865,7 @@ void wxTreeCtrl::SelectItem(const wxTreeItemId& item, bool select)
                 if (!container) return;
                 var li = container.querySelector('li[data-item-id="' + $1 + '"]');
                 if (li) li.classList.remove('selected');
-            }, GetId(), (int)(wxIntPtr)item.GetID());
+            }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
         }
     }
     else
@@ -878,7 +878,7 @@ void wxTreeCtrl::SelectItem(const wxTreeItemId& item, bool select)
                 if (!container) return;
                 var li = container.querySelector('li[data-item-id="' + $1 + '"]');
                 if (li) li.classList.add('selected');
-            }, GetId(), (int)(wxIntPtr)item.GetID());
+            }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
         }
         else
         {
@@ -887,7 +887,7 @@ void wxTreeCtrl::SelectItem(const wxTreeItemId& item, bool select)
                 if (!container) return;
                 var li = container.querySelector('li[data-item-id="' + $1 + '"]');
                 if (li) li.classList.remove('selected');
-            }, GetId(), (int)(wxIntPtr)item.GetID());
+            }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
             if (m_selectedItem == item)
                 m_selectedItem = wxTreeItemId();
         }
@@ -1045,7 +1045,7 @@ wxTreeItemId wxTreeCtrl::DoInsertItem(const wxTreeItemId& parent,
         } else {
             childUl.appendChild(li);
         }
-    }, GetId(), (int)(wxIntPtr)parent.GetID(), (int)(wxIntPtr)idValue, buf.data(), (int)pos);
+    }, GetDomWindowId(), (int)(wxIntPtr)parent.GetID(), (int)(wxIntPtr)idValue, buf.data(), (int)pos);
 
     return itemId;
 }

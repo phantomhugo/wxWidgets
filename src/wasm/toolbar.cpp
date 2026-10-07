@@ -113,7 +113,7 @@ bool wxToolBar::Create(wxWindow *parent, wxWindowID id, const wxPoint& pos,
         toolbar.style.boxSizing = 'border-box';
 
         container.appendChild(toolbar);
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }

@@ -97,7 +97,22 @@ bool wxChoice::Create( wxWindow *parent, wxWindowID id,
 
 wxSize wxChoice::DoGetBestSize() const
 {
-    return wxSize(100, 24);
+    // Height must fit the CSS padding (6px top + 6px bottom), the border
+    // (2px) and the text: a fixed 24 was too small, clipping the text.
+    // Width grows to fit the longest item, like the native control.
+    int h = 0, w = 0;
+    GetTextExtent(wxT("Mg"), &w, &h);
+    if (h <= 0)
+        h = GetCharHeight();
+    int bestW = 0;
+    for (unsigned int i = 0; i < GetCount(); ++i)
+    {
+        int tw = 0, th = 0;
+        GetTextExtent(GetString(i), &tw, &th);
+        if (tw > bestW)
+            bestW = tw;
+    }
+    return wxSize(wxMax(100, bestW + 40), h + 14);
 }
 
 unsigned wxChoice::GetCount() const
@@ -126,7 +141,7 @@ void wxChoice::SetString(unsigned int n, const wxString& s)
         if (select && $1 < select.options.length) {
             select.options[$1].textContent = UTF8ToString($2);
         }
-    }, GetId(), (int)n, buf.data());
+    }, GetDomWindowId(), (int)n, buf.data());
 }
 
 void wxChoice::SetSelection(int n)
@@ -136,7 +151,7 @@ void wxChoice::SetSelection(int n)
         if (!container) return;
         var select = container.querySelector('.wxChoice');
         if (select) select.selectedIndex = $1;
-    }, GetId(), n);
+    }, GetDomWindowId(), n);
 }
 
 int wxChoice::GetSelection() const
@@ -146,7 +161,7 @@ int wxChoice::GetSelection() const
         if (!container) return -1;
         var select = container.querySelector('.wxChoice');
         return select ? select.selectedIndex : -1;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 int wxChoice::DoInsertItems(const wxArrayStringsAdapter & items,
@@ -201,9 +216,21 @@ int wxChoice::DoInsertOneItem(const wxString& item, unsigned int pos)
         } else {
             select.insertBefore(option, select.options[$2]);
         }
-    }, GetId(), buf.data(), (int)pos);
+    }, GetDomWindowId(), buf.data(), (int)pos);
+
+    UpdateAutoSize();
 
     return pos;
+}
+
+void wxChoice::UpdateAutoSize()
+{
+    // Only grow: shrinking on every deletion causes churn and the sizer
+    // re-layout will reclaim the space when needed.
+    const wxSize best = GetBestSize();
+    const wxSize cur = GetSize();
+    if (best.x > cur.x || best.y > cur.y)
+        SetSize(wxMax(best.x, cur.x), wxMax(best.y, cur.y));
 }
 
 void wxChoice::DoSetItemClientData(unsigned int n, void *clientData)
@@ -240,7 +267,7 @@ void wxChoice::DoClear()
                 select.remove(0);
             }
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxChoice::DoDeleteOneItem(unsigned int pos)
@@ -257,7 +284,7 @@ void wxChoice::DoDeleteOneItem(unsigned int pos)
         if (select && $1 < select.options.length) {
             select.remove($1);
         }
-    }, GetId(), (int)pos);
+    }, GetDomWindowId(), (int)pos);
 }
 
 void *wxChoice::GetHandle() const

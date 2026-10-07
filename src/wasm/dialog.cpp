@@ -47,7 +47,7 @@ wxDialog::~wxDialog()
             }
             dialog.remove();
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 bool wxDialog::Create(wxWindow *parent, wxWindowID id,
@@ -88,7 +88,7 @@ bool wxDialog::Create(wxWindow *parent, wxWindowID id,
                 }
             });
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }
@@ -110,7 +110,7 @@ int wxDialog::ShowModal()
         if (dialog && dialog.showModal) {
             dialog.showModal();
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     Show(true);
 
@@ -125,7 +125,7 @@ int wxDialog::ShowModal()
         if (dialog && dialog.open) {
             dialog.close();
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     Show(false);
 
@@ -147,7 +147,7 @@ void wxDialog::EndModal(int retCode)
         if (dialog && dialog.open) {
             dialog.close();
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 bool wxDialog::IsModal() const

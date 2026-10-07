@@ -88,7 +88,7 @@ bool wxStaticBitmap::Create( wxWindow *parent,
         img.style.height = '100%';
         img.style.objectFit = 'contain';
         container.appendChild(img);
-    }, GetId());
+    }, GetDomWindowId());
 
     if ( label.IsOk() )
         SetBitmap( label );

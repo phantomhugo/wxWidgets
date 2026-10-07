@@ -70,7 +70,7 @@ void wxStaticBox::SetLabel(const wxString& label)
                 legend.textContent = UTF8ToString($1);
             }
         }
-    }, GetId(), buffer.data());
+    }, GetDomWindowId(), buffer.data());
 }
 
 wxString wxStaticBox::GetLabel() const

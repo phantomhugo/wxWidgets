@@ -63,7 +63,7 @@ bool wxActivityIndicator::Create(wxWindow* parent,
         var spinner = document.createElement('div');
         spinner.className = 'wxActivityIndicator-spinner';
         container.appendChild(spinner);
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }
@@ -76,7 +76,7 @@ void wxActivityIndicator::Start()
         var container = document.getElementById($0);
         if (!container) return;
         container.classList.add('running');
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxActivityIndicator::Stop()
@@ -87,7 +87,7 @@ void wxActivityIndicator::Stop()
         var container = document.getElementById($0);
         if (!container) return;
         container.classList.remove('running');
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 bool wxActivityIndicator::IsRunning() const

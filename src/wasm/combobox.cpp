@@ -147,7 +147,7 @@ bool wxComboBox::Create(wxWindow *parent, wxWindowID id,
 
         container.appendChild(input);
         container.appendChild(datalist);
-    }, GetId(), valueBuf.data());
+    }, GetDomWindowId(), valueBuf.data());
 
     for (int i = 0; i < n; ++i)
     {
@@ -239,7 +239,7 @@ void wxComboBox::WriteText(const wxString &value)
             elem.value = val.substring(0, start) + text + val.substring(end);
             elem.selectionStart = elem.selectionEnd = start + text.length;
         }
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 wxString wxComboBox::DoGetValue() const
@@ -257,7 +257,7 @@ wxString wxComboBox::DoGetValue() const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId());
+    }, GetDomWindowId());
 
     if (!val)
         return wxString();
@@ -281,7 +281,7 @@ void wxComboBox::DoSetValue(const wxString& value, int WXUNUSED(flags))
         if (!container) return;
         var elem = container.querySelector('.wxComboBox');
         if (elem) elem.value = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxComboBox::Popup()
@@ -295,7 +295,7 @@ void wxComboBox::Popup()
         if (elem.showPicker) {
             try { elem.showPicker(); } catch (e) { /* requires user gesture */ }
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxComboBox::Dismiss()
@@ -305,7 +305,7 @@ void wxComboBox::Dismiss()
         if (!container) return;
         var elem = container.querySelector('.wxComboBox, .wxChoice');
         if (elem) elem.blur();
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxComboBox::Clear()
@@ -338,7 +338,7 @@ void wxComboBox::SetSelection( long from, long to )
             elem.selectionStart = $1;
             elem.selectionEnd = $2;
         }
-    }, GetId(), (int)from, (int)to);
+    }, GetDomWindowId(), (int)from, (int)to);
 }
 
 void wxComboBox::SetInsertionPoint( long pos )
@@ -351,7 +351,7 @@ void wxComboBox::SetInsertionPoint( long pos )
         if (!container) return;
         var elem = container.querySelector('.wxComboBox');
         if (elem) elem.selectionStart = elem.selectionEnd = $1;
-    }, GetId(), (int)pos);
+    }, GetDomWindowId(), (int)pos);
 }
 
 long wxComboBox::GetInsertionPoint() const
@@ -364,7 +364,7 @@ long wxComboBox::GetInsertionPoint() const
         if (!container) return 0;
         var elem = container.querySelector('.wxComboBox');
         return elem ? elem.selectionStart : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxComboBox::GetSelection(long* from, long* to) const
@@ -380,14 +380,14 @@ void wxComboBox::GetSelection(long* from, long* to) const
         if (!container) return 0;
         var elem = container.querySelector('.wxComboBox');
         return elem ? elem.selectionStart : 0;
-    }, GetId());
+    }, GetDomWindowId());
 
     if (to) *to = EM_ASM_INT({
         var container = document.getElementById($0);
         if (!container) return 0;
         var elem = container.querySelector('.wxComboBox');
         return elem ? elem.selectionEnd : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxComboBox::SetEditable(bool editable)
@@ -400,7 +400,7 @@ void wxComboBox::SetEditable(bool editable)
         if (!container) return;
         var elem = container.querySelector('.wxComboBox');
         if (elem) elem.readOnly = $1 === 0;
-    }, GetId(), editable ? 1 : 0);
+    }, GetDomWindowId(), editable ? 1 : 0);
 }
 
 void wxComboBox::SetString(unsigned int n, const wxString& s)
@@ -415,7 +415,7 @@ void wxComboBox::SetString(unsigned int n, const wxString& s)
             if (datalist && $1 < datalist.options.length) {
                 datalist.options[$1].value = UTF8ToString($2);
             }
-        }, GetId(), (int)n, buf.data());
+        }, GetDomWindowId(), (int)n, buf.data());
     }
 }
 
@@ -439,7 +439,7 @@ int wxComboBox::DoInsertOneItem(const wxString& item, unsigned int pos)
             } else {
                 datalist.insertBefore(option, datalist.options[$2]);
             }
-        }, GetId(), buf.data(), (int)pos);
+        }, GetDomWindowId(), buf.data(), (int)pos);
     }
 
     return idx;
@@ -458,7 +458,7 @@ void wxComboBox::DoClear()
                     datalist.remove(0);
                 }
             }
-        }, GetId());
+        }, GetDomWindowId());
     }
 }
 
@@ -473,7 +473,7 @@ void wxComboBox::DoDeleteOneItem(unsigned int pos)
             if (datalist && $1 < datalist.options.length) {
                 datalist.remove($1);
             }
-        }, GetId(), (int)pos);
+        }, GetDomWindowId(), (int)pos);
     }
 }
 

@@ -1145,6 +1145,14 @@ input[type="radio"] {
 }
 
 .wxStaticBox {
+    /* Fill the static box container so the border surrounds the area the
+       sizer reserved for the box (children are absolutely-positioned
+       siblings inside the same container, they are not flow children). */
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
     border: 1px solid #bfb8b1;
     border-radius: 6px;
     padding: 12px;

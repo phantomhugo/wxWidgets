@@ -76,7 +76,7 @@ bool wxSlider::Create(wxWindow *parent,
         });
 
         container.appendChild(slider);
-    }, GetId(), minValue, maxValue, m_lineSize, value);
+    }, GetDomWindowId(), minValue, maxValue, m_lineSize, value);
 
     return true;
 }
@@ -88,7 +88,7 @@ int wxSlider::GetValue() const
         if (!container) return 0;
         var slider = container.querySelector('.wxSlider');
         return slider ? parseInt(slider.value, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxSlider::SetValue(int value)
@@ -98,7 +98,7 @@ void wxSlider::SetValue(int value)
         if (!container) return;
         var slider = container.querySelector('.wxSlider');
         if (slider) slider.value = $1;
-    }, GetId(), value);
+    }, GetDomWindowId(), value);
 }
 
 void wxSlider::SetRange(int minValue, int maxValue)
@@ -111,7 +111,7 @@ void wxSlider::SetRange(int minValue, int maxValue)
             slider.min = $1;
             slider.max = $2;
         }
-    }, GetId(), minValue, maxValue);
+    }, GetDomWindowId(), minValue, maxValue);
 }
 
 int wxSlider::GetMin() const
@@ -121,7 +121,7 @@ int wxSlider::GetMin() const
         if (!container) return 0;
         var slider = container.querySelector('.wxSlider');
         return slider ? parseInt(slider.min, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 int wxSlider::GetMax() const
@@ -131,7 +131,7 @@ int wxSlider::GetMax() const
         if (!container) return 0;
         var slider = container.querySelector('.wxSlider');
         return slider ? parseInt(slider.max, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxSlider::DoSetTickFreq(int WXUNUSED(freq))
@@ -151,7 +151,7 @@ void wxSlider::SetLineSize(int lineSize)
         if (!container) return;
         var slider = container.querySelector('.wxSlider');
         if (slider) slider.step = $1;
-    }, GetId(), lineSize);
+    }, GetDomWindowId(), lineSize);
 }
 
 void wxSlider::SetPageSize(int pageSize)

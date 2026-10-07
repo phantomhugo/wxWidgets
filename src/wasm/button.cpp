@@ -86,7 +86,7 @@ wxWindow *wxButton::SetDefault()
                 var btn = container.querySelector('.wxButton');
                 if (btn) btn.classList.remove('default');
             }
-        }, oldDefault->GetId());
+        }, oldDefault->GetDomWindowId());
     }
 
     // Add default class to the current button
@@ -96,7 +96,7 @@ wxWindow *wxButton::SetDefault()
             var btn = container.querySelector('.wxButton');
             if (btn) btn.classList.add('default');
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     return oldDefault;
 }

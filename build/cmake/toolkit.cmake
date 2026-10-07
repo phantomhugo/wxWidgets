@@ -34,8 +34,11 @@ elseif(EMSCRIPTEN)
     set(wxUSE_IPC OFF CACHE BOOL "Disabled for Emscripten" FORCE)
     # Emscripten has neither inotify() nor kqueue()
     set(wxUSE_FSWATCHER OFF CACHE BOOL "Disabled for Emscripten" FORCE)
-    # Neither PostScript nor any native printing API is available
-    set(wxUSE_PRINTING_ARCHITECTURE OFF CACHE BOOL "Disabled for Emscripten" FORCE)
+    # No native printing API is available, but the generic PostScript-based
+    # printing stack (wx/generic/printps + dcpsg) works and produces a
+    # downloadable PostScript document on wasm. Disabled by default; can be
+    # enabled explicitly with -DwxUSE_PRINTING_ARCHITECTURE=ON.
+    set(wxUSE_PRINTING_ARCHITECTURE OFF CACHE BOOL "Generic PostScript printing on Emscripten")
     # wxTaskBarIcon is not implemented by the wasm port
     set(wxUSE_TASKBARICON OFF CACHE BOOL "Disabled for Emscripten" FORCE)
     # Emscripten's default 64 KiB stack is far too small for wxWidgets' call

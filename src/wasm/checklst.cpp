@@ -64,7 +64,7 @@ bool wxCheckListBox::Create(wxWindow *parent, wxWindowID id,
         div.style.boxSizing = 'border-box';
 
         container.appendChild(div);
-    }, GetId());
+    }, GetDomWindowId());
 
     for ( int i = 0; i < n; ++i )
     {
@@ -103,7 +103,7 @@ bool wxCheckListBox::IsChecked(unsigned int n) const
             return checkbox ? checkbox.checked : 0;
         }
         return 0;
-    }, GetId(), (int)n);
+    }, GetDomWindowId(), (int)n);
 
     return checked != 0;
 }
@@ -124,7 +124,7 @@ void wxCheckListBox::Check(unsigned int n, bool check )
             var checkbox = div.children[$1].querySelector('input[type="checkbox"]');
             if (checkbox) checkbox.checked = $2;
         }
-    }, GetId(), (int)n, check ? 1 : 0);
+    }, GetDomWindowId(), (int)n, check ? 1 : 0);
 }
 
 int wxCheckListBox::DoInsertOneItem(const wxString& item, unsigned int pos)
@@ -176,7 +176,7 @@ void wxCheckListBox::OnItemInserted(unsigned int pos)
         } else {
             div.appendChild(label);
         }
-    }, GetId(), (int)pos, buf.data());
+    }, GetDomWindowId(), (int)pos, buf.data());
 }
 
 void wxCheckListBox::DoDeleteOneItem(unsigned int n)
@@ -194,7 +194,7 @@ void wxCheckListBox::DoDeleteOneItem(unsigned int n)
         if ($1 >= 0 && $1 < div.children.length) {
             div.children[$1].remove();
         }
-    }, GetId(), (int)n);
+    }, GetDomWindowId(), (int)n);
 }
 
 void wxCheckListBox::DoDrawRange(wxControlRenderer *renderer,int itemFirst, int itemLast)
@@ -222,7 +222,7 @@ void wxCheckListBox::DoClear()
         while (div.firstChild) {
             div.removeChild(div.firstChild);
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxCheckListBox::WasmNotifyEvent(const wxWasmEvent& event)

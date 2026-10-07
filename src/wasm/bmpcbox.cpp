@@ -109,7 +109,7 @@ bool wxBitmapComboBox::Create(wxWindow *parent,
 
         var ctrl = container.querySelector('.wxChoice, .wxComboBox');
         if (ctrl) ctrl.style.paddingLeft = '28px';
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }
@@ -268,7 +268,7 @@ void wxBitmapComboBox::UpdateBitmap()
                 if (!container) return;
                 var img = container.querySelector('.wxBitmapComboBox-bitmap');
                 if (img) img.style.display = "";
-            }, GetId());
+            }, GetDomWindowId());
 
             return;
         }
@@ -281,7 +281,7 @@ void wxBitmapComboBox::UpdateBitmap()
         if (!container) return;
         var img = container.querySelector('.wxBitmapComboBox-bitmap');
         if (img) img.style.display = 'none';
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxBitmapComboBox::WasmNotifyEvent(const wxWasmEvent& event)

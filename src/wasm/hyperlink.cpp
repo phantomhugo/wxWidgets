@@ -83,7 +83,7 @@ bool wxHyperlinkCtrl::Create(wxWindow *parent,
         });
 
         container.appendChild(link);
-    }, GetId(), labelBuf.data(), urlBuf.data(), style);
+    }, GetDomWindowId(), labelBuf.data(), urlBuf.data(), style);
 
     SetLabel(label);
     UpdateLinkColour();
@@ -105,7 +105,7 @@ void wxHyperlinkCtrl::SetLabel(const wxString& label)
         if (!container) return;
         var link = container.querySelector('.wxHyperlinkCtrl');
         if (link) link.textContent = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxHyperlinkCtrl::SetURL(const wxString &url)
@@ -118,7 +118,7 @@ void wxHyperlinkCtrl::SetURL(const wxString &url)
         if (!container) return;
         var link = container.querySelector('.wxHyperlinkCtrl');
         if (link) link.href = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxHyperlinkCtrl::SetVisited(bool visited)
@@ -133,7 +133,7 @@ void wxHyperlinkCtrl::SetVisited(bool visited)
         link.classList.toggle('visited', $1 !== 0);
         link.style.color = ($1 !== 0) ? link.dataset.visited
                                       : link.dataset.normal;
-    }, GetId(), visited ? 1 : 0);
+    }, GetDomWindowId(), visited ? 1 : 0);
 }
 
 void wxHyperlinkCtrl::SetNormalColour(const wxColour &colour)
@@ -171,7 +171,7 @@ void wxHyperlinkCtrl::UpdateLinkColour()
         link.dataset.visited = UTF8ToString($3);
         link.style.color = ($4 !== 0) ? link.dataset.visited
                                       : link.dataset.normal;
-    }, GetId(), normalBuf.data(), hoverBuf.data(), visitedBuf.data(),
+    }, GetDomWindowId(), normalBuf.data(), hoverBuf.data(), visitedBuf.data(),
        m_visited ? 1 : 0);
 }
 

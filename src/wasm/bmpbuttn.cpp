@@ -88,7 +88,7 @@ void wxBitmapButton::DoSetBitmap(const wxBitmapBundle& bitmap, State which)
             btn.textContent = "";
             btn.appendChild(img);
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     wxWasmSetImgFromPixels(GetId(), ".wxButton img",
         image.GetData(),

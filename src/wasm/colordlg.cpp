@@ -144,7 +144,7 @@ int wxColourDialog::ShowModal()
             dialog.showModal();
         }
     },
-    GetId(),
+    GetDomWindowId(),
     titleBuffer.data(),
     colourBuffer.data(),
     okBuffer.data(),
@@ -193,7 +193,7 @@ int wxColourDialog::ShowModal()
             }
             dialog.remove();
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     if (returnCode == wxID_OK)
     {

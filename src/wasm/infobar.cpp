@@ -103,7 +103,7 @@ void wxInfoBar::DoShowBar(bool show)
         var container = document.getElementById($0);
         if (!container) return;
         container.style.display = $1 ? 'flex' : 'none';
-    }, GetId(), show ? 1 : 0);
+    }, GetDomWindowId(), show ? 1 : 0);
 
     // just change the internal flag indicating that the window is visible,
     // without touching the DOM again
@@ -140,7 +140,7 @@ void wxInfoBar::ShowMessage(const wxString& msg, int flags)
 
         var message = container.querySelector('.wxInfoBar-message');
         if (message) message.textContent = UTF8ToString($1);
-    }, GetId(), buf.data(), IconIndexFromFlags(flags));
+    }, GetDomWindowId(), buf.data(), IconIndexFromFlags(flags));
 
     DoShowBar(true);
 }
@@ -186,7 +186,7 @@ void wxInfoBar::ShowCheckBox(const wxString& checkBoxText, bool checked)
 
         label.lastChild.nodeValue = ' ' + text;
         label.firstChild.checked = $2 !== 0;
-    }, GetId(), buf.data(), checked ? 1 : 0);
+    }, GetDomWindowId(), buf.data(), checked ? 1 : 0);
 }
 
 bool wxInfoBar::IsCheckBoxChecked() const
@@ -197,7 +197,7 @@ bool wxInfoBar::IsCheckBoxChecked() const
         var label = container.querySelector('.wxInfoBar-checkbox');
         if (!label) return 0;
         return label.firstChild.checked ? 1 : 0;
-    }, GetId()) != 0;
+    }, GetDomWindowId()) != 0;
 }
 
 void wxInfoBar::AddButton(wxWindowID btnid, const wxString& label)
@@ -236,7 +236,7 @@ void wxInfoBar::AddButton(wxWindowID btnid, const wxString& label)
         } else {
             container.appendChild(btn);
         }
-    }, GetId(), (int)btnid, buf.data());
+    }, GetDomWindowId(), (int)btnid, buf.data());
 
     m_buttons.push_back(btnid);
 }
@@ -265,7 +265,7 @@ void wxInfoBar::RemoveButton(wxWindowID btnid)
             var close = container.querySelector('.wxInfoBar-close');
             if (close) close.style.removeProperty('display');
         }
-    }, GetId(), (int)btnid, (int)m_buttons.size());
+    }, GetDomWindowId(), (int)btnid, (int)m_buttons.size());
 }
 
 size_t wxInfoBar::GetButtonCount() const

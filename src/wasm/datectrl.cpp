@@ -45,7 +45,7 @@ bool wxDatePickerCtrl::Create(wxWindow *parent,
         });
 
         container.appendChild(input);
-    }, GetId());
+    }, GetDomWindowId());
 
     SetValue(date.IsValid() ? date : wxDateTime::Today());
     return true;
@@ -60,7 +60,7 @@ void wxDatePickerCtrl::SetValue(const wxDateTime& dt)
         if (!container) return;
         var input = container.querySelector('.wxDatePickerCtrl');
         if (input) input.value = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 wxDateTime wxDatePickerCtrl::GetValue() const
@@ -76,7 +76,7 @@ wxDateTime wxDatePickerCtrl::GetValue() const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId());
+    }, GetDomWindowId());
 
     wxDateTime dt;
     if (val)
@@ -102,7 +102,7 @@ void wxDatePickerCtrl::SetRange(const wxDateTime& dt1, const wxDateTime& dt2)
         var max = UTF8ToString($2);
         if (min) input.min = min; else input.removeAttribute('min');
         if (max) input.max = max; else input.removeAttribute('max');
-    }, GetId(), minBuf.data(), maxBuf.data());
+    }, GetDomWindowId(), minBuf.data(), maxBuf.data());
 }
 
 bool wxDatePickerCtrl::GetRange(wxDateTime *dt1, wxDateTime *dt2) const
@@ -117,7 +117,7 @@ bool wxDatePickerCtrl::GetRange(wxDateTime *dt1, wxDateTime *dt2) const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId());
+    }, GetDomWindowId());
 
     char* maxVal = (char*)EM_ASM_INT({
         var container = document.getElementById($0);
@@ -129,7 +129,7 @@ bool wxDatePickerCtrl::GetRange(wxDateTime *dt1, wxDateTime *dt2) const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId());
+    }, GetDomWindowId());
 
     if (dt1 && minVal)
     {

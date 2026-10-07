@@ -121,7 +121,7 @@ bool wxRadioBox::Create(wxWindow *parent,
         }
 
         container.appendChild(fieldset);
-    }, GetId(), titleBuf.data(), n);
+    }, GetDomWindowId(), titleBuf.data(), n);
 
     for (int i = 0; i < n; i++)
     {
@@ -140,7 +140,7 @@ bool wxRadioBox::Enable(unsigned int n, bool enable)
         if (!fieldset) return;
         var radios = fieldset.querySelectorAll('input[type="radio"]');
         if (radios[$1]) radios[$1].disabled = !$2;
-    }, GetId(), (int)n, enable ? 1 : 0);
+    }, GetDomWindowId(), (int)n, enable ? 1 : 0);
     return true;
 }
 
@@ -151,7 +151,7 @@ bool wxRadioBox::Enable( bool enable )
         if (!container) return;
         var fieldset = container.querySelector('.wxRadioBox');
         if (fieldset) fieldset.disabled = !$1;
-    }, GetId(), enable ? 1 : 0);
+    }, GetDomWindowId(), enable ? 1 : 0);
     return wxControl::Enable(enable);
 }
 
@@ -174,7 +174,7 @@ bool wxRadioBox::IsItemEnabled(unsigned int n) const
         if (!fieldset) return 1;
         var radios = fieldset.querySelectorAll('input[type="radio"]');
         return radios[$1] ? !radios[$1].disabled : 1;
-    }, GetId(), (int)n) != 0;
+    }, GetDomWindowId(), (int)n) != 0;
 }
 
 bool wxRadioBox::IsItemShown(unsigned int WXUNUSED(n)) const
@@ -190,7 +190,7 @@ unsigned int wxRadioBox::GetCount() const
         var fieldset = container.querySelector('.wxRadioBox');
         if (!fieldset) return 0;
         return fieldset.querySelectorAll('input[type="radio"]').length;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 wxString wxRadioBox::GetString(unsigned int n) const
@@ -207,7 +207,7 @@ wxString wxRadioBox::GetString(unsigned int n) const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId(), (int)n);
+    }, GetDomWindowId(), (int)n);
 
     if (!val) return wxString();
     wxString result = wxString::FromUTF8(val);
@@ -225,7 +225,7 @@ void wxRadioBox::SetString(unsigned int n, const wxString& s)
         if (!fieldset) return;
         var spans = fieldset.querySelectorAll('.wxRadioBox-label-' + $1);
         if (spans.length) spans[0].textContent = UTF8ToString($2);
-    }, GetId(), (int)n, buf.data());
+    }, GetDomWindowId(), (int)n, buf.data());
 }
 
 void wxRadioBox::SetSelection(int n)
@@ -237,7 +237,7 @@ void wxRadioBox::SetSelection(int n)
         if (!fieldset) return;
         var radios = fieldset.querySelectorAll('input[type="radio"]');
         if (radios[$1]) radios[$1].checked = true;
-    }, GetId(), n);
+    }, GetDomWindowId(), n);
 }
 
 int wxRadioBox::GetSelection() const
@@ -252,7 +252,7 @@ int wxRadioBox::GetSelection() const
             if (radios[i].checked) return i;
         }
         return 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void *wxRadioBox::GetHandle() const

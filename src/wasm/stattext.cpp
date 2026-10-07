@@ -79,7 +79,7 @@ void wxStaticText::WXSetVisibleLabel(const wxString& label)
                 span.textContent = UTF8ToString($1);
             }
         }
-    }, GetId(), buffer.data());
+    }, GetDomWindowId(), buffer.data());
 }
 
 wxString wxStaticText::WXGetVisibleLabel() const

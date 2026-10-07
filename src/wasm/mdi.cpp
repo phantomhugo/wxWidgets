@@ -351,7 +351,7 @@ bool wxMDIChildFrame::Create(wxMDIParentFrame *parent,
         var elem = document.getElementById($0);
         if (elem)
             elem.classList.add('wxMDIChild');
-    }, GetId());
+    }, GetDomWindowId());
 
     // Give the child a sensible geometry: wxTopLevelWindowWasm::Create()
     // forces an hardcoded size and a default position would leave the
@@ -407,7 +407,7 @@ void wxMDIChildFrame::Activate()
             if (z > maxZ) maxZ = z;
         }
         elem.style.zIndex = (maxZ + 1).toString();
-    }, GetId());
+    }, GetDomWindowId());
 
     parent->SetActiveChild(this);
 
@@ -450,7 +450,7 @@ bool wxMDIClientWindow::CreateClient(wxMDIParentFrame *parent, long style)
         var content = document.getElementById('wxFrame_content_' + $1);
         if (content)
             content.appendChild(elem);
-    }, GetId(), parent->GetId());
+    }, GetDomWindowId(), parent->GetDomWindowId());
 
     return true;
 }

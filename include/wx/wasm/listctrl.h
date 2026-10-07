@@ -293,6 +293,9 @@ private:
     bool IsReportView() const { return HasFlag(wxLC_REPORT); }
 
     void SyncColumnHeaders();
+    void SyncColumnVisibility();
+    int ComputeAutoColumnWidth(int col, bool headerOnly) const;
+    int GetColumnDisplayWidth(int logical) const;
     void SyncItemRow(long index);
     void RemoveItemRow(long index);
     void UpdateItemStateClass(long index);

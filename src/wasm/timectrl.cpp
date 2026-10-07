@@ -45,7 +45,7 @@ bool wxTimePickerCtrl::Create(wxWindow *parent,
         });
 
         container.appendChild(input);
-    }, GetId());
+    }, GetDomWindowId());
 
     SetValue(date.IsValid() ? date : wxDateTime::Now());
     return true;
@@ -60,7 +60,7 @@ void wxTimePickerCtrl::SetValue(const wxDateTime& dt)
         if (!container) return;
         var input = container.querySelector('.wxTimePickerCtrl');
         if (input) input.value = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 wxDateTime wxTimePickerCtrl::GetValue() const
@@ -76,7 +76,7 @@ wxDateTime wxTimePickerCtrl::GetValue() const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId());
+    }, GetDomWindowId());
 
     wxDateTime dt;
     if (val)

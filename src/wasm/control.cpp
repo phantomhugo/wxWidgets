@@ -124,5 +124,5 @@ void wxControl::SetLabel(const wxString& label)
                 break;
             }
         }
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }

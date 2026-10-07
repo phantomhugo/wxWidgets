@@ -68,7 +68,7 @@ bool wxToggleButton::Create(wxWindow *parent,
         });
 
         container.appendChild(btn);
-    }, GetId(), labelBuf.data());
+    }, GetDomWindowId(), labelBuf.data());
 
     return true;
 }
@@ -83,7 +83,7 @@ void wxToggleButton::SetValue(bool state)
             btn.classList.toggle('pressed', $1);
             btn.setAttribute('aria-pressed', $1 ? 'true' : 'false');
         }
-    }, GetId(), state ? 1 : 0);
+    }, GetDomWindowId(), state ? 1 : 0);
 }
 
 bool wxToggleButton::GetValue() const
@@ -93,7 +93,7 @@ bool wxToggleButton::GetValue() const
         if (!container) return 0;
         var btn = container.querySelector('.wxToggleButton');
         return btn ? (btn.classList.contains('pressed') ? 1 : 0) : 0;
-    }, GetId()) != 0;
+    }, GetDomWindowId()) != 0;
 }
 
 void wxToggleButton::WasmNotifyEvent(const wxWasmEvent& event)

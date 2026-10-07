@@ -84,7 +84,7 @@ bool wxListBox::Create(wxWindow *parent, wxWindowID id,
         });
 
         container.appendChild(select);
-    }, GetId(), isMultiple ? 1 : 0);
+    }, GetDomWindowId(), isMultiple ? 1 : 0);
 
     for (int i = 0; i < n; ++i)
     {
@@ -99,7 +99,7 @@ bool wxListBox::Create(wxWindow *parent, wxWindowID id,
             var option = document.createElement('option');
             option.textContent = UTF8ToString($1);
             select.appendChild(option);
-        }, GetId(), buf.data());
+        }, GetDomWindowId(), buf.data());
     }
 
     return true;
@@ -174,7 +174,7 @@ void wxListBox::SetString(unsigned int n, const wxString& s)
         if ($1 >= 0 && $1 < select.options.length) {
             select.options[$1].textContent = UTF8ToString($2);
         }
-    }, GetId(), (int)n, buf.data());
+    }, GetDomWindowId(), (int)n, buf.data());
 }
 
 int wxListBox::FindString(const wxString& s, bool bCase) const
@@ -246,7 +246,7 @@ void wxListBox::DoSetSelection(int n, bool select)
                     if ($1 >= 0 && $1 < select.options.length) {
                         select.options[$1].selected = false;
                     }
-                }, GetId(), oldSel);
+                }, GetDomWindowId(), oldSel);
             }
             m_selections.Clear();
         }
@@ -269,7 +269,7 @@ void wxListBox::DoSetSelection(int n, bool select)
         if ($1 >= 0 && $1 < select.options.length) {
             select.options[$1].selected = $2;
         }
-    }, GetId(), n, select ? 1 : 0);
+    }, GetDomWindowId(), n, select ? 1 : 0);
 }
 
 int wxListBox::DoInsertItems(const wxArrayStringsAdapter & items,
@@ -311,7 +311,7 @@ int wxListBox::DoInsertOneItem(const wxString& item, unsigned int pos)
         } else {
             select.appendChild(option);
         }
-    }, GetId(), buf.data(), (int)pos);
+    }, GetDomWindowId(), buf.data(), (int)pos);
 
     for (size_t i = 0; i < m_selections.GetCount(); ++i)
     {
@@ -364,7 +364,7 @@ void wxListBox::DoClear()
         while (select.options.length > 0) {
             select.remove(0);
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxListBox::DoDeleteOneItem(unsigned int pos)
@@ -396,7 +396,7 @@ void wxListBox::DoDeleteOneItem(unsigned int pos)
         if ($1 >= 0 && $1 < select.options.length) {
             select.remove($1);
         }
-    }, GetId(), (int)pos);
+    }, GetDomWindowId(), (int)pos);
 }
 
 void wxListBox::OnInternalIdle()
@@ -415,7 +415,7 @@ void wxListBox::WasmNotifyEvent(const wxWasmEvent& event)
             var select = container.querySelector('.wxListBox');
             if (!select) return 0;
             return select.options.length;
-        }, GetId());
+        }, GetDomWindowId());
 
         for (int i = 0; i < count; ++i)
         {
@@ -428,7 +428,7 @@ void wxListBox::WasmNotifyEvent(const wxWasmEvent& event)
                     return select.options[$1].selected ? 1 : 0;
                 }
                 return 0;
-            }, GetId(), i);
+            }, GetDomWindowId(), i);
 
             if (selected)
                 m_selections.Add(i);

@@ -277,7 +277,7 @@ int wxFontDialog::ShowModal()
             dialog.showModal();
         }
     },
-    GetId(),
+    GetDomWindowId(),
     titleBuffer.data(),
     familyBuffer.data(),
     okBuffer.data(),
@@ -340,7 +340,7 @@ int wxFontDialog::ShowModal()
             }
             dialog.remove();
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     if (returnCode == wxID_OK)
     {

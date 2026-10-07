@@ -110,7 +110,7 @@ bool wxFontPickerWidget::Create(wxWindow *parent,
         selWeight.addEventListener('change', emitChange);
 
         container.appendChild(wrap);
-    }), GetId());
+    }), GetDomWindowId());
 
     UpdateFont();
     return true;
@@ -151,7 +151,7 @@ void wxFontPickerWidget::UpdateFont()
         if (inpSize)   inpSize.value = $2;
         if (selStyle)  selStyle.value = UTF8ToString($3);
         if (selWeight) selWeight.value = $4.toString();
-    }, GetId(), famBuf.data(), size, style.ToUTF8().data(), weight);
+    }, GetDomWindowId(), famBuf.data(), size, style.ToUTF8().data(), weight);
 }
 
 void wxFontPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
@@ -169,7 +169,7 @@ void wxFontPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
-        }, GetId());
+        }, GetDomWindowId());
 
         int size = EM_ASM_INT({
             var container = document.getElementById($0);
@@ -178,7 +178,7 @@ void wxFontPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             if (!wrap) return 12;
             var inp = wrap.querySelector('.wxFontPicker-size');
             return inp ? parseInt(inp.value) || 12 : 12;
-        }, GetId());
+        }, GetDomWindowId());
 
         char* styleStr = (char*)EM_ASM_INT({
             var container = document.getElementById($0);
@@ -191,7 +191,7 @@ void wxFontPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             var buf = _malloc(len);
             stringToUTF8(str, buf, len);
             return buf;
-        }, GetId());
+        }, GetDomWindowId());
 
         int weight = EM_ASM_INT({
             var container = document.getElementById($0);
@@ -200,7 +200,7 @@ void wxFontPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
             if (!wrap) return 400;
             var sel = wrap.querySelector('.wxFontPicker-weight');
             return sel ? parseInt(sel.value) || 400 : 400;
-        }, GetId());
+        }, GetDomWindowId());
 
         wxFontStyle fstyle = wxFONTSTYLE_NORMAL;
         if (styleStr)

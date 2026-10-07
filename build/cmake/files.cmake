@@ -3101,6 +3101,7 @@ set(WASM_SRC
     src/wasm/dc.cpp
     src/wasm/dcclient.cpp
     src/wasm/dcmemory.cpp
+    src/wasm/dcprint.cpp
     src/wasm/dcscreen.cpp
     src/wasm/defs.cpp
     src/wasm/dialog.cpp
@@ -3133,6 +3134,7 @@ set(WASM_SRC
     src/wasm/palette.cpp
     src/wasm/pen.cpp
     src/wasm/popupwin.cpp
+    src/wasm/printdlg.cpp
     src/wasm/radiobox.cpp
     src/wasm/radiobut.cpp
     src/wasm/region.cpp

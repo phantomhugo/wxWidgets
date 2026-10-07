@@ -165,7 +165,7 @@ bool wxTopLevelWindowWasm::Create(wxWindow *parent,
             }
             return 1;
         },
-        GetId()
+        GetDomWindowId()
     );
 
     if(parent == nullptr)
@@ -181,7 +181,7 @@ bool wxTopLevelWindowWasm::Create(wxWindow *parent,
             }
             return 1;
         },
-        GetId()
+        GetDomWindowId()
     );
     }
 
@@ -235,7 +235,7 @@ void wxTopLevelWindowWasm::Maximize(bool maximize)
             delete elem.dataset.wxPrevWidth;
             delete elem.dataset.wxPrevHeight;
         }
-    }, GetId(), maximize ? 1 : 0);
+    }, GetDomWindowId(), maximize ? 1 : 0);
 }
 
 void wxTopLevelWindowWasm::Restore()
@@ -270,7 +270,7 @@ void wxTopLevelWindowWasm::Iconize(bool iconize)
             elem.style.display = elem.dataset.wxPrevDisplay || "";
             delete elem.dataset.wxPrevDisplay;
         }
-    }, GetId(), iconize ? 1 : 0);
+    }, GetDomWindowId(), iconize ? 1 : 0);
 }
 
 bool wxTopLevelWindowWasm::IsMaximized() const
@@ -313,7 +313,7 @@ bool wxTopLevelWindowWasm::ShowFullScreen(bool show, long WXUNUSED(style))
         } catch (e) {
             return 0;
         }
-    }, GetId(), show ? 1 : 0);
+    }, GetDomWindowId(), show ? 1 : 0);
 
     if ( ok )
         m_fullscreen = show;
@@ -349,7 +349,7 @@ void wxTopLevelWindowWasm::SetTitle(const wxString& title)
         if (titleBar) {
             titleBar.textContent = UTF8ToString($1);
         }
-    }, GetId(), buffer.data());
+    }, GetDomWindowId(), buffer.data());
 }
 
 wxString wxTopLevelWindowWasm::GetTitle() const

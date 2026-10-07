@@ -244,7 +244,7 @@ void wxWindowWasm::PostCreation(bool generic)
     }, m_domWindowId,
        m_parent ? m_parent->GetDomWindowId() : -1,
        m_parent ? 1 : 0,
-       (wxString::Format("wxFrame_content_%d", m_parent ? m_parent->GetId() : -1)).ToUTF8().data(),
+       (wxString::Format("wxFrame_content_%d", m_parent ? m_parent->GetDomWindowId() : -1)).ToUTF8().data(),
        IsTopLevel() ? 1 : 0);
 
     wxWindowCreateEvent event(this);

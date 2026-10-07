@@ -9,6 +9,7 @@
 #include "wx/wxprec.h"
 
 #include "wx/dcprint.h"
+#include "wx/wasm/dcprint.h"
 #if wxUSE_PRINTING_ARCHITECTURE
 wxIMPLEMENT_CLASS(wxPrinterDCImpl,wxDCImpl)
 

@@ -113,7 +113,7 @@ wxMessageDialog::~wxMessageDialog()
             }
             dialog.remove();
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 int wxMessageDialog::ShowModal()
@@ -133,7 +133,7 @@ int wxMessageDialog::ShowModal()
         if (dialog && dialog.showModal) {
             dialog.showModal();
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     // Synchronous wait: yield to the browser until the dialog is closed
     while (EM_ASM_INT({
@@ -157,7 +157,7 @@ int wxMessageDialog::ShowModal()
         if (dialog) {
             dialog.remove();
         }
-    }, GetId());
+    }, GetDomWindowId());
 
     return returnCode;
 }
@@ -204,7 +204,7 @@ void wxMessageDialog::CreateDialogElement()
         codes.ok = $5;
         codes.help = $6;
         window['wxMsgDlgCodes_' + $0] = codes;
-    }, GetId(), key,
+    }, GetDomWindowId(), key,
        (int)wxID_YES, (int)wxID_NO, (int)wxID_CANCEL,
        (int)wxID_OK, (int)wxID_HELP);
 
@@ -367,7 +367,7 @@ void wxMessageDialog::CreateDialogElement()
         delete window['wxMsgDlgCodes_' + dialogId];
 
     },
-    GetId(),
+    GetDomWindowId(),
     msgBuffer.data(),
     extMsgBuffer.data(),
     capBuffer.data(),

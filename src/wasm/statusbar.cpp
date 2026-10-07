@@ -60,7 +60,7 @@ bool wxStatusBar::Create(wxWindow *parent, wxWindowID WXUNUSED(winid),
             parent.appendChild(statusBar);
             statusBar.style.display = 'flex';
         }
-    }, parent->GetId(), GetId());
+    }, parent->GetDomWindowId(), GetDomWindowId());
 
     PostCreation();
 
@@ -89,7 +89,7 @@ void wxStatusBar::wxWasmCreateStatusBar()
             parentlessDiv.appendChild(statusBar);
             statusBar.style.display = 'none';
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
@@ -105,7 +105,7 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
             return rect.left;
         }
         return 0;
-    }, GetId(), i);
+    }, GetDomWindowId(), i);
 
     int y = EM_ASM_INT({
         var field = document.getElementById('wxStatusBar_field_' + $0 + '_' + $1);
@@ -114,7 +114,7 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
             return rect.top;
         }
         return 0;
-    }, GetId(), i);
+    }, GetDomWindowId(), i);
 
     int width = EM_ASM_INT({
         var field = document.getElementById('wxStatusBar_field_' + $0 + '_' + $1);
@@ -123,7 +123,7 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
             return rect.width;
         }
         return 0;
-    }, GetId(), i);
+    }, GetDomWindowId(), i);
 
     int height = EM_ASM_INT({
         var field = document.getElementById('wxStatusBar_field_' + $0 + '_' + $1);
@@ -132,7 +132,7 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
             return rect.height;
         }
         return 0;
-    }, GetId(), i);
+    }, GetDomWindowId(), i);
 
     rect = wxRect(x, y, width, height);
     return true;
@@ -146,7 +146,7 @@ void wxStatusBar::SetMinHeight(int height)
         if (statusBar) {
             statusBar.style.minHeight = $1 + 'px';
         }
-    }, GetId(), height);
+    }, GetDomWindowId(), height);
 }
 
 int wxStatusBar::GetBorderX() const
@@ -179,7 +179,7 @@ void wxStatusBar::DoUpdateStatusText(int number)
                 textElem.textContent = UTF8ToString($2);
             }
         }
-    }, GetId(), number, textBuffer.data());
+    }, GetDomWindowId(), number, textBuffer.data());
 }
 
 void wxStatusBar::Refresh( bool eraseBackground, const wxRect *rect )
@@ -263,7 +263,7 @@ void wxStatusBar::UpdateFields()
                 });
             }
         }
-    }, GetId(), numFields, styleVar.data());
+    }, GetDomWindowId(), numFields, styleVar.data());
 
     // Update texts
     for (int i = 0; i < numFields; i++) {
@@ -284,13 +284,13 @@ void wxStatusBar::SetFieldsCount(int number, const int* widths)
             for (var i = 0; i < $1; i++) {
                 Module.statusBarWidths[$0].push(Module.HEAP32[$2 + i * 4 >> 2]);
             }
-        }, GetId(), number, widths);
+        }, GetDomWindowId(), number, widths);
     } else {
         // Default: all fields with the same width
         EM_ASM_({
             if (!Module.statusBarWidths) Module.statusBarWidths = {};
             Module.statusBarWidths[$0] = [-1]; // -1 means automatic distribution
-        }, GetId());
+        }, GetDomWindowId());
     }
     
     UpdateFields();
@@ -313,7 +313,7 @@ void wxStatusBar::SetWindowStyleFlag(long style)
                 statusBar.classList.remove('wxStatusBar-with-grip');
             }
         }
-    }, GetId(), showGrip ? 1 : 0);
+    }, GetDomWindowId(), showGrip ? 1 : 0);
     
     UpdateFields();
 }

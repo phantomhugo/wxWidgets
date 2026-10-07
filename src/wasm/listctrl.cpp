@@ -186,20 +186,65 @@ bool wxListCtrl::SetColumnWidth(int col, int width)
     if (col < 0 || col >= (int)m_columns.size())
         return false;
 
+    // wxLIST_AUTOSIZE/wxLIST_AUTOSIZE_USEHEADER are negative: size to fit
+    // the (header and) contents instead of hiding the column. Only an
+    // explicit 0 hides it.
+    if (width < 0)
+        width = ComputeAutoColumnWidth(col, width == wxLIST_AUTOSIZE_USEHEADER);
+
     m_columns[col].width = width;
 
     EM_ASM_({
         var th = document.getElementById('wxListCtrl_col_' + $0 + '_' + $1);
         if (th) {
             if ($2 > 0) {
+                th.style.display = '';
                 th.style.width = $2 + 'px';
             } else {
-                th.style.width = 'auto';
+                th.style.display = 'none';
+                th.style.width = '0px';
             }
         }
-    }, GetId(), col, width);
+    }, GetDomWindowId(), col, width);
+
+    // Hide/show the body cells of this column as well.
+    SyncColumnVisibility();
 
     return true;
+}
+
+int wxListCtrl::ComputeAutoColumnWidth(int col, bool headerOnly) const
+{
+    int w = 0, h = 0;
+    GetTextExtent(m_columns[col].text, &w, &h);
+    int best = w;
+
+    if (!headerOnly)
+    {
+        for (size_t i = 0; i < m_items.size(); ++i)
+        {
+            const ItemInfo& it = m_items[i];
+            if (col < (int)it.texts.size())
+            {
+                GetTextExtent(it.texts[col], &w, &h);
+                if (w > best)
+                    best = w;
+            }
+        }
+    }
+
+    // Padding for the cell and a bit of slack, like the native header.
+    return best + 24;
+}
+
+int wxListCtrl::GetColumnDisplayWidth(int logical) const
+{
+    if (logical < 0 || logical >= (int)m_columns.size())
+        return 0;
+    int w = m_columns[logical].width;
+    if (w < 0)
+        w = ComputeAutoColumnWidth(logical, w == wxLIST_AUTOSIZE_USEHEADER);
+    return w;
 }
 
 int wxListCtrl::GetColumnOrder(int col) const
@@ -481,7 +526,7 @@ bool wxListCtrl::SetItemPosition(long item, const wxPoint& pos)
     EM_ASM_({
         var grid = document.getElementById('wxListCtrl_grid_' + $0);
         if (grid) grid.innerHTML = "";
-    }, GetId());
+    }, GetDomWindowId());
 
     for (size_t i = 0; i < m_items.size(); ++i)
     {
@@ -599,14 +644,14 @@ void wxListCtrl::CheckItem(long item, bool check)
         EM_ASM_({
             var cb = document.getElementById('wxListCtrl_checkbox_' + $0 + '_' + $1);
             if (cb) cb.checked = $2 ? true : false;
-        }, GetId(), (int)item, check ? 1 : 0);
+        }, GetDomWindowId(), (int)item, check ? 1 : 0);
     }
     else
     {
         EM_ASM_({
             var cb = document.getElementById('wxListCtrl_checkbox_' + $0 + '_' + $1);
             if (cb) cb.checked = $2 ? true : false;
-        }, GetId(), (int)item, check ? 1 : 0);
+        }, GetDomWindowId(), (int)item, check ? 1 : 0);
     }
 }
 
@@ -669,7 +714,7 @@ bool wxListCtrl::Arrange(int WXUNUSED(flag))
     EM_ASM_({
         var grid = document.getElementById('wxListCtrl_grid_' + $0);
         if (grid) grid.innerHTML = "";
-    }, GetId());
+    }, GetDomWindowId());
 
     for (size_t i = 0; i < m_items.size(); ++i)
     {
@@ -695,7 +740,7 @@ bool wxListCtrl::DeleteItem(long item)
         EM_ASM_({
             var tr = document.getElementById('wxListCtrl_row_' + $0 + '_' + $1);
             if (tr) tr.dataset.itemIdx = $1;
-        }, GetId(), (int)i);
+        }, GetDomWindowId(), (int)i);
     }
 
     return true;
@@ -708,14 +753,14 @@ bool wxListCtrl::DeleteAllItems()
         EM_ASM_({
             var tbody = document.getElementById('wxListCtrl_body_' + $0);
             if (tbody) tbody.innerHTML = "";
-        }, GetId());
+        }, GetDomWindowId());
     }
     else
     {
         EM_ASM_({
             var grid = document.getElementById('wxListCtrl_grid_' + $0);
             if (grid) grid.innerHTML = "";
-        }, GetId());
+        }, GetDomWindowId());
     }
 
     m_items.clear();
@@ -869,7 +914,7 @@ bool wxListCtrl::EndEditLabel(bool cancel)
             } else {
                 Module._lastEditLabel = 0;
             }
-        }, GetId(), (int)item);
+        }, GetDomWindowId(), (int)item);
 
         char* buf = (char*)EM_ASM_INT({ return Module._lastEditLabel || 0; });
         if (buf)
@@ -902,14 +947,14 @@ bool wxListCtrl::EndEditLabel(bool cancel)
         EM_ASM_({
             var td = document.getElementById('wxListCtrl_cell_' + $0 + '_' + $1 + '_0');
             if (td) td.innerHTML = "";
-        }, GetId(), (int)item);
+        }, GetDomWindowId(), (int)item);
     }
     else
     {
         EM_ASM_({
             var label = document.getElementById('wxListCtrl_label_' + $0 + '_' + $1);
             if (label) label.innerHTML = "";
-        }, GetId(), (int)item);
+        }, GetDomWindowId(), (int)item);
     }
 
     SyncItemRow(item);
@@ -1007,14 +1052,14 @@ long wxListCtrl::InsertItem(const wxListItem& info)
             EM_ASM_({
                 var tr = document.getElementById('wxListCtrl_row_' + $0 + '_' + $1);
                 if (tr) tr.dataset.itemIdx = $1;
-            }, GetId(), (int)i);
+            }, GetDomWindowId(), (int)i);
         }
         else
         {
             EM_ASM_({
                 var item = document.getElementById('wxListCtrl_item_' + $0 + '_' + $1);
                 if (item) item.dataset.itemIdx = $1;
-            }, GetId(), (int)i);
+            }, GetDomWindowId(), (int)i);
         }
     }
 
@@ -1179,7 +1224,7 @@ long wxListCtrl::DoInsertColumn(long col, const wxListItem& info)
                 } else {
                     tr.appendChild(td);
                 }
-            }, GetId(), (int)i, (int)col);
+            }, GetDomWindowId(), (int)i, (int)col);
         }
 
         SyncColumnHeaders();
@@ -1296,7 +1341,7 @@ void wxListCtrl::SyncColumnHeaders()
         var row = document.getElementById('wxListCtrl_headrow_' + $0);
         if (!row) return;
         row.innerHTML = "";
-    }, GetId());
+    }, GetDomWindowId());
 
     for (size_t vis = 0; vis < m_columns.size(); ++vis)
     {
@@ -1310,8 +1355,14 @@ void wxListCtrl::SyncColumnHeaders()
             var th = document.createElement('th');
             th.id = 'wxListCtrl_col_' + $0 + '_' + $1;
             th.textContent = UTF8ToString($2);
+            // A zero (or negative) width means the column is hidden: without
+            // an explicit display:none it would render with automatic width.
             if ($3 > 0) {
+                th.style.display = '';
                 th.style.width = $3 + 'px';
+            } else {
+                th.style.display = 'none';
+                th.style.width = '0px';
             }
             th.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1322,8 +1373,48 @@ void wxListCtrl::SyncColumnHeaders()
                 }
             });
             row.appendChild(th);
-        }, GetId(), logical, buf.data(), m_columns[logical].width);
+        }, GetDomWindowId(), logical, buf.data(), GetColumnDisplayWidth(logical));
     }
+
+    // Keep the body cells in sync with the (possibly hidden) columns.
+    SyncColumnVisibility();
+}
+
+void wxListCtrl::SyncColumnVisibility()
+{
+    if (!IsReportView())
+        return;
+
+    // Column widths in visual order: cells of every row (indexed by visual
+    // position) hide when their column width is zero.
+    wxString widths;
+    for (size_t vis = 0; vis < m_columns.size(); ++vis)
+    {
+        int logical = m_colOrder.IsEmpty() ? (int)vis : m_colOrder[vis];
+        if (logical < 0 || logical >= (int)m_columns.size())
+            logical = (int)vis;
+        if (vis)
+            widths << ',';
+        widths << GetColumnDisplayWidth(logical);
+    }
+
+    EM_ASM_({
+        var tbody = document.getElementById('wxListCtrl_body_' + $0);
+        if (!tbody) return;
+        var widths = UTF8ToString($1).split(',');
+        for (var r = 0; r < tbody.children.length; r++) {
+            var tr = tbody.children[r];
+            var c = 0;
+            for (var i = 0; i < tr.children.length; i++) {
+                var td = tr.children[i];
+                // Skip the optional checkbox column (not a data column).
+                if (td.querySelector('input[type=checkbox]')) continue;
+                if (c < widths.length)
+                    td.style.display = (parseInt(widths[c], 10) > 0) ? '' : 'none';
+                c++;
+            }
+        }
+    }, GetDomWindowId(), widths.ToUTF8().data());
 }
 
 void wxListCtrl::SyncItemRow(long index)
@@ -1347,10 +1438,16 @@ void wxListCtrl::SyncItemRow(long index)
                 text = it.texts[logical];
 
             wxCharBuffer buf = text.ToUTF8();
+            const bool visible = logical < (int)m_columns.size()
+                                    ? GetColumnDisplayWidth(logical) > 0
+                                    : true;
             EM_ASM_({
                 var td = document.getElementById('wxListCtrl_cell_' + $0 + '_' + $1 + '_' + $2);
-                if (td) td.textContent = UTF8ToString($3);
-            }, GetId(), (int)index, vis, buf.data());
+                if (td) {
+                    td.textContent = UTF8ToString($3);
+                    td.style.display = $4 ? '' : 'none';
+                }
+            }, GetDomWindowId(), (int)index, vis, buf.data(), visible ? 1 : 0);
         }
     }
     else
@@ -1360,7 +1457,7 @@ void wxListCtrl::SyncItemRow(long index)
         EM_ASM_({
             var label = document.getElementById('wxListCtrl_label_' + $0 + '_' + $1);
             if (label) label.textContent = UTF8ToString($2);
-        }, GetId(), (int)index, buf.data());
+        }, GetDomWindowId(), (int)index, buf.data());
     }
 }
 
@@ -1371,14 +1468,14 @@ void wxListCtrl::RemoveItemRow(long index)
         EM_ASM_({
             var tr = document.getElementById('wxListCtrl_row_' + $0 + '_' + $1);
             if (tr) tr.remove();
-        }, GetId(), (int)index);
+        }, GetDomWindowId(), (int)index);
     }
     else
     {
         EM_ASM_({
             var item = document.getElementById('wxListCtrl_item_' + $0 + '_' + $1);
             if (item) item.remove();
-        }, GetId(), (int)index);
+        }, GetDomWindowId(), (int)index);
     }
 }
 
@@ -1405,7 +1502,7 @@ void wxListCtrl::UpdateItemStateClass(long index)
             } else {
                 tr.classList.remove('focused');
             }
-        }, GetId(), (int)index, selected ? 1 : 0, focused ? 1 : 0);
+        }, GetDomWindowId(), (int)index, selected ? 1 : 0, focused ? 1 : 0);
     }
     else
     {
@@ -1422,7 +1519,7 @@ void wxListCtrl::UpdateItemStateClass(long index)
             } else {
                 item.classList.remove('focused');
             }
-        }, GetId(), (int)index, selected ? 1 : 0, focused ? 1 : 0);
+        }, GetDomWindowId(), (int)index, selected ? 1 : 0, focused ? 1 : 0);
     }
 }
 

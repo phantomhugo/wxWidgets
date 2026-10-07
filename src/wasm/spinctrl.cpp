@@ -69,7 +69,7 @@ bool wxSpinCtrl::Create( wxWindow *parent, wxWindowID id, const wxString& value,
         });
 
         container.appendChild(spin);
-    }, GetId(), min, max, 1, initVal);
+    }, GetDomWindowId(), min, max, 1, initVal);
 
     return true;
 }
@@ -91,7 +91,7 @@ wxString wxSpinCtrl::GetTextValue() const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId());
+    }, GetDomWindowId());
 
     if (!valStr)
         return wxString();
@@ -108,7 +108,7 @@ int wxSpinCtrl::GetValue() const
         if (!container) return 0;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseInt(spin.value, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 int wxSpinCtrl::GetMin() const
@@ -118,7 +118,7 @@ int wxSpinCtrl::GetMin() const
         if (!container) return 0;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseInt(spin.min, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 int wxSpinCtrl::GetMax() const
@@ -128,7 +128,7 @@ int wxSpinCtrl::GetMax() const
         if (!container) return 0;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseInt(spin.max, 10) : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 int wxSpinCtrl::GetIncrement() const
@@ -138,7 +138,7 @@ int wxSpinCtrl::GetIncrement() const
         if (!container) return 1;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseInt(spin.step, 10) : 1;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxSpinCtrl::SetIncrement(int inc)
@@ -148,7 +148,7 @@ void wxSpinCtrl::SetIncrement(int inc)
         if (!container) return;
         var spin = container.querySelector('.wxSpinCtrl');
         if (spin) spin.step = $1;
-    }, GetId(), inc);
+    }, GetDomWindowId(), inc);
 }
 
 void wxSpinCtrl::SetRange(int min, int max)
@@ -161,7 +161,7 @@ void wxSpinCtrl::SetRange(int min, int max)
             spin.min = $1;
             spin.max = $2;
         }
-    }, GetId(), min, max);
+    }, GetDomWindowId(), min, max);
 }
 
 void wxSpinCtrl::SetSnapToTicks(bool WXUNUSED(snap_to_ticks))
@@ -190,7 +190,7 @@ void wxSpinCtrl::SetSelection(long from, long to)
                 spin.selectionEnd = $2;
             } catch (e) { /* unsupported input type: nothing to select */ }
         }
-    }, GetId(), (int)from, (int)to);
+    }, GetDomWindowId(), (int)from, (int)to);
 }
 
 void wxSpinCtrl::SetValue( const wxString &value )
@@ -201,7 +201,7 @@ void wxSpinCtrl::SetValue( const wxString &value )
         if (!container) return;
         var spin = container.querySelector('.wxSpinCtrl');
         if (spin) spin.value = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxSpinCtrl::SetValue(int val)
@@ -211,7 +211,7 @@ void wxSpinCtrl::SetValue(int val)
         if (!container) return;
         var spin = container.querySelector('.wxSpinCtrl');
         if (spin) spin.value = $1;
-    }, GetId(), val);
+    }, GetDomWindowId(), val);
 }
 
 WXWidget wxSpinCtrl::GetHandle() const
@@ -294,7 +294,7 @@ bool wxSpinCtrlDouble::Create(wxWindow *parent, wxWindowID id, const wxString& v
         });
 
         container.appendChild(spin);
-    }, GetId(), min, max, inc, initVal);
+    }, GetDomWindowId(), min, max, inc, initVal);
 
     return true;
 }
@@ -316,7 +316,7 @@ void wxSpinCtrlDouble::SetValue( const wxString &value )
         if (!container) return;
         var spin = container.querySelector('.wxSpinCtrl');
         if (spin) spin.value = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxSpinCtrlDouble::SetValue(double val)
@@ -326,7 +326,7 @@ void wxSpinCtrlDouble::SetValue(double val)
         if (!container) return;
         var spin = container.querySelector('.wxSpinCtrl');
         if (spin) spin.value = $1;
-    }, GetId(), val);
+    }, GetDomWindowId(), val);
 }
 
 double wxSpinCtrlDouble::GetValue() const
@@ -336,7 +336,7 @@ double wxSpinCtrlDouble::GetValue() const
         if (!container) return 0.0;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseFloat(spin.value) : 0.0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 double wxSpinCtrlDouble::GetMin() const
@@ -346,7 +346,7 @@ double wxSpinCtrlDouble::GetMin() const
         if (!container) return 0.0;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseFloat(spin.min) : 0.0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 double wxSpinCtrlDouble::GetMax() const
@@ -356,7 +356,7 @@ double wxSpinCtrlDouble::GetMax() const
         if (!container) return 0.0;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseFloat(spin.max) : 0.0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 double wxSpinCtrlDouble::GetIncrement() const
@@ -366,7 +366,7 @@ double wxSpinCtrlDouble::GetIncrement() const
         if (!container) return 1.0;
         var spin = container.querySelector('.wxSpinCtrl');
         return spin ? parseFloat(spin.step) : 1.0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxSpinCtrlDouble::SetIncrement(double inc)
@@ -376,7 +376,7 @@ void wxSpinCtrlDouble::SetIncrement(double inc)
         if (!container) return;
         var spin = container.querySelector('.wxSpinCtrl');
         if (spin) spin.step = $1;
-    }, GetId(), inc);
+    }, GetDomWindowId(), inc);
 }
 
 void wxSpinCtrlDouble::SetRange(double min, double max)
@@ -389,7 +389,7 @@ void wxSpinCtrlDouble::SetRange(double min, double max)
             spin.min = $1;
             spin.max = $2;
         }
-    }, GetId(), min, max);
+    }, GetDomWindowId(), min, max);
 }
 
 void wxSpinCtrlDouble::WasmNotifyEvent(const wxWasmEvent& event)

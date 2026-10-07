@@ -97,7 +97,7 @@ wxWasmMediaBackend::~wxWasmMediaBackend()
             var video = container.querySelector('video.wxMediaCtrl');
             if (video && video.dataset.blobUrl)
                 URL.revokeObjectURL(video.dataset.blobUrl);
-        }, m_ctrl->GetId());
+        }, m_ctrl->GetDomWindowId());
     }
 }
 
@@ -147,7 +147,7 @@ bool wxWasmMediaBackend::CreateControl(wxControl* ctrl, wxWindow* parent,
             function() { notify('mediaended'); });
 
         container.appendChild(video);
-    }, m_ctrl->GetId());
+    }, m_ctrl->GetDomWindowId());
 
     return true;
 }
@@ -208,7 +208,7 @@ bool wxWasmMediaBackend::Play()
         if (promise && promise.catch)
             promise.catch(function() {});
         return 1;
-    }, m_ctrl->GetId()) != 0;
+    }, m_ctrl->GetDomWindowId()) != 0;
 
     if ( !ok )
         return false;
@@ -227,7 +227,7 @@ bool wxWasmMediaBackend::Pause()
         if (!video) return 0;
         video.pause();
         return 1;
-    }, m_ctrl->GetId()) != 0;
+    }, m_ctrl->GetDomWindowId()) != 0;
 
     if ( !ok )
         return false;
@@ -250,7 +250,7 @@ bool wxWasmMediaBackend::Stop()
         video.pause();
         video.currentTime = 0;
         return 1;
-    }, m_ctrl->GetId()) != 0;
+    }, m_ctrl->GetDomWindowId()) != 0;
 
     if ( !ok )
         return false;
@@ -309,7 +309,7 @@ bool wxWasmMediaBackend::DoLoad(const wxString& location, bool isUri)
         video.src = src;
         video.load();
         return 1;
-    }, m_ctrl->GetId(), buf.data(), isUri ? 1 : 0) != 0;
+    }, m_ctrl->GetDomWindowId(), buf.data(), isUri ? 1 : 0) != 0;
 
     if ( ok )
         m_state = wxMEDIASTATE_STOPPED;
@@ -332,7 +332,7 @@ bool wxWasmMediaBackend::SetPosition(wxLongLong where)
         if (!video) return 0;
         video.currentTime = $1 / 1000;
         return 1;
-    }, m_ctrl->GetId(), static_cast<double>(where.ToLong())) != 0;
+    }, m_ctrl->GetDomWindowId(), static_cast<double>(where.ToLong())) != 0;
 }
 
 wxLongLong wxWasmMediaBackend::GetPosition()
@@ -342,7 +342,7 @@ wxLongLong wxWasmMediaBackend::GetPosition()
         if (!container) return 0;
         var video = container.querySelector('video.wxMediaCtrl');
         return video ? Math.round(video.currentTime * 1000) : 0;
-    }, m_ctrl->GetId()));
+    }, m_ctrl->GetDomWindowId()));
 }
 
 wxLongLong wxWasmMediaBackend::GetDuration()
@@ -353,7 +353,7 @@ wxLongLong wxWasmMediaBackend::GetDuration()
         var video = container.querySelector('video.wxMediaCtrl');
         if (!video || !isFinite(video.duration)) return 0;
         return Math.round(video.duration * 1000);
-    }, m_ctrl->GetId()));
+    }, m_ctrl->GetDomWindowId()));
 }
 
 // ----------------------------------------------------------------------------
@@ -377,14 +377,14 @@ wxSize wxWasmMediaBackend::GetVideoSize() const
         if (!container) return 0;
         var video = container.querySelector('video.wxMediaCtrl');
         return video ? video.videoWidth : 0;
-    }, m_ctrl->GetId());
+    }, m_ctrl->GetDomWindowId());
 
     const int h = EM_ASM_INT({
         var container = document.getElementById($0);
         if (!container) return 0;
         var video = container.querySelector('video.wxMediaCtrl');
         return video ? video.videoHeight : 0;
-    }, m_ctrl->GetId());
+    }, m_ctrl->GetDomWindowId());
 
     return wxSize(w, h);
 }
@@ -400,7 +400,7 @@ double wxWasmMediaBackend::GetPlaybackRate()
         if (!container) return 0;
         var video = container.querySelector('video.wxMediaCtrl');
         return video ? video.playbackRate : 0;
-    }, m_ctrl->GetId());
+    }, m_ctrl->GetDomWindowId());
 }
 
 bool wxWasmMediaBackend::SetPlaybackRate(double dRate)
@@ -412,7 +412,7 @@ bool wxWasmMediaBackend::SetPlaybackRate(double dRate)
         if (!video) return 0;
         video.playbackRate = $1;
         return 1;
-    }, m_ctrl->GetId(), dRate) != 0;
+    }, m_ctrl->GetDomWindowId(), dRate) != 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -428,7 +428,7 @@ double wxWasmMediaBackend::GetVolume()
         if (!container) return 0;
         var video = container.querySelector('video.wxMediaCtrl');
         return video ? video.volume : 0;
-    }, m_ctrl->GetId());
+    }, m_ctrl->GetDomWindowId());
 }
 
 bool wxWasmMediaBackend::SetVolume(double dVolume)
@@ -445,7 +445,7 @@ bool wxWasmMediaBackend::SetVolume(double dVolume)
         if (!video) return 0;
         video.volume = $1;
         return 1;
-    }, m_ctrl->GetId(), dVolume) != 0;
+    }, m_ctrl->GetDomWindowId(), dVolume) != 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -462,7 +462,7 @@ bool wxWasmMediaBackend::ShowPlayerControls(wxMediaCtrlPlayerControls flags)
         if (!container) return;
         var video = container.querySelector('video.wxMediaCtrl');
         if (video) video.controls = !!$1;
-    }, m_ctrl->GetId(), flags != wxMEDIACTRLPLAYERCONTROLS_NONE ? 1 : 0);
+    }, m_ctrl->GetDomWindowId(), flags != wxMEDIACTRLPLAYERCONTROLS_NONE ? 1 : 0);
 
     return true;
 }
@@ -474,7 +474,7 @@ bool wxWasmMediaBackend::IsInterfaceShown()
         if (!container) return 0;
         var video = container.querySelector('video.wxMediaCtrl');
         return (video && video.controls) ? 1 : 0;
-    }, m_ctrl->GetId()) != 0;
+    }, m_ctrl->GetDomWindowId()) != 0;
 }
 
 // ----------------------------------------------------------------------------

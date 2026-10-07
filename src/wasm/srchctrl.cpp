@@ -61,7 +61,7 @@ bool wxSearchCtrl::Create(wxWindow *parent, wxWindowID id,
                     [$0, 'search', 0, 0]);
             }
         });
-    }, GetId());
+    }, GetDomWindowId());
 
     return true;
 }
@@ -97,7 +97,7 @@ void wxSearchCtrl::SetDescriptiveText(const wxString& text)
         if (!container) return;
         var elem = container.querySelector('.wxSearchCtrl');
         if (elem) elem.placeholder = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxSearchCtrl::WasmNotifyEvent(const wxWasmEvent& event)

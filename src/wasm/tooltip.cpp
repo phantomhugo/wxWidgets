@@ -61,7 +61,7 @@ void wxToolTip::SetTip(const wxString& tip)
                 elem.title = tip;
             else
                 elem.removeAttribute('title');
-        }, m_window->GetId(), buf.data());
+        }, m_window->GetDomWindowId(), buf.data());
     }
 }
 

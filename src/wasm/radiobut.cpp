@@ -82,7 +82,7 @@ void wxRadioButton::SetValue(bool value)
         if (!container) return;
         var radio = container.querySelector('.wxRadioButton input[type="radio"]');
         if (radio) radio.checked = $1;
-    }, GetId(), static_cast<int>(value));
+    }, GetDomWindowId(), static_cast<int>(value));
 }
 
 bool wxRadioButton::GetValue() const
@@ -92,7 +92,7 @@ bool wxRadioButton::GetValue() const
         if (!container) return 0;
         var radio = container.querySelector('.wxRadioButton input[type="radio"]');
         return radio ? radio.checked : 0;
-    }, GetId());
+    }, GetDomWindowId());
 
     return checked != 0;
 }

@@ -39,37 +39,75 @@ std::string GenerateCanvasId()
 // from another TU of a static library are not resolved by the JS linker.
 // ----------------------------------------------------------------------------
 
+// Hidden DOM "ruler" used to calibrate text measurement: an actual element
+// resolves the font exactly like the rendered controls (same family
+// fallback, size and text shaping), while canvas measureText() is cheap but
+// can be a couple of pixels off (which visibly truncates labels, as the
+// control containers clip with overflow:hidden). So each font spec is
+// measured ONCE with the DOM ruler and a calibration factor
+// (domWidth/canvasWidth, plus the true line height) is cached and applied to
+// the fast canvas measurements. A forced synchronous reflow per measurement
+// would make startup pathologically slow (hundreds of layouts over the
+// whole app DOM).
+static void wxWasmEnsureRuler()
+{
+    EM_ASM({
+        if (!window._wxWasmRuler) {
+            var r = document.createElement('span');
+            r.style.cssText =
+                'position:absolute;left:-9999px;top:0;visibility:hidden;' +
+                'white-space:nowrap;display:inline-block;' +
+                'padding:0;border:0;margin:0;line-height:normal;';
+            document.body.appendChild(r);
+            window._wxWasmRuler = r;
+            window._wxWasmMeasureCtx =
+                document.createElement('canvas').getContext('2d');
+            window._wxWasmFontCal = {};
+        }
+    });
+}
+
 double wxWasmMeasureTextWidth(const char* fontSpec, const char* text)
 {
+    wxWasmEnsureRuler();
     return EM_ASM_DOUBLE({
+        var spec = UTF8ToString($0);
+        var cal = window._wxWasmFontCal[spec];
         var ctx = window._wxWasmMeasureCtx;
-        if (!ctx) { ctx = document.createElement('canvas').getContext('2d'); window._wxWasmMeasureCtx = ctx; }
-        ctx.font = UTF8ToString($0);
-        return ctx.measureText(UTF8ToString($1)).width;
+        if (!cal) {
+            var r = window._wxWasmRuler;
+            r.style.font = spec;
+            r.textContent = 'Mg';
+            var domW = r.offsetWidth || 1;
+            ctx.font = spec;
+            var canvasW = ctx.measureText('Mg').width || 1;
+            cal = domW / canvasW + '|' + r.offsetHeight;
+            window._wxWasmFontCal[spec] = cal;
+        }
+        var k = parseFloat(cal);
+        ctx.font = spec;
+        return ctx.measureText(UTF8ToString($1)).width * k;
     }, fontSpec, text);
 }
 
 double wxWasmMeasureCharHeight(const char* fontSpec)
 {
+    wxWasmEnsureRuler();
     return EM_ASM_DOUBLE({
-        var ctx = window._wxWasmMeasureCtx;
-        if (!ctx) { ctx = document.createElement('canvas').getContext('2d'); window._wxWasmMeasureCtx = ctx; }
-        ctx.font = UTF8ToString($0);
-        var metrics = ctx.measureText('Mg');
-        var ascent = metrics.actualBoundingBoxAscent || 0;
-        var descent = metrics.actualBoundingBoxDescent || 0;
-        if (ascent === 0 && descent === 0) {
-            // Fallback: parse size from font spec (look for pt or px)
-            var match = ctx.font.match(/(\\d+(?:\\.\\d+)?)\\s*(px|pt)/i);
-            if (match) {
-                var size = parseFloat(match[1]);
-                var unit = match[2].toLowerCase();
-                if (unit === 'pt') size = size * 96 / 72;
-                return Math.round(size * 1.2);
-            }
-            return 12;
+        var spec = UTF8ToString($0);
+        var cal = window._wxWasmFontCal[spec];
+        if (!cal) {
+            var r = window._wxWasmRuler;
+            r.style.font = spec;
+            r.textContent = 'Mg';
+            var domW = r.offsetWidth || 1;
+            var ctx = window._wxWasmMeasureCtx;
+            ctx.font = spec;
+            var canvasW = ctx.measureText('Mg').width || 1;
+            cal = domW / canvasW + '|' + r.offsetHeight;
+            window._wxWasmFontCal[spec] = cal;
         }
-        return ascent + descent;
+        return parseFloat(cal.substring(cal.indexOf('|') + 1));
     }, fontSpec);
 }
 

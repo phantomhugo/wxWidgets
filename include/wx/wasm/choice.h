@@ -76,6 +76,11 @@ protected:
     virtual void DoDeleteOneItem(unsigned int pos) override;
 
 private:
+    // Grow the control to fit the items when their width exceeds the
+    // current size, like the GTK choice does (the DOM <select> keeps the
+    // container size it was given at creation otherwise).
+    void UpdateAutoSize();
+
     wxArrayString m_choices;
     std::vector<void*> m_clientData;
 

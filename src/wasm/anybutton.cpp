@@ -52,7 +52,7 @@ void wxAnyButton::SetLabel( const wxString &label )
         if (!container) return;
         var btn = container.querySelector('.wxButton');
         if (btn) btn.textContent = UTF8ToString($1);
-    }, GetId(), buffer.data());
+    }, GetDomWindowId(), buffer.data());
 }
 
 wxString wxAnyButton::GetLabel() const
@@ -99,7 +99,7 @@ void wxAnyButton::DoSetBitmap(const wxBitmapBundle& bitmap, State which)
                     btn.appendChild(img);
                 }
                 img.src = UTF8ToString($1);
-            }, GetId(), urlBuffer.data());
+            }, GetDomWindowId(), urlBuffer.data());
         }
     }
 }

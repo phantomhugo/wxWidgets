@@ -100,7 +100,7 @@ bool wxTextCtrl::Create(wxWindow *parent,
         });
 
         container.appendChild(elem);
-    }, GetId(), isMultiline, isPassword, isReadonly, valueBuf.data());
+    }, GetDomWindowId(), isMultiline, isPassword, isReadonly, valueBuf.data());
 
     return true;
 }
@@ -116,7 +116,7 @@ void wxTextCtrl::SetEditable(bool editable)
         if (!container) return;
         var elem = container.querySelector('.wxTextCtrl');
         if (elem) elem.readOnly = !$1;
-    }, GetId(), editable ? 1 : 0);
+    }, GetDomWindowId(), editable ? 1 : 0);
 }
 
 void wxTextCtrl::SetMaxLength(unsigned long len)
@@ -145,7 +145,7 @@ void wxTextCtrl::SetMaxLength(unsigned long len)
         } else {
             elem.removeAttribute('maxlength');
         }
-    }, GetId(), (int)len);
+    }, GetDomWindowId(), (int)len);
 }
 
 wxSize wxTextCtrl::DoGetBestSize() const
@@ -231,7 +231,7 @@ void wxTextCtrl::SetInsertionPoint(long pos)
         if (!container) return;
         var elem = container.querySelector('.wxTextCtrl');
         if (elem) elem.selectionStart = elem.selectionEnd = $1;
-    }, GetId(), (int)pos);
+    }, GetDomWindowId(), (int)pos);
 }
 
 long wxTextCtrl::GetInsertionPoint() const
@@ -241,7 +241,7 @@ long wxTextCtrl::GetInsertionPoint() const
         if (!container) return 0;
         var elem = container.querySelector('.wxTextCtrl');
         return elem ? elem.selectionStart : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 wxString wxTextCtrl::DoGetValue() const
@@ -256,7 +256,7 @@ wxString wxTextCtrl::DoGetValue() const
         var buf = _malloc(len);
         stringToUTF8(str, buf, len);
         return buf;
-    }, GetId());
+    }, GetDomWindowId());
 
     if (!val)
         return wxString();
@@ -281,7 +281,7 @@ void wxTextCtrl::SetSelection( long from, long to )
             elem.selectionStart = $1;
             elem.selectionEnd = $2;
         }
-    }, GetId(), (int)from, (int)to);
+    }, GetDomWindowId(), (int)from, (int)to);
 }
 
 void wxTextCtrl::GetSelection(long* from, long* to) const
@@ -291,14 +291,14 @@ void wxTextCtrl::GetSelection(long* from, long* to) const
         if (!container) return 0;
         var elem = container.querySelector('.wxTextCtrl');
         return elem ? elem.selectionStart : 0;
-    }, GetId());
+    }, GetDomWindowId());
 
     if (to) *to = EM_ASM_INT({
         var container = document.getElementById($0);
         if (!container) return 0;
         var elem = container.querySelector('.wxTextCtrl');
         return elem ? elem.selectionEnd : 0;
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxTextCtrl::WriteText( const wxString &text )
@@ -315,7 +315,7 @@ void wxTextCtrl::WriteText( const wxString &text )
             elem.value = val.substring(0, start) + UTF8ToString($1) + val.substring(end);
             elem.selectionStart = elem.selectionEnd = start + UTF8ToString($1).length;
         }
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxTextCtrl::DoSetValue( const wxString &text, int WXUNUSED(flags) )
@@ -326,7 +326,7 @@ void wxTextCtrl::DoSetValue( const wxString &text, int WXUNUSED(flags) )
         if (!container) return;
         var elem = container.querySelector('.wxTextCtrl');
         if (elem) elem.value = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 WXWidget wxTextCtrl::GetHandle() const

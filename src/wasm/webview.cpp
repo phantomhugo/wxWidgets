@@ -52,7 +52,7 @@ bool wxWebViewWasm::Create(wxWindow* parent, wxWindowID id,
         });
 
         container.appendChild(iframe);
-    }, GetId());
+    }, GetDomWindowId());
 
     // Let the application know the control is ready.
     wxWebViewEvent event(wxEVT_WEBVIEW_CREATED, GetId(), "", "");
@@ -100,7 +100,7 @@ wxString wxWebViewWasm::GetIframeDocumentProp(const char* prop) const
             // Cross-origin document: not readable from the outer page.
             return 0;
         }
-    }, GetId(), propBuf.data());
+    }, GetDomWindowId(), propBuf.data());
 
     wxString result;
     if ( buf )
@@ -145,7 +145,7 @@ void wxWebViewWasm::LoadURL(const wxString& url)
         if (!container) return;
         var iframe = container.querySelector('.wxWebView-iframe');
         if (iframe) iframe.src = UTF8ToString($1);
-    }, GetId(), urlBuf.data());
+    }, GetDomWindowId(), urlBuf.data());
 }
 
 void wxWebViewWasm::Print()
@@ -157,7 +157,7 @@ void wxWebViewWasm::Print()
         try {
             if (iframe && iframe.contentWindow) iframe.contentWindow.print();
         } catch (e) { /* cross-origin */ }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxWebViewWasm::RegisterHandler(wxSharedPtr<wxWebViewHandler> WXUNUSED(handler))
@@ -179,7 +179,7 @@ void wxWebViewWasm::Reload(wxWebViewReloadFlags WXUNUSED(flags))
             var src = iframe.src;
             iframe.src = src;
         }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 bool wxWebViewWasm::RunScript(const wxString& javascript, wxString* output) const
@@ -206,11 +206,11 @@ bool wxWebViewWasm::RunScript(const wxString& javascript, wxString* output) cons
             // Cross-origin document or script error.
             return 0;
         }
-    }, GetId(), scriptBuf.data());
+    }, GetDomWindowId(), scriptBuf.data());
 
     const int ok = EM_ASM_INT({
         return window['_wxWebViewScriptOk_' + $0] || 0;
-    }, GetId());
+    }, GetDomWindowId());
 
     if ( ok && output && resultBuf )
         *output = wxString::FromUTF8(resultBuf);
@@ -231,7 +231,7 @@ void wxWebViewWasm::SetEditable(bool enable)
             if (iframe && iframe.contentDocument)
                 iframe.contentDocument.designMode = $1 ? 'on' : 'off';
         } catch (e) { /* cross-origin */ }
-    }, GetId(), enable ? 1 : 0);
+    }, GetDomWindowId(), enable ? 1 : 0);
 }
 
 void wxWebViewWasm::Stop()
@@ -243,7 +243,7 @@ void wxWebViewWasm::Stop()
         try {
             if (iframe && iframe.contentWindow) iframe.contentWindow.stop();
         } catch (e) { /* cross-origin */ }
-    }, GetId());
+    }, GetDomWindowId());
     m_loading = false;
 }
 
@@ -269,7 +269,7 @@ void wxWebViewWasm::GoBack()
         try {
             if (iframe && iframe.contentWindow) iframe.contentWindow.history.back();
         } catch (e) { /* cross-origin */ }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxWebViewWasm::GoForward()
@@ -281,7 +281,7 @@ void wxWebViewWasm::GoForward()
         try {
             if (iframe && iframe.contentWindow) iframe.contentWindow.history.forward();
         } catch (e) { /* cross-origin */ }
-    }, GetId());
+    }, GetDomWindowId());
 }
 
 void wxWebViewWasm::ClearHistory()
@@ -328,7 +328,7 @@ void wxWebViewWasm::SetZoomFactor(float zoom)
             if (iframe && iframe.contentDocument && iframe.contentDocument.body)
                 iframe.contentDocument.body.style.zoom = $1;
         } catch (e) { /* cross-origin */ }
-    }, GetId(), zoom);
+    }, GetDomWindowId(), zoom);
 }
 
 void wxWebViewWasm::SetZoomType(wxWebViewZoomType zoomType)
@@ -347,7 +347,7 @@ void wxWebViewWasm::DoSetPage(const wxString& html, const wxString& WXUNUSED(bas
         if (!container) return;
         var iframe = container.querySelector('.wxWebView-iframe');
         if (iframe) iframe.srcdoc = UTF8ToString($1);
-    }, GetId(), htmlBuf.data());
+    }, GetDomWindowId(), htmlBuf.data());
 }
 
 void wxWebViewWasm::WasmNotifyEvent(const wxWasmEvent& event)

@@ -72,7 +72,7 @@ bool wxColourPickerWidget::Create(wxWindow *parent,
         });
 
         container.appendChild(input);
-    }, GetId());
+    }, GetDomWindowId());
 
     UpdateColour();
     return true;
@@ -87,7 +87,7 @@ void wxColourPickerWidget::UpdateColour()
         if (!container) return;
         var input = container.querySelector('.wxColourPickerWidget');
         if (input) input.value = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 }
 
 void wxColourPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
@@ -106,7 +106,7 @@ void wxColourPickerWidget::WasmNotifyEvent(const wxWasmEvent& event)
                 var buf = _malloc(len);
                 stringToUTF8(str, buf, len);
                 return buf;
-            }, GetId());
+            }, GetDomWindowId());
 
             if (val)
             {

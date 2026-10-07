@@ -75,7 +75,7 @@ void wxCheckBox::SetValue(bool value)
         if (!container) return;
         var checkbox = container.querySelector('.wxCheckBox input[type="checkbox"]');
         if (checkbox) checkbox.checked = $1;
-    }, GetId(), static_cast<int>(value));
+    }, GetDomWindowId(), static_cast<int>(value));
 }
 
 bool wxCheckBox::GetValue() const
@@ -85,7 +85,7 @@ bool wxCheckBox::GetValue() const
         if (!container) return 0;
         var checkbox = container.querySelector('.wxCheckBox input[type="checkbox"]');
         return checkbox ? checkbox.checked : 0;
-    }, GetId());
+    }, GetDomWindowId());
 
     return checked != 0;
 }

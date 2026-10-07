@@ -54,7 +54,7 @@ bool wxStaticLine::Create(wxWindow *parent,
         }
 
         container.appendChild(line);
-    }, GetId(), isHorizontal ? 1 : 0);
+    }, GetDomWindowId(), isHorizontal ? 1 : 0);
 
     return true;
 }

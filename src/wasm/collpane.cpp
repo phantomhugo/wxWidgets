@@ -175,7 +175,7 @@ void wxCollapsiblePane::Collapse(bool collapse)
 
         var arrow = container.querySelector('.wxCollapsiblePane-arrow');
         if (arrow) arrow.textContent = $1 ? '▶' : '▼';
-    }, GetId(), collapse ? 1 : 0);
+    }, GetDomWindowId(), collapse ? 1 : 0);
 
     OnStateChange(GetBestSize());
 }
@@ -192,7 +192,7 @@ void wxCollapsiblePane::SetLabel(const wxString& label)
 
         var text = container.querySelector('.wxCollapsiblePane-label');
         if (text) text.textContent = UTF8ToString($1);
-    }, GetId(), buf.data());
+    }, GetDomWindowId(), buf.data());
 
     InvalidateBestSize();
 }

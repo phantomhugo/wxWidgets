@@ -412,6 +412,13 @@ if(UNIX)
             message(WARNING "iconv not found")
             wx_option_force_value(wxUSE_LIBICONV OFF)
         endif()
+        if(EMSCRIPTEN AND ICONV_LIBRARIES MATCHES "libc\\.a$")
+            # En Emscripten iconv vive dentro de libc, que el propio emcc
+            # enlaza (libc-mt.a cuando se compila con -pthread). Referenciar
+            # libc.a explicitamente arrastra la variante de un solo hilo y
+            # el enlace falla con simbolos duplicados contra libc-mt.a.
+            set(ICONV_LIBRARIES "")
+        endif()
     endif()
 
     if(wxBUILD_LARGEFILE_SUPPORT)

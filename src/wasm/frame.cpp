@@ -47,7 +47,7 @@ bool wxFrame::Create( wxWindow *parent, wxWindowID id, const wxString& title,
                 currentFrame.append(frameContent);
                 return 1;
             },
-            GetId()
+            GetDomWindowId()
         );
     }
     return true;
@@ -70,8 +70,8 @@ void wxFrame::SetMenuBar( wxMenuBar *menuBar )
                 }
                 return 1;
             },
-            GetId(),
-            menuBar->GetId()
+            GetDomWindowId(),
+            menuBar->GetDomWindowId()
         );
     }
 }
@@ -93,7 +93,7 @@ void wxFrame::SetStatusBar( wxStatusBar *statusBar )
                 }
                 return 1;
             },
-            oldStatusBar->GetId()
+            oldStatusBar->GetDomWindowId()
         );
     }
     
@@ -111,8 +111,8 @@ void wxFrame::SetStatusBar( wxStatusBar *statusBar )
                 }
                 return 1;
             },
-            GetId(),
-            statusBar->GetId()
+            GetDomWindowId(),
+            statusBar->GetDomWindowId()
         );
     }
 }
@@ -134,7 +134,7 @@ void wxFrame::SetToolBar(wxToolBar *toolbar)
                 }
                 return 1;
             },
-            oldToolBar->GetId()
+            oldToolBar->GetDomWindowId()
         );
     }
 
@@ -168,8 +168,8 @@ void wxFrame::SetToolBar(wxToolBar *toolbar)
                 }
                 return 1;
             },
-            GetId(),
-            toolbar->GetId()
+            GetDomWindowId(),
+            toolbar->GetDomWindowId()
         );
     }
 }

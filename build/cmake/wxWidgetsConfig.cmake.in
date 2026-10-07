@@ -184,9 +184,11 @@ if(TARGET wx::wxnet AND @wxUSE_WEBREQUEST_CURL@)
     find_dependency(CURL)
 endif()
 
-if(TARGET wx::wxgl AND NOT (APPLE AND IOS))
+if(TARGET wx::wxgl AND NOT (APPLE AND IOS) AND NOT EMSCRIPTEN)
     # make sure OpenGL targets are available:
     # The link interface of target "wx::wxgl" contains: OpenGL::GLU
+    # (the wasm port uses WebGL and has no system OpenGL dependency, and
+    # find_dependency(OpenGL) breaks policy balance under Emscripten)
     find_dependency(OpenGL)
 endif()
 

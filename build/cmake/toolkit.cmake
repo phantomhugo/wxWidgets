@@ -32,6 +32,29 @@ elseif(EMSCRIPTEN)
     set(wxUSE_DYNAMIC_LOADER OFF CACHE BOOL "Disabled for Emscripten" FORCE)
     set(wxUSE_DEBUGREPORT OFF CACHE BOOL "Disabled for Emscripten" FORCE)
     set(wxUSE_IPC OFF CACHE BOOL "Disabled for Emscripten" FORCE)
+    # Emscripten has neither inotify() nor kqueue()
+    set(wxUSE_FSWATCHER OFF CACHE BOOL "Disabled for Emscripten" FORCE)
+    # Neither PostScript nor any native printing API is available
+    set(wxUSE_PRINTING_ARCHITECTURE OFF CACHE BOOL "Disabled for Emscripten" FORCE)
+    # wxTaskBarIcon is not implemented by the wasm port
+    set(wxUSE_TASKBARICON OFF CACHE BOOL "Disabled for Emscripten" FORCE)
+    # Emscripten's default 64 KiB stack is far too small for wxWidgets' call
+    # chains (e.g. stream/archive processing or nested event loops overflow
+    # it). Give executables a 1 MiB stack and propagate the same flag through
+    # wx-config so user programs get it too.
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -sSTACK_SIZE=1048576")
+    # The port's JS glue (src/wasm/*.cpp EM_ASM blocks) calls back into C++
+    # through Module.ccall(), so the runtime method must be exported.
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -sEXPORTED_RUNTIME_METHODS=ccall,HEAPU8,HEAP32")
+    # The port's event loop (src/wasm/evtloop.cpp) and the native dialog/dnd
+    # implementations use emscripten_sleep(), which requires async support
+    # at link time (see https://emscripten.org/docs/porting/asyncify.html).
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -sASYNCIFY")
+    # Shared wx libraries are not supported with Emscripten: TARGET_SUPPORTS_SHARED_LIBS
+    # is FALSE and the sysroot ports (zlib, libpng, libjpeg) are not built with -fPIC,
+    # so they cannot be linked into shared libraries. Only set the default, an
+    # explicit -DwxBUILD_SHARED=ON is still honored.
+    set(wxBUILD_SHARED OFF CACHE BOOL "Build wx libraries as shared libs")
 elseif(APPLE AND IPHONE)
     set(wxDEFAULT_TOOLKIT osx_iphone)
     set(wxTOOLKIT_OPTIONS osx_iphone)

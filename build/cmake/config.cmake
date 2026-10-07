@@ -184,6 +184,14 @@ function(wx_write_config)
     set(CXX ${CMAKE_CXX_COMPILER})
     set(WXCONFIG_CFLAGS ${CMAKE_THREAD_LIBS_INIT})
     set(WXCONFIG_LDFLAGS ${CMAKE_THREAD_LIBS_INIT})
+    if(EMSCRIPTEN)
+        # Must match the linker flags set for in-tree executables in
+        # build/cmake/toolkit.cmake: wx needs more stack than Emscripten's
+        # 64 KiB default, ASYNCIFY (the port uses emscripten_sleep()) and
+        # the Module.ccall runtime method used by the port's JS glue.
+        wx_string_append(WXCONFIG_LDFLAGS
+            " -sSTACK_SIZE=1048576 -sASYNCIFY -sEXPORTED_RUNTIME_METHODS=ccall,HEAPU8,HEAP32")
+    endif()
     set(WXCONFIG_CPPFLAGS)
     if(wxBUILD_SHARED)
         wx_string_append(WXCONFIG_CPPFLAGS " -DWXUSINGDLL")

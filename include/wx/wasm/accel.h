@@ -25,6 +25,10 @@ public:
     // events report the Shift-dependent case.
     const wxAcceleratorEntry* FindEntry(int flags, int keyCode) const;
 
+    // Returns the entry matching the given key event, or nullptr if there is
+    // none (required by wxWindowBase::FindAcceleratorForKey()).
+    const wxAcceleratorEntry* GetEntry(const wxKeyEvent& event) const;
+
 protected:
     // ref counting code
     virtual wxObjectRefData *CreateRefData() const override;

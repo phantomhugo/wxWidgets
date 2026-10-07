@@ -171,9 +171,35 @@ int wxWasmEventLoopBase::DoRun()
     // loop must read the base flag or it never notices the exit request.
     while(!m_shouldExit)
     {
-        while(!m_shouldExit&&Pending())
+        // Move events that were queued in JS while Asyncify had a sleep in
+        // progress (Asyncify.state != Normal, during which calls into wasm
+        // from DOM listeners are unreliable and can be lost) into the C++
+        // queue. This EM_ASM runs inside the wasm execution, where calling
+        // back through Module.ccall is always safe.
+        EM_ASM(
+            var q = window.__wxEvq;
+            if (q && q.length) {
+                window.__wxEvq = [];
+                for (var i = 0; i < q.length; i++) {
+                    var e = q[i];
+                    Module.ccall(e[0], null, e[2], e[3]);
+                }
+            }
+        );
+        // Process only the events that were already queued when this cycle
+        // began: events queued by handlers while dispatching (repaints,
+        // size-triggered refreshes, ...) must wait for the next cycle. An
+        // unbounded "while (Pending()) Dispatch()" can wedge the loop
+        // forever when a handler keeps queueing new events (e.g. a paint
+        // that triggers a resize that triggers another paint), freezing
+        // the whole application.
+        if ( m_sink )
         {
-            Dispatch();
+            const size_t numQueued = m_sink->m_pendingEvents.size();
+            for ( size_t i = 0; i < numQueued && !m_shouldExit; ++i )
+            {
+                Dispatch();
+            }
         }
         // Process the events pending at wx level (wxCallAfter, wxQueueEvent)
         // and generate idle events (which in turn drive wxUpdateUIEvent).

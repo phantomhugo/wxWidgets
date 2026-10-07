@@ -55,7 +55,7 @@ bool wxCollapsiblePane::Create(wxWindow *parent,
         return false;
 
     int domId = GetDomWindowId();
-    wxCharBuffer labelBuffer = label.ToUTF8();
+    wxCharBuffer labelBuffer = wxControlBase::GetLabelText(label).ToUTF8();
 
     EM_ASM_({
         var container = document.getElementById($0);
@@ -184,7 +184,7 @@ void wxCollapsiblePane::SetLabel(const wxString& label)
 {
     m_label = label;
 
-    wxCharBuffer buf = label.ToUTF8();
+    wxCharBuffer buf = wxControlBase::GetLabelText(label).ToUTF8();
 
     EM_ASM_({
         var container = document.getElementById($0);

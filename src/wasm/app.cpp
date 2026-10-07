@@ -49,6 +49,39 @@ bool wxApp::Initialize( int &argc, wxChar **argv )
             return 1;
     );
 
+    // Route DOM-originated events around Asyncify's suspended state. The
+    // event loop spends most of its time inside emscripten_sleep(), during
+    // which Asyncify.state is not Normal and a Module.ccall() made from a
+    // DOM listener can be silently lost. Intercept ccall() for the event
+    // entry points and buffer those calls in JS; the event loop drains the
+    // buffer through an EM_ASM (which always runs inside the wasm
+    // execution, where calling back is safe). See wxWasmEventLoopBase::DoRun.
+    EM_ASM_INT(
+        window.__wxEvq = [];
+        if (typeof Module !== 'undefined' && Module.ccall &&
+            !Module.__wxEvqPatched) {
+            var origCcall = Module.ccall;
+            Module.ccall = function(ident, returnType, argTypes, args) {
+                if ((ident === 'addEvent' ||
+                     ident === 'addInputEvent' ||
+                     ident === 'addKeyEvent') &&
+                    typeof Asyncify !== 'undefined' &&
+                    (Asyncify.state !== 0 /* Asyncify.State.Normal */ ||
+                     Asyncify.currData /* sleep in progress: a suspended
+                        sleep has state Normal again (the unwind completed)
+                        but currData set, and calling into the instrumented
+                        wasm in that state breaks the asyncify state
+                        machine and the call is lost */)) {
+                    window.__wxEvq.push([ident, returnType, argTypes, args]);
+                    return undefined;
+                }
+                return origCcall.apply(Module, arguments);
+            };
+            Module.__wxEvqPatched = true;
+        }
+        return 1;
+    );
+
     // Inject default CSS styles (GTK3-like)
     wxWasmCSSManager::InjectDefaultStyles();
 

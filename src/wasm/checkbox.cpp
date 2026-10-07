@@ -33,7 +33,7 @@ bool wxCheckBox::Create(wxWindow *parent, wxWindowID id, const wxString& label,
         return false;
 
     int domId = GetDomWindowId();
-    wxCharBuffer labelBuffer = label.ToUTF8();
+    wxCharBuffer labelBuffer = wxControlBase::GetLabelText(label).ToUTF8();
 
     EM_ASM_({
         var container = document.getElementById($0);

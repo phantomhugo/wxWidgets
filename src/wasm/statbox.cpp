@@ -38,7 +38,7 @@ bool wxStaticBox::Create(wxWindow *parent, wxWindowID id,
         return false;
 
     int domId = GetDomWindowId();
-    wxCharBuffer labelBuffer = label.ToUTF8();
+    wxCharBuffer labelBuffer = wxControlBase::GetLabelText(label).ToUTF8();
 
     EM_ASM_({
         var container = document.getElementById($0);
@@ -61,7 +61,7 @@ void wxStaticBox::SetLabel(const wxString& label)
 {
     wxControl::SetLabel(label);
 
-    wxCharBuffer buffer = label.ToUTF8();
+    wxCharBuffer buffer = wxControlBase::GetLabelText(label).ToUTF8();
     EM_ASM_({
         var container = document.getElementById($0);
         if (container) {

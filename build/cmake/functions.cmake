@@ -628,6 +628,14 @@ macro(wx_add_library name)
         if(CREATE_WX_TARGET)
             target_link_libraries(wxWidgets INTERFACE ${name})
         endif()
+        if(EMSCRIPTEN)
+            # Propagate the linker flags required by this port (see
+            # toolkit.cmake: larger stack, ASYNCIFY for emscripten_sleep)
+            # to executables linked against wx, including downstream
+            # find_package() consumers.
+            target_link_options(${name} INTERFACE -sSTACK_SIZE=1048576 -sASYNCIFY
+                                  -sEXPORTED_RUNTIME_METHODS=ccall,HEAPU8,HEAP32)
+        endif()
 
         wx_set_target_properties(${name} ${ARGN})
         set_target_properties(${name} PROPERTIES PROJECT_LABEL ${name_short})

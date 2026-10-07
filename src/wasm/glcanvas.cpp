@@ -460,6 +460,10 @@ bool wxGLContext::SetCurrent(const wxGLCanvas& win) const
     EM_ASM_({
         if (typeof GLImmediate !== 'undefined' && !GLImmediate.initted) {
             Module.useWebGL = true;
+            // GLImmediate.init() checks Browser.useWebGL (only set by the
+            // Module.canvas context-creation path, which wx doesn't use) and
+            // returns early without initializing TexEnvJIT otherwise.
+            Browser.useWebGL = true;
             GLImmediate.init();
         }
     });

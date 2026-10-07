@@ -2986,6 +2986,7 @@ set(WASM_HDR
     wx/wasm/brush.h
     wx/wasm/button.h
     wx/wasm/calctrl.h
+    wx/wasm/chkconf.h
     wx/wasm/datectrl.h
     wx/wasm/timectrl.h
     wx/wasm/checkbox.h

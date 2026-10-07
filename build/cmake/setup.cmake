@@ -723,6 +723,12 @@ endif(NOT WIN32)
 if(APPLE)
     set(wxUSE_EPOLL_DISPATCHER OFF)
     set(wxUSE_SELECT_DISPATCHER ON)
+elseif(EMSCRIPTEN)
+    # Emscripten provides the sys/epoll.h header but epoll is not usable in
+    # the browser event loop; the wasm port uses the select dispatcher
+    # (src/common/selectdispatcher.cpp is part of BASE_WASM_SRC).
+    set(wxUSE_EPOLL_DISPATCHER OFF)
+    set(wxUSE_SELECT_DISPATCHER ON)
 else()
     if(NOT WIN32)
         set(wxUSE_SELECT_DISPATCHER ON)

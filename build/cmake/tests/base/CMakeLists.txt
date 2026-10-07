@@ -51,8 +51,14 @@ set(TEST_SRC
     misc/module.cpp
     misc/pathlist.cpp
     misc/typeinfotest.cpp
-    net/ipc.cpp
-    net/ipc_test_server.cpp
+)
+if(wxUSE_IPC)
+    list(APPEND TEST_SRC
+        net/ipc.cpp
+        net/ipc_test_server.cpp
+    )
+endif()
+set(TEST_SRC ${TEST_SRC}
     net/socket.cpp
     net/webrequest.cpp
     net/webrequest_local.cpp
@@ -128,7 +134,9 @@ set(TEST_DATA
 wx_add_test(test_base CONSOLE NO_CTEST ${TEST_SRC}
     DATA ${TEST_DATA}
     )
-target_compile_definitions(test_base PRIVATE TEST_HAS_IPC_SERVER)
+if(wxUSE_IPC)
+    target_compile_definitions(test_base PRIVATE TEST_HAS_IPC_SERVER)
+endif()
 if(wxUSE_SOCKETS)
     wx_exe_link_libraries(test_base wxnet)
 endif()

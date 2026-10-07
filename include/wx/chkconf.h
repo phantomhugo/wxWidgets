@@ -1271,6 +1271,8 @@
 #  include "wx/x11/chkconf.h"
 #elif defined(__WXANDROID__)
 #  include "wx/android/chkconf.h"
+#elif defined(__WXWASM__)
+#  include "wx/wasm/chkconf.h"
 #endif
 
 /* Note that __WXGTK__ may be defined under Windows and Mac if we're using

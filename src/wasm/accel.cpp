@@ -114,3 +114,19 @@ const wxAcceleratorEntry* wxAcceleratorTable::FindEntry(int flags, int keyCode) 
 
     return nullptr;
 }
+
+const wxAcceleratorEntry* wxAcceleratorTable::GetEntry(const wxKeyEvent& event) const
+{
+    if ( !m_refData )
+        return nullptr;
+
+    for ( wxAccelList::const_iterator it = M_ACCELDATA->m_accels.begin();
+          it != M_ACCELDATA->m_accels.end(); ++it )
+    {
+        const wxAcceleratorEntry* entry = *it;
+        if ( entry->MatchesEvent(event) )
+            return entry;
+    }
+
+    return nullptr;
+}

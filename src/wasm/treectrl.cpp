@@ -252,7 +252,7 @@ void wxTreeCtrl::SetItemHasChildren(const wxTreeItemId& item, bool has)
             if (!childUl) {
                 childUl = document.createElement('ul');
                 childUl.style.listStyle = 'none';
-                childUl.style.paddingLeft = '20px';
+                childUl.style.paddingLeft = li.dataset.hideRoot ? '0px' : '20px';
                 childUl.style.margin = '0';
                 li.appendChild(childUl);
             }
@@ -264,6 +264,7 @@ void wxTreeCtrl::SetItemHasChildren(const wxTreeItemId& item, bool has)
                 toggle.style.cursor = 'pointer';
                 toggle.style.marginRight = '4px';
                 toggle.style.userSelect = 'none';
+                if (li.dataset.hideRoot) toggle.style.display = 'none';
                 li.insertBefore(toggle, li.firstChild);
             }
         }, GetDomWindowId(), (int)(wxIntPtr)item.GetID());
@@ -309,6 +310,9 @@ void wxTreeCtrl::SetItemFont(const wxTreeItemId& item, const wxFont& font)
 bool wxTreeCtrl::IsVisible(const wxTreeItemId& item) const
 {
     wxCHECK_MSG(item.IsOk(), false, "invalid tree item");
+
+    if ( item == m_rootItem && HasFlag(wxTR_HIDE_ROOT) )
+        return false;
 
     wxTreeItemId parent = GetItemParent(item);
     while (parent.IsOk())
@@ -663,8 +667,20 @@ wxTreeItemId wxTreeCtrl::AddRoot(const wxString& text,
         label.style.userSelect = 'none';
 
         li.appendChild(label);
+
+        // With wxTR_HIDE_ROOT the root must not show as a row (the C++
+        // control doesn't paint it). display:contents drops the li's own
+        // box and hiding the label removes the row contents, while the
+        // children appended inside the li still render at top level.
+        if ($3) {
+            li.style.display = 'contents';
+            label.style.display = 'none';
+            li.dataset.hideRoot = '1';
+        }
+
         ul.appendChild(li);
-    }, GetDomWindowId(), (int)(wxIntPtr)idValue, buf.data());
+    }, GetDomWindowId(), (int)(wxIntPtr)idValue, buf.data(),
+       (int)HasFlag(wxTR_HIDE_ROOT));
 
     return itemId;
 }
@@ -959,6 +975,29 @@ bool wxTreeCtrl::GetBoundingRect(
 void wxTreeCtrl::SetWindowStyleFlag(long styles)
 {
     wxControl::SetWindowStyleFlag(styles);
+
+    // wxTR_HIDE_ROOT can be toggled at runtime (the treectrl sample does
+    // it via SetWindowStyle): keep the DOM in sync. Before the root exists
+    // there is nothing to update; AddRoot() applies the flag then.
+    if ( m_rootItem.IsOk() )
+    {
+        EM_ASM_({
+            var container = document.getElementById($0);
+            if (!container) return;
+            var li = container.querySelector('li[data-item-id="' + $1 + '"]');
+            if (!li) return;
+            var hide = $2;
+            li.style.display = hide ? 'contents' : 'list-item';
+            li.dataset.hideRoot = hide ? '1' : '';
+            var label = li.querySelector(':scope > .wxTreeLabel');
+            if (label) label.style.display = hide ? 'none' : '';
+            var toggle = li.querySelector(':scope > .wxTreeToggle');
+            if (toggle) toggle.style.display = hide ? 'none' : '';
+            var ul = li.querySelector(':scope > ul');
+            if (ul) ul.style.paddingLeft = hide ? '0px' : '20px';
+        }, GetDomWindowId(), (int)(wxIntPtr)m_rootItem.GetID(),
+           (int)HasFlag(wxTR_HIDE_ROOT));
+    }
 }
 
 void *wxTreeCtrl::GetHandle() const
@@ -1014,7 +1053,9 @@ wxTreeItemId wxTreeCtrl::DoInsertItem(const wxTreeItemId& parent,
         if (!childUl) {
             childUl = document.createElement('ul');
             childUl.style.listStyle = 'none';
-            childUl.style.paddingLeft = '20px';
+            // Children of a hidden root render at top level, without the
+            // extra indent, like in the native control.
+            childUl.style.paddingLeft = parentLi.dataset.hideRoot ? '0px' : '20px';
             childUl.style.margin = '0';
             parentLi.appendChild(childUl);
 
@@ -1025,6 +1066,7 @@ wxTreeItemId wxTreeCtrl::DoInsertItem(const wxTreeItemId& parent,
                 toggle.style.cursor = 'pointer';
                 toggle.style.marginRight = '4px';
                 toggle.style.userSelect = 'none';
+                if (parentLi.dataset.hideRoot) toggle.style.display = 'none';
                 parentLi.insertBefore(toggle, parentLi.firstChild);
             }
         }
